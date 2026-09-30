@@ -38,6 +38,19 @@ h1{font-size:22px;color:var(--gold);letter-spacing:2px;text-align:center;margin-
 .stat{border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;display:flex;justify-content:space-between;align-items:center}
 .stat .v{font-weight:bold;font-size:15px}
 .stat.will .v{color:#b0a0e0}.stat.int .v{color:#7ab0c8}.stat.combat .v{color:#d08080}.stat.agility .v{color:#90c090}
+/* 缩小的人物头像图标 */
+.inv-mini{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;transition:border-color .15s}
+.inv-mini:hover{border-color:var(--gold)}
+.inv-mini .inv-avatar{width:42px;height:42px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:20px;background:#2a1c10;flex-shrink:0}
+.inv-mini .mini-info{flex:1;min-width:0}
+.inv-mini .mini-name{font-size:13px;font-weight:bold;color:var(--text)}
+.inv-mini .mini-bars{display:flex;flex-direction:column;gap:3px;margin-top:4px}
+.inv-mini .mini-row{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--dim)}
+.inv-mini .mini-bar{flex:1;height:6px;border:1px solid var(--border);border-radius:3px;overflow:hidden;background:#0a0705}
+.inv-mini .mini-fill{height:100%}
+.inv-mini .mini-fill.hp{background:var(--blood)}.inv-mini .mini-fill.sanity{background:var(--blue)}
+.inv-mini .mini-badge{font-size:9px;color:var(--gold)}
+.inv-mini .mini-hint{font-size:9px;color:var(--dim);text-align:center}
 .track{margin-top:10px}
 .track .row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
 .track .bar{height:10px;border:1px solid var(--border);border-radius:5px;overflow:hidden;background:#0a0705}
@@ -132,7 +145,11 @@ h1{font-size:22px;color:var(--gold);letter-spacing:2px;text-align:center;margin-
 
   <div class="layout">
     <div class="left">
-      <div class="panel" id="investigator"></div>
+      <div class="inv-mini" id="investigator" onclick="openInvestigatorModal()"></div>
+      <div class="panel">
+        <h2>地点</h2>
+        <div class="locs" id="locations"></div>
+      </div>
       <div class="panel">
         <h2>手牌</h2>
         <div class="hand" id="hand"></div>
@@ -144,10 +161,6 @@ h1{font-size:22px;color:var(--gold);letter-spacing:2px;text-align:center;margin-
       </div>
     </div>
     <div class="right">
-      <div class="panel">
-        <h2>地点</h2>
-        <div class="locs" id="locations"></div>
-      </div>
       <div class="panel">
         <h2>敌人</h2>
         <div id="enemies"></div>
@@ -388,7 +401,26 @@ function renderInvestigator(){
   const hpPct = S.hp/INVESTIGATOR.maxHp*100;
   const sanPct = S.sanity/INVESTIGATOR.maxSanity*100;
   el.innerHTML = `
-    <div class="inv-head">
+    <div class="inv-avatar">${INVESTIGATOR.emoji}</div>
+    <div class="mini-info">
+      <div class="mini-name">${INVESTIGATOR.name}</div>
+      <div class="mini-bars">
+        <div class="mini-row"><span style="width:22px">生命</span><div class="mini-bar"><div class="mini-fill hp" style="width:${hpPct}%"></div></div><span>${S.hp}</span></div>
+        <div class="mini-row"><span style="width:22px">理智</span><div class="mini-bar"><div class="mini-fill sanity" style="width:${sanPct}%"></div></div><span>${S.sanity}</span></div>
+      </div>
+      <div class="mini-badge">💰${S.resources} 🔎${S.clues}</div>
+    </div>
+    <div class="mini-hint">查看<br>详情</div>
+  `;
+}
+
+function openInvestigatorModal(){
+  if(!S) return;
+  const hpPct = Math.round(S.hp/INVESTIGATOR.maxHp*100);
+  const sanPct = Math.round(S.sanity/INVESTIGATOR.maxSanity*100);
+  document.getElementById('modalBox').innerHTML = `
+    <h3>调查员</h3>
+    <div class="inv-head" style="margin-bottom:12px">
       <div class="inv-avatar">${INVESTIGATOR.emoji}</div>
       <div>
         <div class="inv-name">${INVESTIGATOR.name}</div>
@@ -402,15 +434,18 @@ function renderInvestigator(){
       <div class="stat agility"><span>🏃 敏捷</span><span class="v">${INVESTIGATOR.agility}</span></div>
     </div>
     <div class="track">
-      <div class="row"><span>生命</span><span>${S.hp}/${INVESTIGATOR.maxHp}</span></div>
+      <div class="row"><span>生命</span><span>${S.hp}/${INVESTIGATOR.maxHp} (${hpPct}%)</span></div>
       <div class="bar"><div class="fill hp" style="width:${hpPct}%"></div></div>
-      <div class="row" style="margin-top:6px"><span>理智</span><span>${S.sanity}/${INVESTIGATOR.maxSanity}</span></div>
+      <div class="row" style="margin-top:6px"><span>理智</span><span>${S.sanity}/${INVESTIGATOR.maxSanity} (${sanPct}%)</span></div>
       <div class="bar"><div class="fill sanity" style="width:${sanPct}%"></div></div>
       <div class="row" style="margin-top:6px"><span>资源 💰</span><span>${S.resources}</span></div>
       <div class="row"><span>线索 🔎</span><span>${S.clues}</span></div>
       <div class="row"><span>行动（本回合剩余）</span><span>${S.actions}</span></div>
+      <div class="row"><span>当前位置</span><span>${LOCATIONS[S.location].name}</span></div>
     </div>
+    <div class="center mb" style="margin-top:12px"><button class="btn primary" onclick="closeModal()">关闭</button></div>
   `;
+  document.getElementById('modal').classList.add('open');
 }
 
 function renderHand(){

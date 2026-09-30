@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>诡镇奇谭：卡牌版 · 基础单场景</title>
+<style>
+:root{
+  --bg:#0d0a08; --panel:#1a1410; --panel2:#241b14; --border:#3a2c1e;
+  --gold:#c9a35a; --gold-dim:#8a6d3a; --blood:#8a2f2f; --blood-dim:#5c1f1f;
+  --text:#e8dcc3; --dim:#a89878; --green:#5c8a4a; --blue:#4a6a8a; --purple:#7a4a8a;
+  --will:#6a5a9a; --int:#4a7a8a; --combat:#a34a4a; --agility:#5a8a5a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:"Georgia","Songti SC","SimSun",serif;
+  min-height:100vh; padding:16px;
+  background-image:radial-gradient(ellipse at 50% -20%, #241a10 0%, transparent 60%);
+}
+h1{font-size:22px;color:var(--gold);letter-spacing:2px;text-align:center;margin-bottom:2px;text-shadow:0 0 12px rgba(201,163,90,.4)}
+.sub{text-align:center;color:var(--dim);font-size:12px;margin-bottom:14px;letter-spacing:1px}
+#game{max-width:1080px;margin:0 auto}
+.phasebar{display:flex;gap:8px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
+.phase{flex:1;min-width:110px;max-width:160px;text-align:center;padding:8px 4px;border:1px solid var(--border);border-radius:6px;color:var(--dim);font-size:12px;background:var(--panel)}
+.phase.active{border-color:var(--gold);color:var(--gold);box-shadow:0 0 10px rgba(201,163,90,.25)}
+.phase .nm{font-weight:bold;font-size:13px}
+.layout{display:grid;grid-template-columns:280px 1fr;gap:12px}
+@media(max-width:820px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px}
+.panel h2{font-size:14px;color:var(--gold);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:8px;letter-spacing:1px}
+/* Investigator */
+.inv-head{display:flex;gap:10px;align-items:center}
+.inv-avatar{width:52px;height:52px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:22px;background:#2a1c10;flex-shrink:0}
+.inv-name{font-size:15px;font-weight:bold}
+.inv-title{font-size:11px;color:var(--dim)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.stat{border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;display:flex;justify-content:space-between;align-items:center}
+.stat .v{font-weight:bold;font-size:15px}
+.stat.will .v{color:#b0a0e0}.stat.int .v{color:#7ab0c8}.stat.combat .v{color:#d08080}.stat.agility .v{color:#90c090}
+.track{margin-top:10px}
+.track .row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.track .bar{height:10px;border:1px solid var(--border);border-radius:5px;overflow:hidden;background:#0a0705}
+.track .fill{height:100%;transition:width .3s}
+.fill.hp{background:var(--blood)}.fill.sanity{background:var(--blue)}.fill.res{background:var(--gold)}
+/* Hand / cards */
+.hand{display:flex;flex-wrap:wrap;gap:6px}
+.card{width:96px;border:1px solid var(--border);border-radius:6px;padding:6px;font-size:10px;background:var(--panel2);cursor:pointer;transition:transform .12s,border-color .12s;position:relative}
+.card:hover{transform:translateY(-2px);border-color:var(--gold)}
+.card .cname{font-weight:bold;font-size:10px;color:var(--text)}
+.card .ctype{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+.card .ccost{position:absolute;top:3px;right:5px;color:var(--gold);font-weight:bold;font-size:11px}
+.card .cbody{font-size:9px;color:var(--dim);margin-top:3px;line-height:1.3}
+.card .cicons{margin-top:3px;font-size:9px;letter-spacing:2px}
+.card.asset{background:#152015}.card.event{background:#151a20}.card.skill{background:#201518}.card.weak{background:#2a1212}
+.asset-inplay{margin-top:8px}
+.asset-inplay .label{font-size:11px;color:var(--dim);margin-bottom:4px}
+.slots{font-size:10px;color:var(--dim);margin-top:4px}
+/* Locations */
+.locs{display:flex;gap:8px;flex-wrap:wrap}
+.loc{flex:1;min-width:150px;border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--panel2);position:relative}
+.loc.current{border-color:var(--gold);box-shadow:0 0 12px rgba(201,163,90,.3)}
+.loc .lname{font-weight:bold;font-size:13px;color:var(--gold)}
+.loc .linfo{font-size:10px;color:var(--dim);margin-top:4px}
+.loc .clues{position:absolute;top:8px;right:8px;font-size:14px}
+.loc .conn{font-size:9px;color:var(--dim);margin-top:6px;border-top:1px dotted var(--border);padding-top:4px}
+/* Enemies */
+.enemy{border:1px solid var(--blood-dim);border-radius:6px;padding:8px;background:#1a0f0f;font-size:11px;margin-bottom:6px}
+.enemy .ename{color:#e0a0a0;font-weight:bold}
+.enemy .estats{color:var(--dim);font-size:10px;margin-top:2px}
+/* Act / Agenda */
+.aa{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.aa .side{border:1px solid var(--border);border-radius:6px;padding:8px;background:var(--panel2)}
+.aa .side.agenda{border-color:var(--blood-dim)}
+.aa .side.act{border-color:#3a4a2a}
+.aa h3{font-size:12px;color:var(--gold);margin-bottom:4px}
+.aa .txt{font-size:11px;color:var(--dim);line-height:1.4}
+.doom{color:#e08080;font-weight:bold}
+/* Log */
+#log{max-height:220px;overflow-y:auto;font-size:11px;line-height:1.5;color:var(--dim)}
+#log .narr{color:var(--text);font-style:italic}
+#log .good{color:#90c090}#log .bad{color:#e08080}#log .gold{color:var(--gold)}
+#log div{padding:2px 0;border-bottom:1px solid #1c1610}
+/* Buttons */
+.btn{background:var(--panel2);border:1px solid var(--gold-dim);color:var(--gold);padding:6px 10px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit;letter-spacing:1px}
+.btn:hover{background:#2c2114;border-color:var(--gold)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.danger{border-color:var(--blood);color:#e0a0a0}
+.btn.primary{background:#3a2c16;border-color:var(--gold)}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.action-btn{min-width:80px;text-align:left}
+.action-btn small{display:block;font-size:9px;color:var(--dim);letter-spacing:0}
+#controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+/* Modal */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+#modal.open{display:flex}
+.modal-box{background:var(--panel);border:1px solid var(--gold-dim);border-radius:10px;padding:18px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto}
+.modal-box h3{color:var(--gold);font-size:16px;margin-bottom:10px}
+.skilltest .testinfo{font-size:13px;margin-bottom:10px;line-height:1.6}
+.skilltest .commits{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.commit-card{border:1px solid var(--border);border-radius:5px;padding:5px;font-size:10px;cursor:pointer;background:var(--panel2);width:80px}
+.commit-card.sel{border-color:var(--gold);background:#2c2114}
+.chaos{font-size:34px;text-align:center;margin:14px 0;min-height:50px}
+.result-good{color:#90c090;font-weight:bold}.result-bad{color:#e08080;font-weight:bold}
+.center{text-align:center}
+.mb{margin-bottom:8px}
+#startOverlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+#startOverlay .box{max-width:560px;text-align:center;background:var(--panel);border:1px solid var(--gold-dim);border-radius:12px;padding:30px}
+#startOverlay h1{margin-bottom:8px}
+#startOverlay p{color:var(--dim);font-size:13px;line-height:1.7;margin-bottom:14px}
+#startOverlay .btn{font-size:15px;padding:10px 22px}
+</style>
+</head>
+<body>
+<h1>诡镇奇谭：卡牌版</h1>
+<div class="sub">Arkham Horror: The Card Game · 基础单场景 · 聚会之夜</div>
+
+<div id="startOverlay">
+  <div class="box">
+    <h1>聚会之夜</h1>
+    <p>1926 年，马萨诸塞州阿卡姆。你的书房门被一股诡异的力量撬开，</p>
+    <p>黑暗中传来低语，而你握紧了手中的枪。</p>
+    <p>你是<b style="color:var(--gold)">罗兰·班克斯</b>，联邦探员。今晚，你将调查这栋宅邸中不断蔓延的异象，</p>
+    <p>在理智崩溃之前，揭开书房、走廊与阁楼里潜藏的真相。</p>
+    <p style="font-size:11px;color:var(--dim)">建议在电脑浏览器中游玩 · 每回合 3 个行动 · 点击卡牌/按钮操作</p>
+    <button class="btn primary" onclick="startGame()">开始调查</button>
+  </div>
+</div>
+
+<div id="game" style="display:none">
+  <div class="phasebar" id="phasebar"></div>
+
+  <div class="layout">
+    <div class="left">
+      <div class="panel" id="investigator"></div>
+      <div class="panel">
+        <h2>手牌</h2>
+        <div class="hand" id="hand"></div>
+      </div>
+      <div class="panel">
+        <h2>已打出的资产</h2>
+        <div id="assets"></div>
+        <div class="slots" id="slots"></div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="panel">
+        <h2>地点</h2>
+        <div class="locs" id="locations"></div>
+      </div>
+      <div class="panel">
+        <h2>敌人</h2>
+        <div id="enemies"></div>
+      </div>
+      <div class="panel">
+        <div class="aa">
+          <div class="side act">
+            <h3>幕 (Act)</h3>
+            <div class="txt" id="act"></div>
+          </div>
+          <div class="side agenda">
+            <h3>议程 (Agenda) <span class="doom" id="doomcount"></span></h3>
+            <div class="txt" id="agenda"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>行动</h2>
+        <div class="actions" id="actions"></div>
+        <div id="controls"></div>
+      </div>
+      <div class="panel">
+        <h2>事件记录</h2>
+        <div id="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<script>
+/* ============ 数据定义 ============ */
+const SKILL = { will:'意志', int:'智慧', combat:'战斗', agility:'敏捷' };
+
+// 调查员：罗兰·班克斯
+const INVESTIGATOR = {
+  name:'罗兰·班克斯', title:'联邦探员', emoji:'🕵️',
+  will:3, int:3, combat:4, agility:2,
+  maxHp:9, maxSanity:5,
+  deck:[
+    {id:'p45', name:'.45 自动手枪', type:'asset', cost:3, slot:'hand', slots:1,
+     text:'你的<b>战斗</b>行动 +1 战斗，且每次成功额外造成 1 点伤害。', icons:''},
+    {id:'machete', name:'玛谢特砍刀', type:'asset', cost:3, slot:'hand', slots:1,
+     text:'你的<b>战斗</b>行动 +1 战斗。', icons:''},
+    {id:'aid', name:'紧急援助', type:'event', cost:1,
+     text:'治疗 2 点<b>伤害</b>。', icons:''},
+    {id:'resource', name:'工作动力', type:'event', cost:0,
+     text:'获得 3 点<b>资源</b>。', icons:''},
+    {id:'dodge', name:'侧身闪避', type:'event', cost:1,
+     text:'本次<b>闪避</b>检定 +2 敏捷。', icons:''},
+    {id:'courage', name:'勇气', type:'skill', cost:0,
+     text:'投入战斗检定：+2 战斗。', icons:'💥💥'},
+    {id:'percep', name:'感知', type:'skill', cost:0,
+     text:'投入智慧检定：+2 智慧。', icons:'🔍🔍'},
+    {id:'guts', name:'意外勇气', type:'skill', cost:0,
+     text:'投入意志检定：+2 意志。', icons:'🧠🧠'},
+    {id:'manual', name:'身手敏捷', type:'skill', cost:0,
+     text:'投入敏捷检定：+2 敏捷。', icons:'🏃🏃'},
+    {id:'nightmare', name:'缠身梦魇', type:'weak', cost:0,
+     text:'抽到此牌时立即承受 1 点<b>恐惧</b>。', icons:''},
+  ]
+};
+
+// 地点
+const LOCATIONS = {
+  study:{name:'书房', shroud:2, clues:2, desc:'你熟悉的书房，书页被风吹得哗哗作响。', conn:['hallway']},
+  hallway:{name:'走廊', shroud:2, clues:1, desc:'昏暗的走廊，尽头似乎有脚步声。', conn:['study','attic']},
+  attic:{name:'阁楼', shroud:3, clues:2, desc:'吱呀作响的木梯通向一片黑暗。', conn:['hallway']},
+};
+
+// 幕牌组
+const ACT_DECK = [
+  {id:'1a', text:'<b>目标：</b>在宅邸各处收集 <b>3 个线索</b>，然后推进本幕（花费 3 线索）。'},
+  {id:'1b', text:'<b>目标：</b>前往<b>阁楼</b>，执行「<b>完成调查</b>」行动以结束调查。'},
+];
+const ACT_RESOLUTION = 'R1'; // 幕完成 → 胜利
+
+// 议程牌组
+const AGENDA_DECK = [
+  {id:'1a', threshold:3, text:'黑暗在蔓延。末日达到 <b>3</b> 时推进。'},
+  {id:'2a', threshold:3, text:'低语愈发清晰。末日达到 <b>3</b> 时推进。'},
+  {id:'3a', threshold:0, text:'<b>理智崩塌。</b>你被黑暗吞没……（触发失败 R3）'},
+];
+
+// 遭遇牌组
+const ENCOUNTER = [
+  {id:'ghoul1', name:'食尸鬼·仆人', type:'enemy', fight:2, hp:2, dmg:1, horror:1, evade:2, hunter:false, victory:0},
+  {id:'ghoul2', name:'食尸鬼·仆人', type:'enemy', fight:2, hp:2, dmg:1, horror:1, evade:2, hunter:false, victory:0},
+  {id:'ghoul3', name:'食尸鬼·猎手', type:'enemy', fight:3, hp:3, dmg:1, horror:1, evade:3, hunter:true, victory:1},
+  {id:'ancient1', name:'古老诅咒', type:'treachery', text:'古老的力量汇聚。<b>末日 +1</b>。'},
+  {id:'ancient2', name:'古老诅咒', type:'treachery', text:'古老的力量汇聚。<b>末日 +1</b>。'},
+  {id:'whisper1', name:'恐惧低语', type:'treachery', text:'进行<b>意志(2)</b>检定：失败则承受 1 点恐惧。'},
+  {id:'whisper2', name:'恐惧低语', type:'treachery', text:'进行<b>意志(2)</b>检定：失败则承受 1 点恐惧。'},
+];
+
+// 混沌袋（标准难度）
+const CHAOS_BAG = [
+  {label:'0', mod:0}, {label:'0', mod:0},
+  {label:'+1', mod:1},
+  {label:'-1', mod:-1}, {label:'-1', mod:-1},
+  {label:'-2', mod:-2},
+  {label:'☠️ 自动失败', autofail:true},
+  {label:'✨ 上古印记', elder:true},
+];
+
+/* ============ 状态 ============ */
+let S = null;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function startGame(){
+  S = {
+    phase:'investigation', // mythos|investigation|enemy|upkeep
+    round:1,
+    firstRound:true,
+    // investigator
+    hp:INVESTIGATOR.maxHp, sanity:INVESTIGATOR.maxSanity,
+    resources:5,
+    deck:shuffle(INVESTIGATOR.deck.map(c=>({...c}))),
+    hand:[], discard:[],
+    assets:[], // {card, exhausted}
+    // location
+    location:'study',
+    revealed:{study:true, hallway:false, attic:false},
+    locClues:{study:2, hallway:1, attic:2},
+    clues:0,
+    // act / agenda
+    actIdx:0, agendaIdx:0, doom:0,
+    // enemies
+    enemies:[], // {card, hp, engaged(bool), exhausted}
+    encounter:shuffle(ENCOUNTER.map(c=>({...c}))),
+    encounterDiscard:[],
+    // chaos
+    chaos:CHAOS_BAG.slice(),
+    actions:3,
+    gameOver:false,
+    // current test state
+    test:null,
+    committed:[],
+  };
+  // 初始手牌 5 张（弱点抽到则洗回）
+  drawOpeningHand();
+  document.getElementById('startOverlay').style.display='none';
+  document.getElementById('game').style.display='block';
+  log(`<span class="narr">—— 聚会之夜：第一幕 · 书房 ——</span>`,'gold');
+  log('你握紧配枪，踏入熟悉却异常诡异的书房。','narr');
+  log('（第一回合跳过神话阶段，直接进入调查阶段）','gold');
+  render();
+}
+
+function drawOpeningHand(){
+  while(S.hand.length < 5 && S.deck.length > 0){
+    const c = S.deck.pop();
+    if(c.type === 'weak'){ S.hand.push(c); break; }
+    S.hand.push(c);
+  }
+}
+
+/* ============ 工具 ============ */
+function drawCards(n){
+  for(let i=0;i<n;i++){
+    if(S.deck.length===0){ 
+      if(S.discard.length===0){ log('牌组已空，无牌可抽！','bad'); break; }
+      S.deck = shuffle(S.discard); S.discard=[];
+      S.sanity = Math.max(0, S.sanity-1);
+      log('牌组耗尽，洗回弃牌堆，承受 1 点恐惧。','bad');
+    }
+    const c = S.deck.pop();
+    if(c.type==='weak'){
+      log(`<b>缠身梦魇</b>！承受 1 点恐惧。`,'bad');
+      S.sanity = Math.max(0, S.sanity-1);
+      // 弱点不进手牌，直接弃
+      S.discard.push(c);
+      checkDefeat();
+    } else {
+      S.hand.push(c);
+    }
+  }
+}
+
+function log(html, cls){
+  const el = document.getElementById('log');
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  if(cls) d.className = cls;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+function checkDefeat(){
+  if(S.gameOver) return;
+  if(S.hp<=0){
+    log('<b>你被重伤击败！</b>（受到 1 点肉体创伤，若达成结算则以此状态结束）','bad');
+    // 简化：直接失败结算
+    resolve('R3','你因重伤倒在了宅邸之中，黑暗吞噬了阿卡姆。');
+  } else if(S.sanity<=0){
+    log('<b>你彻底疯狂！</b>','bad');
+    resolve('R3','你的理智崩溃，再也无法分辨现实与幻象。');
+  }
+}
+
+function skillValue(skill){
+  return INVESTIGATOR[skill];
+}
+
+/* ============ 渲染 ============ */
+function render(){
+  if(!S) return;
+  renderPhaseBar();
+  renderInvestigator();
+  renderHand();
+  renderAssets();
+  renderLocations();
+  renderEnemies();
+  renderActAgenda();
+  renderActions();
+  checkDefeat();
+}
+
+function renderPhaseBar(){
+  const phases = [
+    {id:'mythos', nm:'神话', cn:'Mythos'},
+    {id:'investigation', nm:'调查', cn:'Investigation'},
+    {id:'enemy', nm:'敌人', cn:'Enemy'},
+    {id:'upkeep', nm:'维持', cn:'Upkeep'},
+  ];
+  const el = document.getElementById('phasebar');
+  el.innerHTML = phases.map(p=>{
+    const active = (S.phase===p.id)?'active':'';
+    return `<div class="phase ${active}"><div class="nm">${p.nm}阶段</div><div>${p.cn}</div></div>`;
+  }).join('');
+}
+
+function renderInvestigator(){
+  const el = document.getElementById('investigator');
+  const hpPct = S.hp/INVESTIGATOR.maxHp*100;
+  const sanPct = S.sanity/INVESTIGATOR.maxSanity*100;
+  el.innerHTML = `
+    <div class="inv-head">
+      <div class="inv-avatar">${INVESTIGATOR.emoji}</div>
+      <div>
+        <div class="inv-name">${INVESTIGATOR.name}</div>
+        <div class="inv-title">${INVESTIGATOR.title}</div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat will"><span>🧠 意志</span><span class="v">${INVESTIGATOR.will}</span></div>
+      <div class="stat int"><span>🔍 智慧</span><span class="v">${INVESTIGATOR.int}</span></div>
+      <div class="stat combat"><span>💥 战斗</span><span class="v">${INVESTIGATOR.combat}</span></div>
+      <div class="stat agility"><span>🏃 敏捷</span><span class="v">${INVESTIGATOR.agility}</span></div>
+    </div>
+    <div class="track">
+      <div class="row"><span>生命</span><span>${S.hp}/${INVESTIGATOR.maxHp}</span></div>
+      <div class="bar"><div class="fill hp" style="width:${hpPct}%"></div></div>
+      <div class="row" style="margin-top:6px"><span>理智</span><span>${S.sanity}/${INVESTIGATOR.maxSanity}</span></div>
+      <div class="bar"><div class="fill sanity" style="width:${sanPct}%"></div></div>
+      <div class="row" style="margin-top:6px"><span>资源 💰</span><span>${S.resources}</span></div>
+      <div class="row"><span>线索 🔎</span><span>${S.clues}</span></div>
+      <div class="row"><span>行动（本回合剩余）</span><span>${S.actions}</span></div>
+    </div>
+  `;
+}
+
+function renderHand(){
+  const el = document.getElementById('hand');
+  if(S.hand.length===0){ el.innerHTML='<div style="color:var(--dim);font-size:11px">手牌为空</div>'; return; }
+  el.innerHTML = S.hand.map((c,i)=>{
+    const typeLabel = {asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[c.type]||c.type;
+    const iconStr = skillIcons(c);
+    return `<div class="card ${c.type}" onclick="onHandCard(${i})">
+      <span class="ccost">${c.cost>0?c.cost:'—'}</span>
+      <div class="ctype">${typeLabel}</div>
+      <div class="cname">${c.name}</div>
+      <div class="cbody">${c.text}</div>
+      ${iconStr?`<div class="cicons">${iconStr}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function skillIcons(c){
+  // 简化：技能卡显示图标
+  if(c.type==='skill'){ return c.icons || ''; }
+  return '';
+}
+
+function renderAssets(){
+  const el = document.getElementById('assets');
+  if(S.assets.length===0){ el.innerHTML='<div style="color:var(--dim);font-size:11px">暂无已打出的资产</div>'; }
+  else {
+    el.innerHTML = `<div class="asset-inplay"><div class="label">以下资产持续生效：</div>` + 
+    S.assets.map(a=>`<div class="card asset" style="width:auto;display:inline-block;margin:2px">${a.exhausted?'💤':''}${a.card.name} <span style="color:var(--dim)">(${a.card.slot})</span></div>`).join('') + `</div>`;
+  }
+  const slots = document.getElementById('slots');
+  const handUsed = S.assets.filter(a=>a.card.slot==='hand').length;
+  slots.innerHTML = `手槽：${handUsed}/2`;
+}
+
+function renderLocations(){
+  const el = document.getElementById('locations');
+  el.innerHTML = Object.entries(LOCATIONS).map(([id,l])=>{
+    const revealed = S.revealed[id];
+    const cur = S.location===id;
+    const clues = S.locClues[id];
+    const clueStr = clues>0 ? '🔎'.repeat(Math.min(clues,4)) : '';
+    return `<div class="loc ${cur?'current':''}">
+      <div class="lname">${revealed?l.name:'【未揭示】'}</div>
+      <div class="clues">${revealed?clueStr:''}</div>
+      ${revealed?`<div class="linfo">迷雾 ${l.shroud} · ${l.desc}</div>`:'<div class="linfo">未知地点</div>'}
+      ${revealed?`<div class="conn">连接：${l.conn.map(c=>LOCATIONS[c].name).join('、')}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderEnemies(){
+  const el = document.getElementById('enemies');
+  if(S.enemies.length===0){ el.innerHTML='<div style="color:var(--dim);font-size:11px">当前没有敌人</div>'; return; }
+  el.innerHTML = S.enemies.map((e,i)=>{
+    const engagedTxt = e.engaged ? (e.exhausted?'【力竭·已交缠】':'【已交缠】') : '【游荡】';
+    return `<div class="enemy">
+      <div class="ename">${e.card.name} ${engagedTxt}</div>
+      <div class="estats">战斗 ${e.card.fight} · 生命 ${e.hp}/${e.card.hp} · 伤害 ${e.card.dmg} · 恐惧 ${e.card.horror} · 闪避 ${e.card.evade}${e.card.hunter?' · 🐺猎手':''}${e.card.victory>0?' · ⭐胜利点':''}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderActAgenda(){
+  const act = ACT_DECK[S.actIdx];
+  const agenda = AGENDA_DECK[S.agendaIdx];
+  document.getElementById('act').innerHTML = `<b>幕 ${act.id}</b><br>${act.text}`;
+  document.getElementById('agenda').innerHTML = `<b>议程 ${agenda.id}</b><br>${agenda.text}`;
+  document.getElementById('doomcount').textContent = agenda.threshold>0 ? `☠️ ${S.doom}/${agenda.threshold}` : '';
+}
+
+function renderActions(){
+  const el = document.getElementById('actions');
+  const controls = document.getElementById('controls');
+  if(S.gameOver){ el.innerHTML=''; controls.innerHTML=''; return; }
+  const actions = [];
+  if(S.phase==='investigation'){
+    const canAct = S.actions>0;
+    actions.push(btn('🎴 抽牌','draw',canAct,'抽1张牌'));
+    actions.push(btn('💰 获取资源','resource',canAct,'+1资源'));
+    actions.push(btn('🚶 移动','move',canAct,'移动到相连地点'));
+    actions.push(btn('🔎 调查','investigate',canAct,'智慧检定 vs 迷雾'));
+    actions.push(btn('💥 战斗','fight',canAct&&hasReadyEngagedOrLocalEnemy(),'战斗检定 vs 敌人'));
+    actions.push(btn('🏃 闪避','evade',canAct&&hasEngagedReadyEnemy(),'敏捷检定 vs 闪避值'));
+    if(S.actIdx===0 && S.clues>=3){
+      actions.push(btn('📜 推进幕（花费3线索）','advanceAct',canAct,'进入幕1b'));
+    }
+    if(S.actIdx===1 && S.location==='attic'){
+      actions.push(btn('📜 完成调查','finish',canAct,'结束调查（幕1b）'));
+    }
+    controls.innerHTML = `<span style="color:var(--dim);font-size:11px">行动剩余：${S.actions}/3</span>
+      <button class="btn" onclick="endTurn()" ${S.actions===3?'disabled':''}>结束回合</button>`;
+  } else {
+    actions.push(btn('⏭️ 继续下一阶段','next',true,''));
+    controls.innerHTML='';
+  }
+  el.innerHTML = actions.join('');
+}
+
+function btn(label, fn, enabled, hint){
+  return `<button class="btn action-btn" onclick="doAction('${fn}')" ${enabled?'':'disabled'}>${label}${hint?`<small>${hint}</small>`:''}</button>`;
+}
+
+function hasEngagedReadyEnemy(){
+  return S.enemies.some(e=>e.engaged && !e.exhausted);
+}
+function hasReadyEngagedOrLocalEnemy(){
+  return S.enemies.some(e=>e.engaged && !e.exhausted) || S.enemies.some(e=>!e.engaged && !e.exhausted);
+}
+
+/* ============ 行动处理 ============ */
+function doAction(fn){
+  if(S.phase!=='investigation' || S.gameOver) return;
+  const fnMap = {draw, resource, move, investigate, fight, evade, finish, advanceAct, next};
+  if(fnMap[fn]) fnMap[fn]();
+}
+
+function spendAction(){
+  S.actions--;
+  render();
+}
+
+// 借机攻击：与就绪敌人交缠时，执行非豁免行动会被借机。豁免行动：战斗/闪避/谈判/撤退。
+// 返回 true 表示发生了借机攻击（但不阻止行动执行）。
+function attackOfOpportunity(){
+  const readyEngaged = S.enemies.find(e=>e.engaged && !e.exhausted);
+  if(readyEngaged){
+    takeEnemyHit(readyEngaged, '借机攻击');
+    return true;
+  }
+  return false;
+}
+
+function takeEnemyHit(e, reason){
+  log(`${e.card.name} 对罗兰发动${reason||'攻击'}：造成 ${e.card.dmg} 伤害 + ${e.card.horror} 恐惧。`,'bad');
+  S.hp = Math.max(0, S.hp - e.card.dmg);
+  S.sanity = Math.max(0, S.sanity - e.card.horror);
+  render();
+  checkDefeat();
+}
+
+/* --- 各行动 --- */
+function draw(){
+  attackOfOpportunity();
+  drawCards(1);
+  spendAction();
+  log('你抽了 1 张牌。');
+}
+
+function resource(){
+  attackOfOpportunity();
+  S.resources++;
+  spendAction();
+  log('你获得 1 点资源。');
+}
+
+function move(){
+  attackOfOpportunity();
+  const loc = LOCATIONS[S.location];
+  const opts = loc.conn.map(id=>LOCATIONS[id].name);
+  openModal(`
+    <h3>移动到哪个地点？</h3>
+    ${loc.conn.map(id=>`<button class="btn" style="margin:4px;display:block;width:100%" onclick="doMove('${id}')">${LOCATIONS[id].name}</button>`).join('')}
+    <button class="btn danger" style="margin:4px;display:block;width:100%" onclick="closeModal()">取消</button>
+  `);
+}
+
+function doMove(id){
+  closeModal();
+  S.location = id;
+  if(!S.revealed[id]){
+    S.revealed[id]=true;
+    log(`你进入了<b>${LOCATIONS[id].name}</b>：${LOCATIONS[id].desc}`,'narr');
+  } else {
+    log(`你移动到<b>${LOCATIONS[id].name}</b>。`);
+  }
+  spendAction();
+  render();
+}
+
+function investigate(){
+  attackOfOpportunity();
+  const loc = LOCATIONS[S.location];
+  if(S.locClues[S.location]<=0){
+    log('这个地点已经没有线索了。','dim');
+    return;
+  }
+  startTest('int', loc.shroud, '调查', (success)=>{
+    if(success){
+      S.locClues[S.location]--;
+      S.clues++;
+      log(`你发现了 1 条线索！（线索 ${S.clues}）`,'good');
+    } else {
+      log('你没有发现任何线索。','dim');
+    }
+    spendAction();
+    render();
+  });
+}
+
+function fight(){
+  // 战斗是豁免行动，不触发借机攻击
+  const target = S.enemies.find(e=>e.engaged && !e.exhausted) || S.enemies.find(e=>!e.engaged && !e.exhausted);
+  if(!target){ log('没有可攻击的敌人。','dim'); return; }
+  // 战斗修正（武器）
+  let bonus = 0, extraDmg = 0;
+  S.assets.forEach(a=>{
+    if(a.card.id==='p45'){ bonus+=1; extraDmg+=1; }
+    if(a.card.id==='machete'){ bonus+=1; }
+  });
+  const weaponTxt = bonus>0 ? `（武器修正 +${bonus}）` : '';
+  startTest('combat', target.card.fight, `战斗 ${weaponTxt}`, (success)=>{
+    if(success){
+      let dmg = 1 + extraDmg;
+      target.hp -= dmg;
+      log(`你击中了 ${target.card.name}，造成 ${dmg} 点伤害！`,'good');
+      if(target.hp<=0){
+        log(`<b>${target.card.name} 被击败！</b>`,'gold');
+        if(target.card.victory>0){
+          S.clues += target.card.victory;
+          log(`获得 ${target.card.victory} 点胜利线索！`,'good');
+        }
+        S.enemies = S.enemies.filter(e=>e!==target);
+      }
+    } else {
+      log('你的攻击落空了。','dim');
+    }
+    spendAction();
+    render();
+  });
+}
+
+function evade(){
+  // 闪避是豁免行动，不触发借机攻击
+  const target = S.enemies.find(e=>e.engaged && !e.exhausted);
+  if(!target){ log('没有与你交缠且就绪的敌人。','dim'); return; }
+  startTest('agility', target.card.evade, '闪避', (success)=>{
+    if(success){
+      target.exhausted = true;
+      target.engaged = false;
+      log(`你成功闪避了 ${target.card.name}，它被力竭并脱离。`,'good');
+    } else {
+      log('闪避失败，敌人仍与你交缠。','bad');
+    }
+    spendAction();
+    render();
+  });
+}
+
+function finish(){
+  if(S.actIdx===1 && S.location==='attic'){
+    resolve('R1','你在阁楼的旧箱中找到了真相——这场聚会背后的邪恶仪式。你决定阻止它。');
+  }
+}
+
+function advanceAct(){
+  attackOfOpportunity();
+  if(S.actIdx!==0 || S.clues<3){ return; }
+  S.clues -= 3;
+  S.actIdx = 1;
+  log('你花 3 条线索拼凑出真相：异象的源头在<b>阁楼</b>。','gold');
+  log('<b>幕 1b</b>：前往阁楼并完成调查。','gold');
+  spendAction();
+  render();
+}
+
+function next(){
+  advancePhase();
+}
+
+/* ============ 检定系统 ============ */
+function startTest(skill, difficulty, label, onDone){
+  S.test = {skill, difficulty, label, onDone, bonus:0};
+  S.committed = [];
+  openTestModal();
+}
+
+function openTestModal(){
+  const t = S.test;
+  const sk = SKILL[t.skill];
+  const base = skillValue(t.skill);
+  const total = base + t.bonus + S.committed.reduce((s,c)=>s+commitBonus(c),0);
+  const committable = S.hand.filter(c=>commitBonus(c)>0);
+  document.getElementById('modalBox').innerHTML = `
+    <h3>技能检定：${t.label}</h3>
+    <div class="skilltest">
+      <div class="testinfo">
+        属性：<b>${sk}</b>（基础 ${base}）<br>
+        难度：<b>${t.difficulty}</b>　当前合计：<b>${total}</b>
+        ${total>=t.difficulty?' <span class="result-good">(已达标)</span>':' <span class="result-bad">(未达标)</span>'}
+      </div>
+      <div>投入卡牌（可选，点击选中/取消）：</div>
+      <div class="commits">
+        ${committable.length===0?'<div style="color:var(--dim);font-size:11px">没有可投入的牌</div>':committable.map((c,i)=>{
+          const origIdx = S.hand.indexOf(c);
+          const sel = S.committed.includes(c);
+          return `<div class="commit-card ${sel?'sel':''}" onclick="toggleCommit(${origIdx})">
+            <div class="cname">${c.name}</div>
+            <div style="color:var(--gold)">+${commitBonus(c)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="center mb">
+        <button class="btn primary" onclick="resolveTest()">抽取混沌指示物</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+function commitBonus(c){
+  const t = S.test;
+  if(!t) return 0;
+  if(c.type==='skill'){
+    if(c.id==='courage' && t.skill==='combat') return 2;
+    if(c.id==='percep' && t.skill==='int') return 2;
+    if(c.id==='guts' && t.skill==='will') return 2;
+    if(c.id==='manual' && t.skill==='agility') return 2;
+    return 0;
+  }
+  if(c.type==='event' && c.id==='dodge' && t.skill==='agility') return 2;
+  return 0;
+}
+
+function toggleCommit(idx){
+  const c = S.hand[idx];
+  if(S.committed.includes(c)){
+    S.committed = S.committed.filter(x=>x!==c);
+  } else {
+    S.committed.push(c);
+  }
+  openTestModal();
+}
+
+function resolveTest(){
+  const t = S.test;
+  const base = skillValue(t.skill);
+  let total = base + t.bonus + S.committed.reduce((s,c)=>s+commitBonus(c),0);
+  // 抽混沌
+  const token = S.chaos[Math.floor(Math.random()*S.chaos.length)];
+  let result;
+  let tokenHtml;
+  if(token.autofail){
+    result = false; tokenHtml = '☠️';
+  } else if(token.elder){
+    total += 1; result = true; tokenHtml = '✨';
+    // 罗兰上古印记：治疗1伤害
+    S.hp = Math.min(INVESTIGATOR.maxHp, S.hp+1);
+    log('✨ 上古印记：你恢复 1 点生命。','good');
+  } else {
+    total += token.mod; result = total >= t.difficulty; tokenHtml = token.label;
+  }
+  // 消耗投入牌
+  S.committed.forEach(c=>{
+    S.hand = S.hand.filter(x=>x!==c);
+    S.discard.push(c);
+  });
+  document.getElementById('modalBox').innerHTML = `
+    <h3>检定结果</h3>
+    <div class="chaos">${tokenHtml}</div>
+    <div class="center" style="font-size:15px">
+      最终技能值：<b>${total}</b> vs 难度 ${t.difficulty}<br><br>
+      ${result?'<span class="result-good">✅ 检定成功</span>':'<span class="result-bad">❌ 检定失败</span>'}
+    </div>
+    <div class="center mb"><button class="btn primary" onclick="finishTest(${result})">确定</button></div>
+  `;
+  S.testResult = result;
+}
+
+function finishTest(result){
+  closeModal();
+  const t = S.test;
+  S.test = null; S.committed=[];
+  t.onDone(result);
+}
+
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+function openModal(html){ document.getElementById('modalBox').innerHTML=html; document.getElementById('modal').classList.add('open'); }
+
+/* ============ 阶段流转 ============ */
+function endTurn(){
+  S.actions = 0;
+  advancePhase();
+}
+
+function advancePhase(){
+  if(S.gameOver) return;
+  if(S.phase==='investigation'){ S.phase='enemy'; log('—— 敌人阶段 ——','gold'); enemyPhase(); }
+  else if(S.phase==='enemy'){ S.phase='upkeep'; log('—— 维持阶段 ——','gold'); upkeepPhase(); }
+  else if(S.phase==='upkeep'){ S.phase='mythos'; log('—— 神话阶段 ——','gold'); mythosPhase(); }
+  else if(S.phase==='mythos'){ S.phase='investigation'; S.actions=3; S.round++; log(`—— 第 ${S.round} 回合 · 调查阶段 ——`,'gold'); render(); }
+  render();
+}
+
+function enemyPhase(){
+  // 猎手敌人移动（简化：未交缠的猎手敌人交缠你）
+  S.enemies.forEach(e=>{
+    if(e.card.hunter && !e.engaged){
+      e.engaged = true;
+      log(`${e.card.name}（猎手）向你逼近并交缠了你！`,'bad');
+    }
+  });
+  // 敌人攻击：就绪且交缠的敌人
+  const attackers = S.enemies.filter(e=>e.engaged && !e.exhausted);
+  attackers.forEach(e=>{
+    takeEnemyHit(e, '攻击');
+    e.exhausted = true;
+  });
+  render();
+}
+
+function upkeepPhase(){
+  // 力竭敌人恢复就绪
+  S.enemies.forEach(e=>{ e.exhausted=false; });
+  // 恢复资产（简化：无需要就绪的资产）
+  S.assets.forEach(a=>a.exhausted=false);
+  // 抽牌+资源
+  drawCards(1);
+  S.resources++;
+  log('维持阶段：恢复就绪，抽 1 张牌，+1 资源。');
+  // 手牌上限 8
+  if(S.hand.length>8){
+    // 自动弃置末尾
+    while(S.hand.length>8){ S.discard.push(S.hand.pop()); }
+    log('手牌超过 8 张，已弃置至 8 张。','dim');
+  }
+  render();
+}
+
+function mythosPhase(){
+  // 放末日
+  S.doom++;
+  log(`神话阶段：末日 +1（当前 ${S.doom}）。`,'bad');
+  const agenda = AGENDA_DECK[S.agendaIdx];
+  if(agenda.threshold>0 && S.doom>=agenda.threshold){
+    advanceAgenda();
+    render();
+    return;
+  }
+  // 抽遭遇牌
+  drawEncounter();
+  render();
+}
+
+function drawEncounter(){
+  if(S.encounter.length===0){
+    S.encounter = shuffle(S.encounterDiscard); S.encounterDiscard=[];
+  }
+  const c = S.encounter.pop();
+  if(c.type==='enemy'){
+    const e = {card:c, hp:c.hp, engaged:true, exhausted:false};
+    S.enemies.push(e);
+    log(`遭遇：<b>${c.name}</b> 出现并交缠了你！`,'bad');
+  } else if(c.type==='treachery'){
+    if(c.id.startsWith('ancient')){
+      S.doom++;
+      log(`遭遇：<b>${c.name}</b> —— 末日 +1（当前 ${S.doom}）。`,'bad');
+      const ag = AGENDA_DECK[S.agendaIdx];
+      if(ag.threshold>0 && S.doom>=ag.threshold){ advanceAgenda(); }
+    } else if(c.id.startsWith('whisper')){
+      log(`遭遇：<b>${c.name}</b> —— 进行意志(2)检定。`,'bad');
+      startTest('will', 2, '抵抗恐惧低语', (success)=>{
+        if(!success){
+          S.sanity = Math.max(0, S.sanity-1);
+          log('你被低语侵蚀，承受 1 点恐惧。','bad');
+          checkDefeat();
+        } else {
+          log('你稳住了心神。','good');
+        }
+        render();
+      });
+      return;
+    }
+    S.encounterDiscard.push(c);
+  }
+}
+
+function advanceAgenda(){
+  const old = AGENDA_DECK[S.agendaIdx];
+  S.agendaIdx++;
+  S.doom = 0;
+  log(`议程推进：${old.id} → ${AGENDA_DECK[S.agendaIdx].id}`,'bad');
+  const ag = AGENDA_DECK[S.agendaIdx];
+  if(ag.threshold===0 && ag.id==='3a'){
+    resolve('R3', ag.text.replace(/<[^>]+>/g,''));
+  }
+}
+
+/* ============ 卡牌打出 ============ */
+function onHandCard(i){
+  if(S.phase!=='investigation' || S.gameOver) return;
+  const c = S.hand[i];
+  if(c.type==='skill'){ log('技能卡只能投入技能检定，无法直接打出。','dim'); return; }
+  if(c.type==='weak'){ log('弱点无法主动打出。','dim'); return; }
+  if(c.type==='asset'){
+    // 检查手槽
+    const handUsed = S.assets.filter(a=>a.card.slot==='hand').length;
+    if(c.slot==='hand' && handUsed>=2){
+      log('手槽已满（2/2），无法再装备武器。','bad');
+      return;
+    }
+  }
+  if(S.resources < c.cost){
+    log(`资源不足（需 ${c.cost}，现有 ${S.resources}）。`,'bad');
+    return;
+  }
+  // 借机攻击？打出卡牌属于非战斗/闪避行动——但通常打出不触发借机（官方：打出资产/事件不触发借机）。简化：不触发。
+  S.resources -= c.cost;
+  S.hand = S.hand.filter(x=>x!==c);
+  if(c.type==='asset'){
+    S.assets.push({card:c, exhausted:false});
+    log(`你装备了<b>${c.name}</b>（花费 ${c.cost} 资源）。`,'good');
+  } else if(c.type==='event'){
+    applyEvent(c);
+    S.discard.push(c);
+  }
+  render();
+}
+
+function applyEvent(c){
+  if(c.id==='aid'){
+    S.hp = Math.min(INVESTIGATOR.maxHp, S.hp+2);
+    log(`<b>紧急援助</b>：治疗 2 点伤害。`,'good');
+  } else if(c.id==='resource'){
+    S.resources += 3;
+    log(`<b>工作动力</b>：获得 3 点资源。`,'good');
+  } else if(c.id==='dodge'){
+    log(`<b>侧身闪避</b>：此卡将在下次闪避检定时自动 +2（简化提示）。`,'good');
+    // 简化：直接给一个增益，不持久化。仅提示。
+  }
+}
+
+/* ============ 结算 ============ */
+function resolve(code, text){
+  if(S.gameOver) return;
+  S.gameOver = true;
+  const win = code==='R1';
+  log(`<b>${win?'✅ 达成结算 '+code+' —— 胜利':'❌ 触发结算 '+code+' —— 失败'}</b>`,'gold');
+  log(text,'narr');
+  document.getElementById('actions').innerHTML='';
+  document.getElementById('controls').innerHTML = `<button class="btn primary" onclick="location.reload()">重新开始</button>`;
+  openModal(`
+    <h3>${win?'🎉 调查成功！':'💀 调查失败……'}</h3>
+    <div class="center" style="font-size:13px;line-height:1.8">${text}</div>
+    <div class="center mb"><button class="btn primary" onclick="closeModal()">关闭</button></div>
+  `);
+}
+
+/* ============ 行动按钮推进幕（花费3线索） ============ */
+// 在幕1a，调查员可花费3线索推进（通过「完成调查」按钮或自动提示）
+// 简化：增加一个「推进幕」按钮在行动区
+function renderAdvanceAct(){
+  // 在 renderActions 里补充
+}
+</script>
+</body>
+</html>

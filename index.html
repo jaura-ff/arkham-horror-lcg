@@ -93,7 +93,9 @@ body{
 .map-link{stroke:var(--gold-dim);stroke-width:2;stroke-dasharray:6 5;opacity:.5}
 .map-node{position:absolute;transform:translate(-50%,-50%);cursor:pointer;text-align:center;width:96px;z-index:2}
 .map-node .node-card{border:1px solid var(--border);border-radius:11px;padding:8px 6px;background:linear-gradient(160deg,var(--panel2),#150f0a);transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:2px}
-.map-node .node-ico{font-size:22px;line-height:1;display:block}
+.map-node .node-ico{font-size:22px;line-height:1;display:block;width:26px;height:26px;color:var(--gold);margin:0 auto}
+.map-node .node-ico svg{width:26px;height:26px;display:block}
+.map-node.current .node-ico{color:#f0d58a}
 .map-node .node-name{font-weight:bold;font-size:12.5px;color:var(--text);line-height:1.2;white-space:nowrap}
 .map-node .node-sub{font-size:8.5px;color:var(--dim);line-height:1.2}
 .map-node .node-clue{font-size:9.5px;color:#e8c860;line-height:1.2;display:block}
@@ -107,6 +109,9 @@ body{
 .map-node .you{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--gold);color:#1a1008;font-size:8px;padding:1px 8px;border-radius:8px;font-weight:bold;letter-spacing:1px;white-space:nowrap}
 @keyframes pulse{0%,100%{box-shadow:0 0 12px rgba(201,163,90,.5)}50%{box-shadow:0 0 26px rgba(201,163,90,.85)}}
 .map-node.unrevealed{cursor:not-allowed}
+.move-btn{display:flex;align-items:center;gap:8px}
+.move-ico{width:20px;height:20px;color:var(--gold);flex-shrink:0;display:inline-block}
+.move-ico svg{width:20px;height:20px;display:block}
 .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:9px;color:var(--dim);margin-top:8px;padding-top:8px;border-top:1px dotted var(--border)}
 .legend span{display:flex;align-items:center;gap:4px}
 .legend .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
@@ -301,9 +306,16 @@ const INVESTIGATOR = {
 
 // 地点
 const LOCATIONS = {
-  study:{name:'书房', emoji:'📚', shroud:2, clues:2, desc:'你熟悉的书房，书页被风吹得哗哗作响。', conn:['hallway']},
-  hallway:{name:'走廊', emoji:'🚪', shroud:2, clues:1, desc:'昏暗的走廊，尽头似乎有脚步声。', conn:['study','attic']},
-  attic:{name:'阁楼', emoji:'🪜', shroud:3, clues:2, desc:'吱呀作响的木梯通向一片黑暗。', conn:['hallway']},
+  study:{name:'书房', shroud:2, clues:2, desc:'你熟悉的书房，书页被风吹得哗哗作响。', conn:['hallway']},
+  hallway:{name:'走廊', shroud:2, clues:1, desc:'昏暗的走廊，尽头似乎有脚步声。', conn:['study','attic']},
+  attic:{name:'阁楼', shroud:3, clues:2, desc:'吱呀作响的木梯通向一片黑暗。', conn:['hallway']},
+};
+
+// 地点图标（金色线条 SVG）
+const LOC_ICONS = {
+  study: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M5 14h14"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>`,
+  hallway: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v15"/><path d="M4 21h16"/><path d="M12 5v16"/><circle cx="16.5" cy="12" r=".9" fill="currentColor" stroke="none"/></svg>`,
+  attic: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16"/><path d="M19 4v16"/><path d="M5 8h14"/><path d="M5 12h14"/><path d="M5 16h14"/></svg>`,
 };
 
 // 幕牌组
@@ -610,7 +622,7 @@ function renderLocations(){
     let inner = '';
     if(revealed){
       inner = `
-        <span class="node-ico">${l.emoji}</span>
+        <span class="node-ico">${LOC_ICONS[id]||''}</span>
         <div class="node-name">${l.name}</div>
         <div class="node-sub">迷雾 ${l.shroud}</div>
         ${clues>0?`<span class="node-clue">🔎 线索 ×${clues}</span>`:''}
@@ -619,7 +631,7 @@ function renderLocations(){
       `;
     } else {
       inner = `
-        <span class="node-ico">❓</span>
+        <span class="node-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 0 0-7 7c0 5 7 11 7 11s7-6 7-11a7 7 0 0 0-7-7z"/><circle cx="12" cy="10" r="2.4"/><path d="M12 12.4V15"/><path d="M11.2 14.2l.8.8.8-.8"/></svg></span>
         <div class="node-name">未揭示</div>
         <div class="node-sub">未知地点</div>
       `;
@@ -767,7 +779,7 @@ function move(){
     ${loc.conn.map(id=>{
       const l = LOCATIONS[id];
       const rev = S.revealed[id];
-      return `<button class="btn" style="margin:5px;display:block;width:100%;text-align:left" onclick="doMove('${id}')">${rev?l.emoji+' '+l.name:'❓ 未揭示地点'} <span style="color:var(--dim);font-size:10px">${rev?'· 迷雾 '+l.shroud:''}</span></button>`;
+      return `<button class="btn move-btn" style="margin:5px;display:block;width:100%;text-align:left" onclick="doMove('${id}')"><span class="move-ico">${rev?(LOC_ICONS[id]||''):'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3a7 7 0 0 0-7 7c0 5 7 11 7 11s7-6 7-11a7 7 0 0 0-7-7z"/><circle cx="12" cy="10" r="2.4"/></svg>'}</span>${rev?l.name:'未揭示地点'} <span style="color:var(--dim);font-size:10px">${rev?'· 迷雾 '+l.shroud:''}</span></button>`;
     }).join('')}
     <button class="btn danger" style="margin:5px;display:block;width:100%" onclick="closeModal()">取消</button>
   `);

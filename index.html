@@ -290,7 +290,7 @@ const INVESTIGATOR = {
     {id:'resource', name:'工作动力', type:'event', cost:0,
      text:'获得 3 点资源。', icons:''},
     {id:'dodge', name:'侧身闪避', type:'event', cost:1,
-     text:'本次闪避检定 +2 敏捷。', icons:''},
+     text:'打出后，下次闪避检定 +2 敏捷；也可投入敏捷检定。', icons:''},
     {id:'courage', name:'勇气', type:'skill', cost:0,
      text:'投入战斗检定：+2 战斗。', icons:'💥💥'},
     {id:'percep', name:'感知', type:'skill', cost:0,
@@ -378,6 +378,9 @@ function startGame(){
     gameOver:false,
     test:null,
     committed:[],
+    evadeBonus:0,
+    pendingMove:false,
+    victory:[],
   };
   drawOpeningHand();
   document.getElementById('startOverlay').style.display='none';
@@ -389,21 +392,26 @@ function startGame(){
 }
 
 function drawOpeningHand(){
+  const weaknesses = [];
   while(S.hand.length < 5 && S.deck.length > 0){
     const c = S.deck.pop();
-    if(c.type === 'weak'){ S.hand.push(c); break; }
+    if(c.type === 'weak'){ weaknesses.push(c); continue; }
     S.hand.push(c);
   }
+  S.deck = shuffle([...S.deck, ...weaknesses]);
 }
 
 /* ============ 工具 ============ */
 function drawCards(n){
   for(let i=0;i<n;i++){
+    if(S.gameOver) return;
     if(S.deck.length===0){
       if(S.discard.length===0){ log('牌组已空，无牌可抽！','bad'); break; }
       S.deck = shuffle(S.discard); S.discard=[];
       S.sanity = Math.max(0, S.sanity-1);
       log('牌组耗尽，洗回弃牌堆，承受 1 点恐惧。','bad');
+      checkDefeat();
+      if(S.gameOver) return;
     }
     const c = S.deck.pop();
     if(c.type==='weak'){
@@ -508,7 +516,7 @@ function renderInvestigator(){
 }
 
 function openInvestigatorModal(){
-  if(!S) return;
+  if(!S || S.test || S.gameOver) return;
   const hpPct = Math.round(S.hp/INVESTIGATOR.maxHp*100);
   const sanPct = Math.round(S.sanity/INVESTIGATOR.maxSanity*100);
   document.getElementById('modalBox').innerHTML = `
@@ -651,7 +659,7 @@ function renderLocations(){
 }
 
 function clickNode(id){
-  if(S.gameOver || S.phase!=='investigation') return;
+  if(!canAct()) return;
   if(id===S.location) return;
   if(!LOCATIONS[S.location].conn.includes(id)) return;
   if(!S.revealed[id]) return;
@@ -688,28 +696,28 @@ function renderActions(){
   const el = document.getElementById('actions');
   const controls = document.getElementById('controls');
   const cnt = document.getElementById('actioncount');
-  if(S.gameOver){ el.innerHTML=''; controls.innerHTML=''; cnt.textContent=''; return; }
+  if(S.gameOver){ el.innerHTML=''; controls.innerHTML='<button class="btn primary" onclick="location.reload()">重新开始</button>'; cnt.textContent=''; return; }
   const actions = [];
   if(S.phase==='investigation'){
-    const canAct = S.actions>0;
+    const canTakeAction = canAct();
     cnt.textContent = `剩余 ${S.actions}/3`;
-    actions.push(btn('🎴 抽牌','draw',canAct,'抽 1 张牌'));
-    actions.push(btn('💰 资源','resource',canAct,'+1 资源'));
-    actions.push(btn('🚶 移动','move',canAct,'到相邻地点'));
-    actions.push(btn('🔎 调查','investigate',canAct,'智慧 vs 迷雾'));
-    actions.push(btn('💥 战斗','fight',canAct&&hasReadyLocalEnemy(),'战斗 vs 敌人'));
-    actions.push(btn('🏃 闪避','evade',canAct&&hasEngagedReadyEnemy(),'敏捷 vs 闪避'));
+    actions.push(btn('🎴 抽牌','draw',canTakeAction,'抽 1 张牌'));
+    actions.push(btn('💰 资源','resource',canTakeAction,'+1 资源'));
+    actions.push(btn('🚶 移动','move',canTakeAction,'到相邻地点'));
+    actions.push(btn('🔎 调查','investigate',canTakeAction&&S.locClues[S.location]>0,'智慧 vs 迷雾'));
+    actions.push(btn('💥 战斗','fight',canTakeAction&&hasLocalEnemy(),'战斗 vs 敌人'));
+    actions.push(btn('🏃 闪避','evade',canTakeAction&&hasEngagedReadyEnemy(),'敏捷 vs 闪避'));
     if(S.actIdx===0 && S.clues>=3){
-      actions.push(btn('📜 推进幕','advanceAct',canAct,'花费 3 线索'));
+      actions.push(btn('📜 推进幕','advanceAct',canTakeAction,'花费 3 线索'));
     }
     if(S.actIdx===1 && S.location==='attic'){
-      actions.push(btn('📜 完成调查','finish',canAct,'结束调查'));
+      actions.push(btn('📜 完成调查','finish',canTakeAction,'结束调查'));
     }
-    controls.innerHTML = `<button class="btn" onclick="endTurn()" ${S.actions===3?'disabled':''}>结束回合 ⏭️</button>
+    controls.innerHTML = `<button class="btn" onclick="endTurn()" ${S.actions===3||S.test||S.pendingMove?'disabled':''}>结束回合 ⏭️</button>
       <span style="color:var(--dim);font-size:11px">${S.actions===3?'（至少执行 1 个行动后才能结束回合）':''}</span>`;
   } else {
     cnt.textContent = '';
-    actions.push(btn('⏭️ 继续','next',true,'进入下一阶段'));
+    actions.push(btn('⏭️ 继续','next',!S.test,'进入下一阶段'));
     controls.innerHTML='';
   }
   el.innerHTML = actions.join('');
@@ -722,33 +730,42 @@ function btn(label, fn, enabled, hint){
 function hasEngagedReadyEnemy(){
   return S.enemies.some(e=>e.engaged && !e.exhausted);
 }
-function hasReadyLocalEnemy(){
-  return S.enemies.some(e=>e.location===S.location && !e.exhausted);
+function hasLocalEnemy(){
+  return S.enemies.some(e=>e.location===S.location);
 }
 
 /* ============ 行动处理 ============ */
 function doAction(fn){
-  if(S.phase!=='investigation' || S.gameOver) return;
-  const fnMap = {draw, resource, move, investigate, fight, evade, finish, advanceAct, next};
+  if(!S || S.gameOver || S.test || S.pendingMove) return;
+  if(fn==='next') { if(S.phase!=='investigation') next(); return; }
+  if(!canAct()) return;
+  const fnMap = {draw, resource, move, investigate, fight, evade, finish, advanceAct};
   if(fnMap[fn]) fnMap[fn]();
 }
 
-function spendAction(){
+function canAct(){
+  return !!S && !S.gameOver && !S.test && !S.pendingMove && S.phase==='investigation' && S.actions>0;
+}
+
+function beginAction(exempt=false){
+  if(!canAct()) return false;
   S.actions--;
-  render();
+  if(!exempt) attackOfOpportunity();
+  return !S.gameOver;
 }
 
 // 借机攻击：与就绪敌人交缠时，执行非豁免行动（战斗/闪避豁免）触发
 function attackOfOpportunity(){
-  const readyEngaged = S.enemies.find(e=>e.engaged && !e.exhausted);
-  if(readyEngaged){
-    takeEnemyHit(readyEngaged, '借机攻击');
-    return true;
+  const readyEngaged = S.enemies.filter(e=>e.engaged && !e.exhausted);
+  for(const enemy of readyEngaged){
+    if(S.gameOver) break;
+    takeEnemyHit(enemy, '借机攻击');
   }
-  return false;
+  return readyEngaged.length>0;
 }
 
 function takeEnemyHit(e, reason){
+  if(S.gameOver) return;
   log(`${e.card.name} 对罗兰发动${reason||'攻击'}：造成 ${e.card.dmg} 伤害 + ${e.card.horror} 恐惧。`,'bad');
   S.hp = Math.max(0, S.hp - e.card.dmg);
   S.sanity = Math.max(0, S.sanity - e.card.horror);
@@ -758,21 +775,23 @@ function takeEnemyHit(e, reason){
 
 /* --- 各行动 --- */
 function draw(){
-  attackOfOpportunity();
+  if(!beginAction()) return;
   drawCards(1);
-  spendAction();
+  if(S.gameOver) return;
   log('你抽了 1 张牌。');
+  render();
 }
 
 function resource(){
-  attackOfOpportunity();
+  if(!beginAction()) return;
   S.resources++;
-  spendAction();
   log('你获得 1 点资源。');
+  render();
 }
 
 function move(){
-  attackOfOpportunity();
+  if(!canAct()) return;
+  S.pendingMove = true;
   const loc = LOCATIONS[S.location];
   openModal(`
     <h3>移动到哪个地点？</h3>
@@ -783,10 +802,14 @@ function move(){
     }).join('')}
     <button class="btn danger" style="margin:5px;display:block;width:100%" onclick="closeModal()">取消</button>
   `);
+  renderActions();
 }
 
 function doMove(id){
+  if(!S || S.gameOver || S.test || S.phase!=='investigation' || S.actions<=0) return;
+  if(!LOCATIONS[S.location].conn.includes(id)) return;
   closeModal();
+  if(!beginAction()) return;
   S.location = id;
   if(!S.revealed[id]){
     S.revealed[id]=true;
@@ -796,17 +819,18 @@ function doMove(id){
   }
   // 交缠的敌人跟随移动；游荡的敌人留在原地
   S.enemies.forEach(e=>{ if(e.engaged) e.location = id; });
-  spendAction();
+  engageLocalEnemies();
   render();
 }
 
 function investigate(){
-  attackOfOpportunity();
+  if(!canAct()) return;
   const loc = LOCATIONS[S.location];
   if(S.locClues[S.location]<=0){
     log('这个地点已经没有线索了。','dim');
     return;
   }
+  if(!beginAction()) return;
   startTest('int', loc.shroud, '调查', (success)=>{
     if(success){
       S.locClues[S.location]--;
@@ -815,16 +839,17 @@ function investigate(){
     } else {
       log('你没有发现任何线索。','dim');
     }
-    spendAction();
     render();
   });
 }
 
 function fight(){
+  if(!canAct()) return;
   // 战斗是豁免行动
   const target = S.enemies.find(e=>e.location===S.location && e.engaged && !e.exhausted)
-              || S.enemies.find(e=>e.location===S.location && !e.exhausted);
+              || S.enemies.find(e=>e.location===S.location);
   if(!target){ log('当前位置没有可攻击的敌人。','dim'); return; }
+  if(!beginAction(true)) return;
   let bonus = 0, extraDmg = 0;
   S.assets.forEach(a=>{
     if(a.card.id==='p45'){ bonus+=1; extraDmg+=1; }
@@ -843,19 +868,24 @@ function fight(){
           log(`获得 ${target.card.victory} 点胜利线索！`,'good');
         }
         S.enemies = S.enemies.filter(e=>e!==target);
+        if(target.card.victory>0) S.victory.push(target.card);
+        else S.encounterDiscard.push(target.card);
       }
     } else {
       log('你的攻击落空了。','dim');
     }
-    spendAction();
     render();
-  });
+  }, bonus);
 }
 
 function evade(){
+  if(!canAct()) return;
   // 闪避是豁免行动
   const target = S.enemies.find(e=>e.engaged && !e.exhausted);
   if(!target){ log('没有与你交缠且就绪的敌人。','dim'); return; }
+  if(!beginAction(true)) return;
+  const bonus = S.evadeBonus;
+  S.evadeBonus = 0;
   startTest('agility', target.card.evade, '闪避', (success)=>{
     if(success){
       target.exhausted = true;
@@ -864,25 +894,24 @@ function evade(){
     } else {
       log('闪避失败，敌人仍与你交缠。','bad');
     }
-    spendAction();
     render();
-  });
+  }, bonus);
 }
 
 function finish(){
   if(S.actIdx===1 && S.location==='attic'){
+    if(!beginAction()) return;
     resolve('R1','你在阁楼的旧箱中找到了真相——这场聚会背后的邪恶仪式。你决定阻止它。');
   }
 }
 
 function advanceAct(){
-  attackOfOpportunity();
   if(S.actIdx!==0 || S.clues<3){ return; }
+  if(!beginAction()) return;
   S.clues -= 3;
   S.actIdx = 1;
   log('你花 3 条线索拼凑出真相：异象的源头在<b>阁楼</b>。','gold');
   log('<b>幕 1b</b>：前往阁楼并完成调查。','gold');
-  spendAction();
   render();
 }
 
@@ -891,10 +920,12 @@ function next(){
 }
 
 /* ============ 检定系统 ============ */
-function startTest(skill, difficulty, label, onDone){
-  S.test = {skill, difficulty, label, onDone, bonus:0};
+function startTest(skill, difficulty, label, onDone, bonus=0){
+  if(S.gameOver || S.test) return;
+  S.test = {skill, difficulty, label, onDone, bonus, resolved:false};
   S.committed = [];
   openTestModal();
+  renderActions();
 }
 
 function openTestModal(){
@@ -945,7 +976,9 @@ function commitBonus(c){
 }
 
 function toggleCommit(idx){
+  if(!S.test || S.test.resolved) return;
   const c = S.hand[idx];
+  if(!c || commitBonus(c)<=0) return;
   if(S.committed.includes(c)){
     S.committed = S.committed.filter(x=>x!==c);
   } else {
@@ -956,6 +989,8 @@ function toggleCommit(idx){
 
 function resolveTest(){
   const t = S.test;
+  if(!t || t.resolved || S.gameOver) return;
+  t.resolved = true;
   const base = skillValue(t.skill);
   let total = base + t.bonus + S.committed.reduce((s,c)=>s+commitBonus(c),0);
   const token = S.chaos[Math.floor(Math.random()*S.chaos.length)];
@@ -987,23 +1022,31 @@ function resolveTest(){
 }
 
 function finishTest(result){
-  closeModal();
   const t = S.test;
+  if(!t || !t.resolved || S.gameOver) return;
+  result = S.testResult;
   S.test = null; S.committed=[];
+  closeModal();
   t.onDone(result);
 }
 
-function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+function closeModal(){
+  if(S && S.test && !S.gameOver) return;
+  if(S) S.pendingMove = false;
+  document.getElementById('modal').classList.remove('open');
+  if(S) renderActions();
+}
 function openModal(html){ document.getElementById('modalBox').innerHTML=html; document.getElementById('modal').classList.add('open'); }
 
 /* ============ 阶段流转 ============ */
 function endTurn(){
+  if(!S || S.gameOver || S.test || S.pendingMove || S.phase!=='investigation' || S.actions===3) return;
   S.actions = 0;
   advancePhase();
 }
 
 function advancePhase(){
-  if(S.gameOver) return;
+  if(S.gameOver || S.test || S.pendingMove) return;
   if(S.phase==='investigation'){ S.phase='enemy'; log('—— 敌人阶段 ——','gold'); enemyPhase(); }
   else if(S.phase==='enemy'){ S.phase='upkeep'; log('—— 维持阶段 ——','gold'); upkeepPhase(); }
   else if(S.phase==='upkeep'){ S.phase='mythos'; log('—— 神话阶段 ——','gold'); mythosPhase(); }
@@ -1011,28 +1054,56 @@ function advancePhase(){
   render();
 }
 
-function enemyPhase(){
-  // 猎手敌人移动：游荡的猎手向玩家交缠
+function engageLocalEnemies(){
   S.enemies.forEach(e=>{
-    if(e.card.hunter && !e.engaged){
+    if(!e.exhausted && !e.engaged && e.location===S.location){
       e.engaged = true;
-      e.location = S.location;
-      log(`${e.card.name}（猎手）向你逼近并交缠了你！`,'bad');
+      log(`${e.card.name} 在同一地点与你交缠。`,'bad');
     }
   });
+}
+
+function hunterStep(from, to){
+  const queue = [[from]];
+  const visited = new Set([from]);
+  while(queue.length){
+    const path = queue.shift();
+    const at = path[path.length-1];
+    if(at===to) return path[1] || from;
+    for(const next of LOCATIONS[at].conn){
+      if(!visited.has(next)){ visited.add(next); queue.push([...path,next]); }
+    }
+  }
+  return from;
+}
+
+function enemyPhase(){
+  if(S.gameOver) return;
+  // 猎手敌人移动：游荡的猎手向玩家交缠
+  S.enemies.forEach(e=>{
+    if(e.card.hunter && !e.engaged && !e.exhausted && e.location!==S.location){
+      e.location = hunterStep(e.location, S.location);
+      log(`${e.card.name}（猎手）向你逼近，移动到${LOCATIONS[e.location].name}。`,'bad');
+    }
+  });
+  engageLocalEnemies();
   // 就绪且交缠的敌人攻击
   const attackers = S.enemies.filter(e=>e.engaged && !e.exhausted);
-  attackers.forEach(e=>{
+  for(const e of attackers){
+    if(S.gameOver) break;
     takeEnemyHit(e, '攻击');
     e.exhausted = true;
-  });
+  }
   render();
 }
 
 function upkeepPhase(){
+  if(S.gameOver) return;
   S.enemies.forEach(e=>{ e.exhausted=false; });
   S.assets.forEach(a=>a.exhausted=false);
+  engageLocalEnemies();
   drawCards(1);
+  if(S.gameOver) return;
   S.resources++;
   log('维持阶段：恢复就绪，抽 1 张牌，+1 资源。');
   if(S.hand.length>8){
@@ -1043,28 +1114,31 @@ function upkeepPhase(){
 }
 
 function mythosPhase(){
+  if(S.gameOver) return;
   S.doom++;
   log(`神话阶段：末日 +1（当前 ${S.doom}）。`,'bad');
   const agenda = AGENDA_DECK[S.agendaIdx];
   if(agenda.threshold>0 && S.doom>=agenda.threshold){
     advanceAgenda();
-    render();
-    return;
+    if(S.gameOver){ render(); return; }
   }
   drawEncounter();
   render();
 }
 
 function drawEncounter(){
+  if(S.gameOver) return;
   if(S.encounter.length===0){
     S.encounter = shuffle(S.encounterDiscard); S.encounterDiscard=[];
   }
   const c = S.encounter.pop();
+  if(!c){ log('遭遇牌堆已空，本次没有遭遇牌。','dim'); return; }
   if(c.type==='enemy'){
     const e = {card:c, hp:c.hp, engaged:true, exhausted:false, location:S.location};
     S.enemies.push(e);
     log(`遭遇：<b>${c.name}</b> 在${LOCATIONS[S.location].name}出现并交缠了你！`,'bad');
   } else if(c.type==='treachery'){
+    S.encounterDiscard.push(c);
     if(c.id.startsWith('ancient')){
       S.doom++;
       log(`遭遇：<b>${c.name}</b> —— 末日 +1（当前 ${S.doom}）。`,'bad');
@@ -1084,11 +1158,12 @@ function drawEncounter(){
       });
       return;
     }
-    S.encounterDiscard.push(c);
   }
 }
 
 function advanceAgenda(){
+  if(S.gameOver) return;
+  if(S.agendaIdx+1>=AGENDA_DECK.length){ resolve('R3','你被黑暗吞没。'); return; }
   const old = AGENDA_DECK[S.agendaIdx];
   S.agendaIdx++;
   S.doom = 0;
@@ -1101,8 +1176,9 @@ function advanceAgenda(){
 
 /* ============ 卡牌打出 ============ */
 function onHandCard(i){
-  if(S.phase!=='investigation' || S.gameOver) return;
+  if(!canAct()) return;
   const c = S.hand[i];
+  if(!c) return;
   if(c.type==='skill'){ log('技能卡只能投入技能检定，无法直接打出。','dim'); return; }
   if(c.type==='weak'){ log('弱点无法主动打出。','dim'); return; }
   if(c.type==='asset'){
@@ -1116,6 +1192,7 @@ function onHandCard(i){
     log(`资源不足（需 ${c.cost}，现有 ${S.resources}）。`,'bad');
     return;
   }
+  if(!beginAction()) return;
   S.resources -= c.cost;
   S.hand = S.hand.filter(x=>x!==c);
   if(c.type==='asset'){
@@ -1136,7 +1213,8 @@ function applyEvent(c){
     S.resources += 3;
     log(`<b>工作动力</b>：获得 3 点资源。`,'good');
   } else if(c.id==='dodge'){
-    log(`<b>侧身闪避</b>：下次闪避检定 +2（提示）。`,'good');
+    S.evadeBonus += 2;
+    log(`<b>侧身闪避</b>：下次闪避检定 +2 敏捷。`,'good');
   }
 }
 
@@ -1144,6 +1222,9 @@ function applyEvent(c){
 function resolve(code, text){
   if(S.gameOver) return;
   S.gameOver = true;
+  S.test = null;
+  S.committed = [];
+  S.pendingMove = false;
   const win = code==='R1';
   log(`<b>${win?'✅ 达成结算 '+code+' —— 胜利':'❌ 触发结算 '+code+' —— 失败'}</b>`,'gold');
   log(text,'narr');
@@ -1158,3 +1239,4 @@ function resolve(code, text){
 </script>
 </body>
 </html>
+

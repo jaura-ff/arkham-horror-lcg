@@ -317,7 +317,7 @@ test('地图样式恢复图标连线及绝对定位，移除底部占位元素',
   const css=fs.readFileSync(path.join(__dirname,'..','map.css'),'utf8');
   assert.match(css,/position:absolute!important;left:var\(--node-x\)!important;top:var\(--node-y\)!important/);
   assert.match(css,/\.map>svg.route-connections\{display:block/);assert.match(css,/\.node-ico\{display:grid/);
-  assert.match(css,/@container\(max-width:300px\)/);assert.match(html,/map.css\?v=route-center-1/);assert.match(html,/class="scene-route"/);assert.doesNotMatch(html,/class="scene-space"/);
+  assert.match(css,/@container\(max-width:300px\)/);assert.match(html,/map.css\?v=player-marker-1/);assert.match(html,/class="scene-route"/);assert.doesNotMatch(html,/class="scene-space"/);
 });
 
 test('路线几何在窄地图和宽地图中保留房间间距及居中顺序',()=>{
@@ -327,6 +327,27 @@ test('路线几何在窄地图和宽地图中保留房间间距及居中顺序',
     for(const p of points){assert.ok(p.x-cardWidth/2>=0);assert.ok(p.x+cardWidth/2<=width);assert.ok(p.y-cardHeight/2>=0);assert.ok(p.y+cardHeight/2<=height);}
     for(let i=1;i<points.length;i++)assert.ok(Math.abs(points[i].x-points[i-1].x)>=cardWidth || Math.abs(points[i].y-points[i-1].y)>=cardHeight);
   }
+});
+
+test('当前位置以唯一罗兰头像标记替换旧文字标签',()=>{
+  const g=game();g.run('renderLocations()');const map=g.document.getElementById('mapwrap').innerHTML;
+  assert.equal((map.match(/class="map-player-marker"/g)||[]).length,1);assert.match(map,/aria-label="罗兰·班克斯的当前位置：书房"/);assert.match(map,/class="map-player-portrait art"/);assert.doesNotMatch(map,/class="you"/);
+});
+
+test('头像随移动到新地点，不在旧地点留下人物标记',()=>{
+  const g=game();g.run(`S.revealed.hallway=true;S.revealed.attic=true;clickNode('hallway')`);let map=g.document.getElementById('mapwrap').innerHTML;
+  assert.match(map,/当前位置：走廊/);assert.doesNotMatch(map,/当前位置：书房/);assert.equal((map.match(/class="map-player-marker"/g)||[]).length,1);
+  g.run(`clickNode('attic')`);map=g.document.getElementById('mapwrap').innerHTML;assert.match(map,/当前位置：阁楼/);assert.doesNotMatch(map,/当前位置：走廊/);assert.equal(g.get('S.actions'),1);
+});
+
+test('地图头像展示不改变状态，房间图标及可前往标签保留',()=>{
+  const g=game();g.run('S.revealed.hallway=true');const before=g.get('S');g.run('renderLocations();renderLocations()');assert.deepEqual(g.get('S'),before);
+  const map=g.document.getElementById('mapwrap').innerHTML;assert.match(map,/node-ico/);assert.match(map,/可前往/);assert.match(map,/--art-x:0%;--art-y:0%/);
+});
+
+test('头像在卡片外悬浮，尺寸适配且不拦截地图点击',()=>{
+  const css=fs.readFileSync(path.join(__dirname,'..','map.css'),'utf8');assert.match(css,/\.map-player-marker\{position:absolute;top:-23px/);assert.match(css,/pointer-events:none;z-index:4/);assert.match(css,/width:42px;height:42px/);
+  assert.match(html,/role="img" aria-label="罗兰·班克斯的当前位置/);
 });
 
 test('四档混沌袋与原版战役配置完全一致，实例互不污染',()=>{

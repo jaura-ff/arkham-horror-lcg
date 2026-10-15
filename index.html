@@ -180,7 +180,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 </style>
 <link rel="stylesheet" href="noir.css">
 <link rel="stylesheet" href="atlas.css?v=discard-pile-1">
-<link rel="stylesheet" href="map.css?v=route-center-1">
+<link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=left-actions-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
@@ -757,7 +757,7 @@ function renderLocations(){
         <div class="node-sub">迷雾 ${l.shroud}</div>
         ${clues>0?`<span class="node-clue"> 线索 ×${clues}</span>`:''}
         ${enemyHere>0?`<span class="node-enemy"> 敌人 ×${enemyHere}</span>`:''}
-        ${isCurrent?'<span class="you"> 你在这里</span>':isReachable?'<span class="node-access">可前往</span>':''}
+        ${!isCurrent&&isReachable?'<span class="node-access">可前往</span>':''}
       `;
     } else {
       inner = `
@@ -769,6 +769,7 @@ function renderLocations(){
     const click = (revealed && (isReachable || isCurrent)) ? `role="button" tabindex="0" onclick="clickNode('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickNode('${id}');}"` : '';
     return `<div class="map-node ${cls.join(' ')}" data-room="${id}" style="--node-x:${p.x}%;--node-y:${p.y}%" ${click}>
       <div class="node-card">${inner}</div>
+      ${isCurrent?`<span class="map-player-marker" role="img" aria-label="罗兰·班克斯的当前位置：${l.name}"><span class="map-player-portrait art" aria-hidden="true" style="--art-x:0%;--art-y:0%"></span></span>`:''}
     </div>`;
   }).join('');
 

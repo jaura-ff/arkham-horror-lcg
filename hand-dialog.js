@@ -15,7 +15,7 @@
   }
   function refresh(){
     const reason=blocked(pending),button=byId('handCardPlay');button.disabled=!!reason;
-    button.textContent=reason?'当前无法出牌':'出牌';
+    button.textContent=reason?'当前无法出牌':'继续 · 出牌';
     const enemies=S?.enemies.filter(e=>e.engaged&&!e.exhausted)||[];
     byId('handCardWarning').textContent=reason || (enemies.length?`注意：出牌会触发 ${enemies.length} 名敌人的借机攻击（共 ${enemies.reduce((n,e)=>n+e.card.dmg,0)} 伤害、${enemies.reduce((n,e)=>n+e.card.horror,0)} 恐惧）。若被击败，卡牌效果不会执行。`:'确认出牌才消耗费用；关闭或取消不消耗资源和行动。');
   }

@@ -6,6 +6,83 @@ const path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
+test('抽牌及资源确认可返回，继续只执行一次，锁住其他行动',()=>{
+  for(const action of ['draw','resource']){
+    const g=game(),before=g.get('S');g.run(`Math.random=()=>{throw Error('unexpected random')};requestAction('${action}')`);
+    assert.deepEqual(g.get('S'),before);assert.match(g.document.getElementById('modalBox').innerHTML,/返回/);assert.match(g.document.getElementById('modalBox').innerHTML,/继续/);
+    g.run(`doAction('resource');requestAction('draw');requestReturnMenu();endTurn()`);assert.deepEqual(g.get('S'),before);
+    g.run('closeModal()');assert.deepEqual(g.get('S'),before);
+    g.run(`requestAction('${action}');confirmAction();confirmAction()`);
+    assert.equal(g.get('S.actions'),2);assert.equal(g.get('S.resources'),action==='resource'?6:5);
+    assert.equal(g.get('S.hand.length'),action==='draw'?1:0);
+  }
+});
+
+test('调查返回保留行动和投入牌，不触发借机攻击或随机抽取',()=>{
+  const g=game();g.enemy();g.run(`S.hand=[{...INVESTIGATOR.deck.find(c=>c.id==='percep')}];Math.random=()=>{throw Error('unexpected random')}`);
+  const before=g.get('S');g.run(`requestAction('investigate');toggleCommit(0)`);
+  assert.equal(g.get('S.actions'),3);assert.equal(g.get('S.hp'),9);assert.equal(g.get('S.committed.length'),1);
+  assert.match(g.document.getElementById('modalBox').innerHTML,/继续 · 抽取混沌/);
+  g.run('cancelTest()');assert.deepEqual(g.get('S'),before);
+});
+
+test('调查继续仅扣一次行动与借机攻击，抽取后返回失效',()=>{
+  const g=game();g.enemy();g.run(`S.hand=[{...INVESTIGATOR.deck.find(c=>c.id==='percep')}];requestAction('investigate');toggleCommit(0);resolveTest();resolveTest();cancelTest()`);
+  assert.equal(g.get('S.actions'),2);assert.equal(g.get('S.hp'),9-g.get('ENCOUNTER[0].dmg'));
+  assert.equal(g.get('S.discard.length'),1);assert.equal(g.get('S.hand.length'),0);assert.equal(g.get('S.test.resolved'),true);
+  assert.match(g.document.getElementById('modalBox').innerHTML,/不能返回重抽/);
+  g.run('finishTest(true);finishTest(true)');assert.equal(g.get('S.clues'),1);
+});
+
+test('借机攻击致命时不抽取指示物，不丢弃投入牌',()=>{
+  const g=game();g.enemy();g.run(`S.hp=1;S.hand=[{...INVESTIGATOR.deck.find(c=>c.id==='percep')}];requestAction('investigate');toggleCommit(0);Math.random=()=>{throw Error('unexpected random')};resolveTest()`);
+  assert.equal(g.get('S.gameOver'),true);assert.equal(g.get('S.actions'),2);assert.equal(g.get('S.discard.length'),0);assert.equal(g.get('S.hand.length'),1);
+});
+
+test('战斗与闪避预览可返回，继续不受借机攻击，闪避加值仅继续时用掉',()=>{
+  for(const action of ['fight','evade']){
+    const g=game();g.enemy();g.run('S.evadeBonus=2');const before=g.get('S');
+    g.run(`requestAction('${action}');cancelTest()`);assert.deepEqual(g.get('S'),before);
+    g.run(`requestAction('${action}');resolveTest();resolveTest()`);
+    assert.equal(g.get('S.actions'),2);assert.equal(g.get('S.hp'),9);assert.equal(g.get('S.evadeBonus'),action==='evade'?0:2);
+    g.run('finishTest(true)');assert.equal(g.get('S.test'),null);
+  }
+});
+
+test('已触发的强制检定不可返回取消，不额外扣行动',()=>{
+  const g=game();g.run(`startTest('will',2,'遭遇',()=>{});cancelTest()`);
+  assert.notEqual(g.get('S.test'),null);assert.match(g.document.getElementById('modalBox').innerHTML,/disabled title="已触发的检定不能取消"/);
+  g.finish();assert.equal(g.get('S.actions'),3);
+});
+
+test('选择移动目的地和地图移动都需确认，返回不揭示房间',()=>{
+  const g=game(),before=g.get('S');g.run(`requestAction('move');requestMove('hallway')`);
+  assert.deepEqual(g.get('S'),before);assert.doesNotMatch(g.document.getElementById('modalBox').innerHTML,/走廊/);
+  g.run('closeModal()');assert.deepEqual(g.get('S'),before);
+  g.run(`requestMapMove('hallway')`);assert.equal(g.get('pendingAction'),null);
+  g.run(`requestAction('move');requestMove('hallway');confirmAction();confirmAction()`);assert.equal(g.get('S.location'),'hallway');assert.equal(g.get('S.actions'),2);
+  g.run(`requestMapMove('study');closeModal()`);assert.equal(g.get('S.location'),'hallway');
+  g.run(`requestMapMove('study');confirmAction()`);assert.equal(g.get('S.location'),'study');assert.equal(g.get('S.actions'),1);
+});
+
+test('推进幕和完成调查均可返回，继续才支付费用或结束游戏',()=>{
+  const g=game();g.run('S.clues=3');const before=g.get('S');g.run(`requestAction('advanceAct');closeModal()`);assert.deepEqual(g.get('S'),before);
+  g.run(`requestAction('advanceAct');confirmAction()`);assert.deepEqual(g.get('[S.clues,S.actIdx,S.actions]'),[0,1,2]);
+  g.run(`S.location='attic';requestAction('finish');closeModal()`);assert.equal(g.get('S.gameOver'),false);
+  g.run(`requestAction('finish');confirmAction()`);assert.equal(g.get('S.gameOver'),true);
+});
+
+test('结束回合与阶段继续可返回，不提前结算敌人或抽牌',()=>{
+  const g=game();g.run(`resource()`);const before=g.get('S');g.run(`requestAction('endTurn');closeModal()`);assert.deepEqual(g.get('S'),before);
+  g.run(`requestAction('endTurn');confirmAction()`);assert.notEqual(g.get('S.phase'),'investigation');
+  const phase=g.get('S');g.run(`requestAction('next');closeModal()`);assert.deepEqual(g.get('S'),phase);
+  g.run(`requestAction('next');confirmAction()`);assert.notDeepEqual(g.get('S'),phase);
+});
+
+test('新游戏清理行动确认，失效继续不执行旧行动',()=>{
+  const g=game();g.run(`requestAction('resource');startGame();confirmAction()`);assert.equal(g.get('S.resources'),5);assert.equal(g.get('S.actions'),3);assert.equal(g.get('pendingAction'),null);
+});
+
 function game(){
   const nodes = new Map();
   function element(){
@@ -302,9 +379,9 @@ test('地图房间状态和线索敌人数量仍随实际状态刷新',()=>{
 
 test('地图未揭示节点仍不可点击，相邻已揭示节点才提供移动入口',()=>{
   const g=game();g.run('renderLocations()');let map=g.document.getElementById('mapwrap').innerHTML;
-  assert.doesNotMatch(map,/onclick="clickNode\('hallway'\)"/);
+  assert.doesNotMatch(map,/onclick="requestMapMove\('hallway'\)"/);
   g.run('S.revealed.hallway=true;S.revealed.attic=true;renderLocations()');map=g.document.getElementById('mapwrap').innerHTML;
-  assert.match(map,/onclick="clickNode\('hallway'\)"/);assert.doesNotMatch(map,/onclick="clickNode\('attic'\)"/);
+  assert.match(map,/onclick="requestMapMove\('hallway'\)"/);assert.doesNotMatch(map,/onclick="requestMapMove\('attic'\)"/);
 });
 
 test('路线节点移动仍只扣一次行动，位置刷新且不能跨房间',()=>{

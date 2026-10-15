@@ -260,6 +260,32 @@ test('完成调查消耗行动且先处理借机攻击，败北后不能获胜',
   const h=game();h.enemy();h.run(`S.location='attic';S.enemies[0].location='attic';S.actIdx=1;S.hp=1;finish()`);
   assert.equal(h.get('S.hp'),0);assert.match(h.document.getElementById('modalBox').innerHTML,/调查失败/);
 });
+test('行动移到左侧人物牌下方，资产替换中央原行动区',()=>{
+  const left=html.split('<!-- 左栏 -->')[1].split('<!-- 中央 -->')[0];
+  const center=html.split('<!-- 中央 -->')[1].split('<!-- 右栏 -->')[0];
+  assert.ok(left.indexOf('id="investigator"')<left.indexOf('id="actions"'));assert.match(left,/class="panel command-panel"/);assert.match(left,/id="controls"/);
+  assert.doesNotMatch(center,/id="actions"|id="controls"/);assert.doesNotMatch(left,/id="assets"/);
+  assert.ok(center.indexOf('class="panel enemy-panel"')<center.indexOf('class="panel equipment-panel"'));
+  assert.ok(center.indexOf('id="assets"')<center.indexOf('class="bottom"'));
+});
+
+test('手牌独占中央底部且资产、槽位与行动入口仍然唯一',()=>{
+  const bottom=html.split('<div class="bottom">')[1].split('<!-- 右栏 -->')[0];assert.match(bottom,/id="hand"/);assert.doesNotMatch(bottom,/id="assets"|id="slots"/);
+  for(const id of ['actions','actioncount','controls','assets','slots'])assert.equal((html.match(new RegExp(`id="${id}"`,'g'))||[]).length,1,id);
+});
+
+test('左侧行动与中央资产的响应式规则已接入',()=>{
+  const css=fs.readFileSync(path.join(__dirname,'..','layout.css'),'utf8');assert.match(html,/layout.css\?v=left-actions-1/);
+  assert.match(css,/\.col-left \.actions\{grid-template-columns:repeat\(2/);assert.match(css,/orientation:landscape/);assert.match(css,/grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(css,/\.col-center \.bottom\{display:block;margin:0/);assert.match(css,/min-height:44px/);
+});
+
+test('换区后行动与资产渲染仍同步，不改变出牌代价',()=>{
+  const g=game();g.run(`S.hand=[{...INVESTIGATOR.deck[0]}];onHandCard(0)`);
+  assert.equal(g.get('S.actions'),2);assert.equal(g.get('S.resources'),2);assert.match(g.document.getElementById('assets').innerHTML,/自动手枪/);assert.match(g.document.getElementById('slots').innerHTML,/1\/2/);
+  assert.match(g.document.getElementById('actioncount').textContent,/2/);
+});
+
 test('地点路线有序斜向居中，连接线只连接真实相邻房间',()=>{
   const g=game();g.run('renderLocations()');const map=g.document.getElementById('mapwrap').innerHTML;
   assert.ok(map.indexOf('data-room="study"')<map.indexOf('data-room="hallway"'));assert.ok(map.indexOf('data-room="hallway"')<map.indexOf('data-room="attic"'));

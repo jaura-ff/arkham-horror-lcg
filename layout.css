@@ -1,0 +1,27 @@
+/* Left-side actions; equipped assets occupy their previous central panel. */
+.col-left .command-panel{min-width:0;padding:14px 12px}
+.col-left .actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.col-left .action-btn{min-width:0;min-height:48px;font-size:13px;padding:10px 4px;letter-spacing:0;overflow-wrap:anywhere}
+.col-left .action-btn small{font-size:10px;line-height:1.5}
+.col-left .investigate-btn{grid-column:1/-1;grid-row:1;min-height:56px;font-size:19px;letter-spacing:3px}
+.col-left #controls{flex-direction:column;align-items:stretch;gap:8px}
+.col-left #controls .btn{width:100%;min-height:44px;padding:9px 5px;white-space:normal}
+.col-left #controls>span{min-width:0;font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.col-center .bottom{display:block;margin:0}
+.col-center .bottom>.hand-panel{width:100%;min-width:0}
+.col-center .equipment-panel{width:auto;min-width:0}
+.col-center #assets{display:flex;flex-direction:row;flex-wrap:wrap;gap:10px}
+.col-center .asset-chip{max-width:100%;overflow-wrap:anywhere}
+@media(max-width:760px) and (orientation:portrait){
+  .col-left>.inv-card{grid-column:1;grid-row:1}
+  .col-left>.goal-panel{grid-column:2;grid-row:1}
+  .col-left>.command-panel{grid-column:1/-1;grid-row:2}
+  .col-left .actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .col-left .investigate-btn{grid-column:1/-1}
+}
+@media(orientation:landscape) and (max-height:600px) and (min-width:480px) and (max-width:1200px){
+  .col-left .actions{grid-template-columns:minmax(0,1fr);gap:6px}
+  .col-left .command-panel{padding:10px 8px}
+  .col-left .investigate-btn{grid-column:1;letter-spacing:1px;font-size:17px}
+  .col-left #controls>span{flex:none}
+}

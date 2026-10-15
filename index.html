@@ -179,6 +179,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
 </style>
 <link rel="stylesheet" href="noir.css">
+<link rel="stylesheet" href="atlas.css">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -192,6 +193,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <p>扮演联邦探员罗兰·班克斯。收集线索、应对遭遇，在理智耗尽之前，完成这场调查。</p>
       <button class="btn primary start-button" id="startButton" onclick="startGame()"><span class="start-emblem"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#play"></use></svg></span><span>开始游戏<small>START INVESTIGATION</small></span></button>
       <button class="btn learn-button" id="learnButton" type="button">第一次玩？新人指导</button>
+      <button class="btn atlas-entry" id="menuAtlasButton" type="button">卡牌图鉴 / 阅读卡牌</button>
       <p class="start-note">单人卡牌游戏 · 每回合 3 次行动 · 无需登录</p>
     </div>
     <div class="case-file">
@@ -212,6 +214,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     <div class="topstats">
       <button type="button" class="btn icon-button" id="menuButton" aria-label="返回主菜单" title="返回主菜单" onclick="requestReturnMenu()"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#home"></use></svg></button>
       <button type="button" class="btn icon-button guide-button" id="guideButton" aria-label="重看新人指导" title="新人指导">?</button>
+      <button type="button" class="btn" id="atlasButton">卡牌图鉴</button>
       <span class="pill">回合 <b id="roundnum">1</b></span>
       <span class="pill">资源 <b id="topres">5</b></span>
       <span class="pill">线索 <b id="topclue">0</b></span>
@@ -283,6 +286,22 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="游戏操作"><div class="modal-box" id="modalBox"></div></div>
 <span id="guideStatus" class="guide-sr-only" role="status" aria-live="polite"></span>
+<dialog id="cardAtlas" class="card-atlas" aria-labelledby="atlasTitle" aria-describedby="atlasNotice">
+  <div class="atlas-shell">
+    <header class="atlas-heading"><div><span class="atlas-kicker">ARKHAM / CARD ARCHIVE</span><h2 id="atlasTitle">卡牌图鉴</h2></div><button type="button" class="btn icon-button" id="atlasClose" aria-label="关闭卡牌图鉴" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
+    <p id="atlasNotice" class="atlas-notice">本作简化版卡牌档案，不是官方完整卡库。牌名、数值和用法以本网页实现为准；下方场景牌含剧情与结局信息。</p>
+    <details class="atlas-primer" open><summary>怎么看一张卡牌？</summary>
+      <div class="atlas-reading"><section><h3>牌面信息</h3><p>名称用于识别卡牌；类型决定用途；费用是打出所需资源。技能图标用于投入检定；特性可被能力引用；等级关联购牌经验，并非资源费用。</p><p>敌人看战斗、生命、闪避和攻击的伤害／恐惧；地点看遮蔽、线索与连接；幕和议程分别看线索与末日门槛。</p></section>
+      <section><h3>卡牌类型</h3><p>资产通常留场；事件结算一次性效果；技能用于投入检定，不直接打出。调查员提供人物基础数值；敌人、诡计、地点、幕与议程构成场景。</p><p>弱点表示不利卡牌，并非所有弱点都采用相同处理方式。</p></section></div>
+      <p class="atlas-source">基础版概念参考：<a href="https://images-cdn.fantasyflightgames.com/filer_public/c4/b0/c4b0d66c-d79e-411b-bdb5-b5d8c457d4bc/ahc01_rules_reference_web.pdf#page=28" target="_blank" rel="noopener noreferrer">FFG 官方 Rules Reference（2016），附录 IV，第 28–31 页及类型条目</a>。以上为概括说明，非逐字翻译。</p>
+      <p class="atlas-notice">本网页版差异：只实现两只手槽，没有经验升级、完整职业组牌或武器弹药。只有四张技能牌和「侧身闪避」可投入对应检定；资产和事件打出均消耗 1 次行动，没有实现快速牌的免行动时机。具体效果请看下方“本作使用说明”，不要直接套用同名实体卡。</p>
+    </details>
+    <div class="atlas-tools"><label>搜索卡牌<input id="atlasSearch" type="search" placeholder="名称、效果或用法" autocomplete="off"></label><label>卡牌分类<select id="atlasFilter"><option value="all">全部类型</option><option value="investigator">调查员</option><option value="asset">资产</option><option value="event">事件</option><option value="skill">技能</option><option value="weak">弱点</option><option value="enemy">敌人</option><option value="treachery">诡计</option><option value="location">地点</option><option value="act">幕</option><option value="agenda">议程</option></select></label></div>
+    <p id="atlasCount" class="atlas-count" role="status" aria-live="polite"></p>
+    <div id="atlasCards" class="atlas-cards"></div>
+    <p class="atlas-source">图鉴只供查阅，不会打出卡牌、抽牌或消耗行动。按 Esc 或右上角关闭后继续原来的游戏。</p>
+  </div>
+</dialog>
 <div id="tutorial" class="tutorial-overlay" hidden>
   <div id="tutorialSpotlight" class="tutorial-spotlight" aria-hidden="true"></div>
   <section id="tutorialPanel" class="tutorial-panel" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle" aria-describedby="tutorialText">
@@ -1276,6 +1295,7 @@ function resolve(code, text){
 </script>
 <script src="ambience.js"></script>
 <script src="tutorial.js"></script>
+<script src="atlas.js"></script>
 </body>
 </html>
 

@@ -4,4 +4,5 @@
 .phase-announcement-kicker{font-size:10px;letter-spacing:3px;color:#bfa16a}.phase-announcement-round{font-size:12px;margin:16px 0;color:#c6b591}.phase-announcement-label{font-size:13px;letter-spacing:3px}
 .phase-announcement h2{font:32px/1.5 Georgia,'SimSun',serif;letter-spacing:5px;color:#edce95;margin:10px 0 20px}.phase-announcement h2:focus{outline:none}
 #phaseAnnouncementHint{font-size:12px;color:#b9aa8b}
+.phase-announcement-countdown{font-size:40px;line-height:1.2;font-variant-numeric:tabular-nums;color:#edce95;margin:0 0 12px;min-height:48px}
 @media(orientation:landscape) and (max-height:440px){.phase-announcement-shell{padding:16px 24px}.phase-announcement-round{margin:8px 0}.phase-announcement h2{font-size:26px;margin:6px 0 12px}}

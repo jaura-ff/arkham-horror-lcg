@@ -182,7 +182,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="atlas.css?v=action-confirm-1">
 <link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=asset-icons-1">
-<link rel="stylesheet" href="phase-transition.css?v=phase-1">
+<link rel="stylesheet" href="phase-transition.css?v=countdown-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -294,7 +294,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="游戏操作"><div class="modal-box" id="modalBox"></div></div>
 <dialog id="phaseAnnouncement" class="phase-announcement" aria-labelledby="phaseAnnouncementTitle" aria-describedby="phaseAnnouncementHint">
-  <div class="phase-announcement-shell"><p class="phase-announcement-kicker">ARKHAM / NEXT PHASE</p><p id="phaseAnnouncementRound" class="phase-announcement-round"></p><p class="phase-announcement-label">即将进入</p><h2 id="phaseAnnouncementTitle" tabindex="-1"></h2><p id="phaseAnnouncementHint">停留 3 秒后自动继续</p></div>
+  <div class="phase-announcement-shell"><p class="phase-announcement-kicker">ARKHAM / NEXT PHASE</p><p id="phaseAnnouncementRound" class="phase-announcement-round"></p><p class="phase-announcement-label">即将进入</p><h2 id="phaseAnnouncementTitle" tabindex="-1"></h2><p id="phaseAnnouncementCountdown" class="phase-announcement-countdown" aria-live="polite" aria-atomic="true">3</p><p id="phaseAnnouncementHint">停留 3 秒后自动继续</p></div>
 </dialog>
 <dialog id="assetInfoDialog" class="card-atlas asset-info-dialog" aria-labelledby="assetInfoTitle">
   <div class="atlas-shell"><header class="atlas-heading"><h2 id="assetInfoTitle">资产说明</h2><button type="button" class="btn icon-button" aria-label="关闭资产说明" onclick="document.getElementById('assetInfoDialog').close()" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
@@ -1512,7 +1512,7 @@ function resolve(code, text){
 </script>
 <script src="ambience.js"></script>
 <script>updateDifficultyPreview();</script>
-<script src="phase-transition.js?v=phase-1"></script>
+<script src="phase-transition.js?v=countdown-1"></script>
 <script src="tutorial.js?v=phase-1"></script>
 <script src="atlas.js"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>

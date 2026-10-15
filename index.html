@@ -178,6 +178,8 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 </style>
+<link rel="stylesheet" href="noir.css">
+<link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
 
@@ -185,7 +187,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
   <div class="box">
     <div class="start-intro">
       <div class="start-kicker">ARKHAM / CASE FILE 001</div>
-      <h1>夜色之下，<br>真相未明。</h1>
+      <h1>诡镇奇谭<span class="title-sub">聚会之夜</span></h1>
       <p>1926 年，阿卡姆。熟悉的宅邸开始变得陌生，门后的低语，正指向阁楼里被掩埋的秘密。</p>
       <p>扮演联邦探员罗兰·班克斯。收集线索、应对遭遇，在理智耗尽之前，完成这场调查。</p>
       <button class="btn primary" onclick="startGame()">进入调查 →</button>
@@ -208,8 +210,8 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     <div class="brand"><span class="brand-mark" aria-hidden="true">A</span><div>诡镇奇谭<small>ARKHAM HORROR / 聚会之夜</small></div></div>
     <div class="topstats">
       <span class="pill">回合 <b id="roundnum">1</b></span>
-      <span class="pill"> <b id="topres">5</b></span>
-      <span class="pill"> <b id="topclue">0</b></span>
+      <span class="pill">资源 <b id="topres">5</b></span>
+      <span class="pill">线索 <b id="topclue">0</b></span>
     </div>
   </header>
 
@@ -231,42 +233,43 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
       <!-- 中央 -->
       <div class="col-center">
-        <div class="panel">
-          <h2>地图 <span class="cnt" id="locationhint"></span></h2>
+        <div class="panel scene-panel" id="scenePanel" data-location="study">
+          <div class="scene-readout"><span class="scene-kicker">THE GATHERING / 探索宅邸</span><h2 id="sceneTitle">书房</h2><p id="sceneDescription"></p><div id="sceneClues"></div></div>
+          <div class="scene-space" aria-hidden="true"></div>
+          <h2 class="route-label">宅邸路线 <span class="cnt" id="locationhint"></span></h2>
           <div class="map-wrap" id="mapwrap"></div>
         </div>
-        <div class="panel">
+        <div class="panel enemy-panel">
           <h2>敌人 <span class="cnt" id="enemycount"></span></h2>
           <div id="enemies"></div>
         </div>
-        <div class="panel">
+        <div class="panel command-panel">
           <h2>行动 <span class="cnt" id="actioncount"></span></h2>
           <div class="actions" id="actions"></div>
           <div id="controls"></div>
+        </div>
+        <div class="bottom">
+          <div class="panel hand-panel">
+            <h2>手牌 <span class="cnt" id="handcount"></span></h2>
+            <div class="hand" id="hand"></div>
+          </div>
+          <div class="panel equipment-panel">
+            <h2>已打出的资产 <span class="cnt">装备中</span></h2>
+            <div id="assets"></div>
+            <div class="slots" id="slots"></div>
+          </div>
         </div>
       </div>
 
       <!-- 右栏 -->
       <div class="col-right">
-        <div class="panel log-panel">
-          <h2>事件记录</h2>
+        <details class="panel log-panel" open>
+          <summary>调查手记 / 事件记录</summary>
           <div id="log" aria-live="polite" aria-relevant="additions"></div>
-        </div>
+        </details>
       </div>
     </div>
 
-    <!-- 底部：手牌 + 资产 -->
-    <div class="bottom">
-      <div class="panel">
-        <h2>手牌 <span class="cnt" id="handcount"></span></h2>
-        <div class="hand" id="hand"></div>
-      </div>
-      <div class="panel">
-        <h2>已打出的资产 <span class="cnt">装备中</span></h2>
-        <div id="assets"></div>
-        <div class="slots" id="slots"></div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -488,8 +491,8 @@ function renderInvestigator(){
   const hpPct = S.hp/INVESTIGATOR.maxHp*100;
   const sanPct = S.sanity/INVESTIGATOR.maxSanity*100;
   el.innerHTML = `
+    <div class="portrait art" role="img" aria-label="罗兰·班克斯肖像" style="--art-x:0%;--art-y:0%"></div>
     <div class="inv-top">
-      <div class="avatar">${INVESTIGATOR.emoji}</div>
       <div>
         <div class="nm">${INVESTIGATOR.name}</div>
         <div class="tt">${INVESTIGATOR.title}</div>
@@ -563,10 +566,12 @@ function renderHand(){
     const typeLabel = {asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[c.type]||c.type;
     const iconStr = skillIcons(c);
     const disabled = !canAct() || c.type==='skill' || c.type==='weak' || S.resources<c.cost;
-    return `<button type="button" class="card ${c.type}" ${disabled?'disabled':''} onclick="onHandCard(${i})">
+    const art = CARD_ART[c.id] || [0,0];
+    return `<button type="button" class="card ${c.type}" aria-label="${c.name}，${typeLabel}，费用 ${c.cost}。${c.text}" ${disabled?'disabled':''} onclick="onHandCard(${i})">
       <span class="ccost">${c.cost>0?c.cost:'—'}</span>
       <div class="ctype">${typeLabel}</div>
       <div class="cname">${c.name}</div>
+      <div class="card-art art" aria-hidden="true" style="--art-x:${art[0]}%;--art-y:${art[1]}%"></div>
       <div class="cbody">${c.text}</div>
       ${iconStr?`<div class="cicons">${iconStr}</div>`:''}
     </button>`;
@@ -577,6 +582,9 @@ function skillIcons(c){
   if(c.type==='skill'){ return c.icons || ''; }
   return '';
 }
+
+// Each illustration is a cell in the locally bundled 4×3 texture atlas.
+const CARD_ART = {p45:[33.3333,0],machete:[66.6667,0],aid:[100,0],resource:[0,50],dodge:[33.3333,50],courage:[66.6667,50],percep:[100,50],guts:[0,100],manual:[33.3333,100],nightmare:[66.6667,100]};
 
 function renderAssets(){
   const el = document.getElementById('assets');
@@ -590,6 +598,10 @@ function renderAssets(){
 
 function renderLocations(){
   const wrap = document.getElementById('mapwrap');
+  document.getElementById('scenePanel').dataset.location = S.location;
+  document.getElementById('sceneTitle').textContent = LOCATIONS[S.location].name;
+  document.getElementById('sceneDescription').textContent = LOCATIONS[S.location].desc;
+  document.getElementById('sceneClues').textContent = `遮蔽 ${LOCATIONS[S.location].shroud}　 /　线索 ${S.locClues[S.location]}`;
   const hint = document.getElementById('locationhint');
   const ids = Object.keys(LOCATIONS);
   // 预设节点坐标（百分比定位）
@@ -643,8 +655,8 @@ function renderLocations(){
     } else {
       inner = `
         <span class="node-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 0 0-7 7c0 5 7 11 7 11s7-6 7-11a7 7 0 0 0-7-7z"/><circle cx="12" cy="10" r="2.4"/><path d="M12 12.4V15"/><path d="M11.2 14.2l.8.8.8-.8"/></svg></span>
-        <div class="node-name">未揭示</div>
-        <div class="node-sub">未知地点</div>
+        <div class="node-name">${l.name}</div>
+        <div class="node-sub">尚未探索</div>
       `;
     }
     const click = (revealed && (isReachable || isCurrent)) ? `role="button" tabindex="0" onclick="clickNode('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickNode('${id}');}"` : '';
@@ -678,7 +690,7 @@ function renderEnemies(){
     const st = e.exhausted ? ' 力竭' : (e.engaged ? ' 交缠' : ' 游荡');
     const locName = LOCATIONS[e.location] ? LOCATIONS[e.location].name : '?';
     return `<div class="enemy ${e.exhausted?'exhausted':''}">
-      <div class="e-ico">${e.card.emoji||'G'}</div>
+      <div class="e-ico art" aria-hidden="true" style="--art-x:100%;--art-y:100%"></div>
       <div class="e-info">
         <div class="ename">${e.card.name} <span class="st">${st} · ${locName}</span></div>
         <div class="estats">战斗 <b>${e.card.fight}</b> · 生命 <b>${e.hp}/${e.card.hp}</b> · 伤害 <b>${e.card.dmg}</b> · 恐惧 <b>${e.card.horror}</b> · 闪避 <b>${e.card.evade}</b>${e.card.hunter?' · <b style="color:var(--blood)">猎手</b>':''}${e.card.victory>0?' · <b style="color:var(--gold)">胜利点</b>':''}</div>
@@ -727,7 +739,7 @@ function renderActions(){
 }
 
 function btn(label, fn, enabled, hint){
-  return `<button class="btn action-btn" onclick="doAction('${fn}')" ${enabled?'':'disabled'}>${label}${hint?`<small>${hint}</small>`:''}</button>`;
+  return `<button class="btn action-btn ${fn==='investigate'?'investigate-btn':''}" data-action="${fn}" onclick="doAction('${fn}')" ${enabled?'':'disabled'}>${label}${hint?`<small>${hint}</small>`:''}</button>`;
 }
 
 function hasEngagedReadyEnemy(){

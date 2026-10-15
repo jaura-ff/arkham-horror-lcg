@@ -10,7 +10,7 @@ function game(){
   const nodes = new Map();
   function element(){
     const classes = new Set();
-    return {innerHTML:'',textContent:'',style:{},children:[],classList:{add(c){classes.add(c)},remove(c){classes.delete(c)},contains(c){return classes.has(c)}},appendChild(x){this.children.push(x)}};
+    return {innerHTML:'',textContent:'',style:{},dataset:{},children:[],classList:{add(c){classes.add(c)},remove(c){classes.delete(c)},contains(c){return classes.has(c)}},appendChild(x){this.children.push(x)}};
   }
   const document = {getElementById(id){if(!nodes.has(id))nodes.set(id,element());return nodes.get(id)},createElement:element};
   const context = vm.createContext({document,Math:Object.create(Math)});
@@ -24,6 +24,36 @@ function game(){
   const finish = () => run('resolveTest(); finishTest(S.testResult)');
   return {run,get,enemy,finish,document};
 }
+
+test('黑色电影场景信息随移动刷新，不改变移动规则',()=>{
+  const g=game();g.run(`renderLocations()`);
+  assert.equal(g.document.getElementById('scenePanel').dataset.location,'study');
+  assert.equal(g.document.getElementById('sceneTitle').textContent,'书房');
+  g.run(`S.revealed.hallway=true;clickNode('hallway')`);
+  assert.equal(g.document.getElementById('scenePanel').dataset.location,'hallway');
+  assert.equal(g.document.getElementById('sceneTitle').textContent,'走廊');
+  assert.match(g.document.getElementById('sceneClues').textContent,/线索 1/);
+});
+
+test('每张卡牌有独立插画映射，手牌保持语义按钮',()=>{
+  const g=game();
+  assert.equal(g.get('INVESTIGATOR.deck.every(c=>Array.isArray(CARD_ART[c.id])&&CARD_ART[c.id].length===2)'),true);
+  g.run(`S.hand=INVESTIGATOR.deck.map(c=>({...c}));renderHand()`);
+  const cards=g.document.getElementById('hand').innerHTML;
+  assert.equal((cards.match(/class="card-art art"/g)||[]).length,10);
+  assert.match(cards,/aria-label=".45 自动手枪/);
+});
+
+test('界面元素 ID 唯一，本地美术和样式资源全部存在',()=>{
+  const markup=html.slice(0,html.indexOf('<script>'));
+  const ids=[...markup.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
+  assert.equal(ids.length,new Set(ids).size);
+  const css=fs.readFileSync(path.join(__dirname,'..','noir.css'),'utf8');
+  for(const match of css.matchAll(/url\('([^']+)'\)/g)){
+    assert.ok(fs.existsSync(path.join(__dirname,'..',match[1])),match[1]);
+  }
+  assert.ok(markup.includes('href="noir.css"'));
+});
 
 test('继续按钮完成敌人→维持→神话→调查完整流程',()=>{
   const g=game();g.run(`S.encounter=[{...ENCOUNTER[0]}];resource();endTurn()`);
@@ -182,3 +212,4 @@ test('三线索推进幕后移动至阁楼可达成胜利结算',()=>{
   assert.deepEqual(g.get('[S.actIdx,S.clues,S.location,S.actions,S.gameOver]'),[1,0,'attic',0,true]);
   assert.match(g.document.getElementById('modalBox').innerHTML,/调查成功/);
 });
+

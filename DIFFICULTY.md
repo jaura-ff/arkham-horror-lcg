@@ -2,6 +2,8 @@
 
 The opening screen offers Easy, Standard (default), Hard and Expert. The chosen key is validated and copied into new-game state; later changes to the menu do not affect the ongoing game. The header shows the locked difficulty. Returning to the menu allows a new selection. Starting health, sanity, resources, actions and hand count do not change with difficulty.
 
+Changing the menu selection now opens a native modal showing the actual bag grouped by token label with counts, total size, reference side and shared symbol-rule text. A separate button allows reviewing the default selection. Closing, confirming or Escape keeps the selected difficulty without starting the game, drawing tokens or mutating game state. Native modal focus containment and background inertness are used; close restores scroll and trigger focus. The popup uses dynamic viewport height and internal scrolling on small screens. Initial page load does not auto-open it.
+
 ## Verified original-core sources
 
 - FFG *Night of the Zealot Campaign Guide*, p. 1, campaign setup: https://images-cdn.fantasyflightgames.com/filer_public/8d/30/8d308b73-92f1-4b1e-aa7f-ce39e8d79786/night_of_the_zealot_campaign_guide.pdf
@@ -23,4 +25,4 @@ Chained draws exclude previously revealed tokens until completion. The bag itsel
 
 This is a difficulty-rules integration into an existing simplified standalone game, not a claim that the deck, locations, all card effects, campaign or overall challenge reproduce the complete official scenario. This limitation is disclosed on the start screen. No unrelated card/scenario rules were expanded.
 
-Verification: 80 automated checks with `node --test tests/ambience.cjs tests/game-regressions.cjs tests/tutorial.cjs tests/atlas.cjs`. Browser visual verification remains unauthorized and was not performed. Menu overflow uses top-safe scrolling with auto margins; native selection and search controls keep 44px touch targets.
+Verification: 87 automated checks with `node --test tests/ambience.cjs tests/game-regressions.cjs tests/tutorial.cjs tests/atlas.cjs tests/difficulty-dialog.cjs`. Browser visual verification remains unauthorized and was not performed. Menu overflow uses top-safe scrolling with auto margins; native selection and search controls keep 44px touch targets.

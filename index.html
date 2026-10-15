@@ -191,7 +191,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <h1>诡镇奇谭<span class="title-sub">聚会之夜</span></h1>
       <p>1926 年，阿卡姆。熟悉的宅邸开始变得陌生，门后的低语，正指向阁楼里被掩埋的秘密。</p>
       <p>扮演联邦探员罗兰·班克斯。收集线索、应对遭遇，在理智耗尽之前，完成这场调查。</p>
-      <div class="difficulty-picker"><label for="difficultySelect">调查难度</label><select id="difficultySelect" aria-describedby="difficultyPreview difficultyScope" onchange="updateDifficultyPreview()"><option value="easy">简单 / Easy</option><option value="standard" selected>标准 / Standard</option><option value="hard">困难 / Hard</option><option value="expert">专家 / Expert</option></select><p id="difficultyPreview" role="status" aria-live="polite"></p><details><summary>查看混沌袋与规则来源</summary><p id="difficultyBag"></p><p>简单／标准使用参考卡正面；困难／专家使用背面。难度开局锁定，返回菜单后可为新一局重选。</p><a href="https://images-cdn.fantasyflightgames.com/filer_public/8d/30/8d308b73-92f1-4b1e-aa7f-ce39e8d79786/night_of_the_zealot_campaign_guide.pdf#page=1" target="_blank" rel="noopener noreferrer">官方《狂热之夜》战役设置</a></details><p id="difficultyScope">按原版《狂热之夜》混沌袋及《聚会》参考卡实现难度；场景、牌组和其他玩法仍为本网页简化版，并非完整官方战役。</p></div>
+      <div class="difficulty-picker"><label for="difficultySelect">调查难度</label><select id="difficultySelect" aria-describedby="difficultyPreview difficultyScope"><option value="easy">简单 / Easy</option><option value="standard" selected>标准 / Standard</option><option value="hard">困难 / Hard</option><option value="expert">专家 / Expert</option></select><p id="difficultyPreview" role="status" aria-live="polite"></p><button id="difficultyInfoButton" type="button" class="btn" aria-haspopup="dialog" aria-controls="difficultyInfo">查看混沌袋</button><details><summary>混沌袋与规则来源</summary><p id="difficultyBag"></p><p>简单／标准使用参考卡正面；困难／专家使用背面。难度开局锁定，返回菜单后可为新一局重选。</p><a href="https://images-cdn.fantasyflightgames.com/filer_public/8d/30/8d308b73-92f1-4b1e-aa7f-ce39e8d79786/night_of_the_zealot_campaign_guide.pdf#page=1" target="_blank" rel="noopener noreferrer">官方《狂热之夜》战役设置</a></details><p id="difficultyScope">按原版《狂热之夜》混沌袋及《聚会》参考卡实现难度；场景、牌组和其他玩法仍为本网页简化版，并非完整官方战役。</p></div>
       <button class="btn primary start-button" id="startButton" onclick="startGame()"><span class="start-emblem"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#play"></use></svg></span><span>开始游戏<small>START INVESTIGATION</small></span></button>
       <button class="btn learn-button" id="learnButton" type="button">第一次玩？新人指导</button>
       <button class="btn atlas-entry" id="menuAtlasButton" type="button">卡牌图鉴 / 阅读卡牌</button>
@@ -288,6 +288,16 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="游戏操作"><div class="modal-box" id="modalBox"></div></div>
 <span id="guideStatus" class="guide-sr-only" role="status" aria-live="polite"></span>
+<dialog id="difficultyInfo" class="card-atlas difficulty-info" aria-labelledby="difficultyInfoTitle" aria-describedby="difficultyInfoSummary">
+  <div class="atlas-shell">
+    <header class="atlas-heading"><div><span class="atlas-kicker">ARKHAM / CHAOS BAG</span><h2 id="difficultyInfoTitle">混沌袋说明</h2></div><button id="difficultyInfoClose" type="button" class="btn icon-button" aria-label="关闭难度说明" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
+    <p id="difficultyInfoSummary"></p>
+    <h3>袋内指示物与数量</h3><ul id="difficultyInfoTokens" class="difficulty-tokens"></ul>
+    <h3 id="difficultyInfoSide"></h3><p id="difficultyInfoRules" class="difficulty-rules"></p>
+    <p class="atlas-notice">关闭此说明会保留所选难度，不会开始游戏或消耗任何指示物。正式开局后难度锁定。</p>
+    <div class="difficulty-info-actions"><button id="difficultyInfoConfirm" type="button" class="btn primary">明白，使用此难度</button></div>
+  </div>
+</dialog>
 <dialog id="cardAtlas" class="card-atlas" aria-labelledby="atlasTitle" aria-describedby="atlasNotice">
   <div class="atlas-shell">
     <header class="atlas-heading"><div><span class="atlas-kicker">ARKHAM / CARD ARCHIVE</span><h2 id="atlasTitle">卡牌图鉴</h2></div><button type="button" class="btn icon-button" id="atlasClose" aria-label="关闭卡牌图鉴" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
@@ -399,11 +409,15 @@ function makeChaosBag(key){
     {label:'骷髅',symbol:'skull'},{label:'骷髅',symbol:'skull'},{label:'异教徒',symbol:'cultist'},
     {label:'石板',symbol:'tablet'},{label:'自动失败',autofail:true},{label:'上古印记',elder:true}];
 }
+function difficultySymbolText(key){
+  const d=DIFFICULTIES[difficultyKey(key)];
+  const symbols=d.hard?'骷髅：−2，失败后在检定结束时寻找并抽取食尸鬼。\n异教徒：再抽一枚，失败额外受 2 恐惧。\n石板：−4，同地点有食尸鬼则受 1 伤害和 1 恐惧。':'骷髅：−X，X 为同地点食尸鬼数量。\n异教徒：−1，失败额外受 1 恐惧。\n石板：−2，同地点有食尸鬼则受 1 伤害。';
+  return symbols+'\n上古印记：按罗兰当前地点的每个线索 +1，不保证成功。\n自动失败：无条件检定失败。';
+}
 function updateDifficultyPreview(){
   const key=difficultyKey(document.getElementById('difficultySelect')?.value),d=DIFFICULTIES[key],bag=makeChaosBag(key);
   document.getElementById('difficultyPreview').textContent=`${d.description} ${bag.length} 枚指示物 · ${d.hard?'困难／专家':'简单／标准'}参考卡。`;
-  const symbols=d.hard?'骷髅：−2，失败后在检定结束时寻找并抽取食尸鬼。\n异教徒：再抽一枚，失败额外受 2 恐惧。\n石板：−4，同地点有食尸鬼则受 1 伤害和 1 恐惧。':'骷髅：−X，X 为同地点食尸鬼数量。\n异教徒：−1，失败额外受 1 恐惧。\n石板：−2，同地点有食尸鬼则受 1 伤害。';
-  document.getElementById('difficultyBag').textContent=bag.map(t=>t.label).join('、')+'\n\n'+symbols+'\n上古印记：按罗兰当前地点的每个线索 +1，不保证成功。自动失败：无条件检定失败。';
+  document.getElementById('difficultyBag').textContent=bag.map(t=>t.label).join('、')+'\n\n'+difficultySymbolText(key);
 }
 
 /* ============ 状态 ============ */
@@ -1353,6 +1367,7 @@ function resolve(code, text){
 <script>updateDifficultyPreview();</script>
 <script src="tutorial.js"></script>
 <script src="atlas.js"></script>
+<script src="difficulty-dialog.js"></script>
 </body>
 </html>
 

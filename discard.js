@@ -1,0 +1,32 @@
+/* Read-only played history and actual player discard; never mixes their meanings. */
+(() => {
+  'use strict';
+  const byId=id=>document.getElementById(id),dialog=byId('discardDialog');
+  if(!dialog)return;
+  let view='played',lastFocus=null,savedOverflow='';
+  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function render(){
+    const played=view==='played';
+    byId('discardShowPlayed').setAttribute('aria-pressed',String(played));
+    byId('discardShowPile').setAttribute('aria-pressed',String(!played));
+    byId('discardDescription').textContent=played?'按最近打出优先，记录本局每次成功打出的资产与事件。装备中的资产也记在这里，但仍留在装备区，不算弃牌。技能投入和抽到的弱点不属于“出牌”。':'这里只显示当前玩家弃牌堆，包括结算后的事件、投入过的技能和已结算弱点等。洗回牌组后会从此处消失，出牌历史则保留。不包含敌人或遭遇弃牌。';
+    const entries=(played?S.playedCards:S.discard.map(card=>({card}))).slice().reverse();
+    byId('discardCount').textContent=played?`本局已打出 ${entries.length} 次`:`当前弃牌 ${entries.length} 张`;
+    byId('discardCards').innerHTML=entries.length?entries.map(({card,round})=>{
+      const art=CARD_ART[card.id]||[0,0],type={asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[card.type]||card.type;
+      return `<article class="discard-entry"><div class="discard-art art" aria-hidden="true" style="--art-x:${art[0]}%;--art-y:${art[1]}%"></div><div><small>${esc(type)}${played?` · 第 ${esc(round)} 回合打出`:''}</small><h3>${esc(card.name)}</h3><p>${esc(card.text)}</p><details><summary>查看用法</summary><p>${esc(CARD_USAGE[card.id]||card.text)}</p></details></div></article>`;
+    }).join(''):`<p class="atlas-empty">${played?'本局还没有打出过卡牌。':'当前弃牌堆为空。'}</p>`;
+  }
+  byId('discardPileButton').addEventListener('click',()=>{
+    if(!S || dialog.open || byId('game').style.display==='none')return;
+    if(byId('modal').classList.contains('open') || byId('handCardDialog').open || byId('cardAtlas').open || !byId('tutorial').hidden){
+      byId('guideStatus').textContent='请先完成或关闭当前弹窗，再查看弃牌区。';return;
+    }
+    view='played';render();lastFocus=document.activeElement;savedOverflow=document.body.style.overflow;
+    dialog.showModal();document.body.style.overflow='hidden';dialog.scrollTop=0;byId('discardClose').focus();
+  });
+  byId('discardShowPlayed').addEventListener('click',()=>{if(dialog.open&&S){view='played';render();}});
+  byId('discardShowPile').addEventListener('click',()=>{if(dialog.open&&S){view='pile';render();}});
+  byId('discardClose').addEventListener('click',()=>dialog.close());
+  dialog.addEventListener('close',()=>{document.body.style.overflow=savedOverflow;if(lastFocus?.isConnected!==false)lastFocus?.focus();});
+})();

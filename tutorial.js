@@ -33,11 +33,9 @@
     } else spotlight.hidden = true;
     const box = panel.getBoundingClientRect();
     const panelWidth = Math.min(380, width - 24), panelHeight = box.height;
-    const onLeft = rect && rect.left > width / 2;
-    const x = onLeft ? 12 : Math.max(12,width-panelWidth-12);
-    let y = Math.max(12,height-panelHeight-12);
-    if (rect && rect.bottom + panelHeight + 24 < height) y = rect.bottom + 12;
-    else if (rect && rect.top - panelHeight - 12 >= 12) y = rect.top - panelHeight - 12;
+    // Keep the explanation in the right-hand space, independently of the spotlight.
+    const x = Math.max(12,width-panelWidth-12);
+    const y = Math.max(12,height-panelHeight-12);
     Object.assign(panel.style, {left:x+'px',top:y+'px',right:'auto',bottom:'auto'});
   }
   function render() {

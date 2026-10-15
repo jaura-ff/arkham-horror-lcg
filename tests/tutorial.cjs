@@ -17,7 +17,7 @@ function setup({saved=null,storageFails=false}={}){
   vm.runInNewContext(source,{document:doc,window:win,localStorage});
   function click(id){const n=nodes.get(id);doc.activeElement=n;n.click()}
   function key(value,shiftKey=false){let prevented=false;nodes.get('tutorialPanel').listeners.keydown({key:value,shiftKey,preventDefault(){prevented=true}});return prevented}
-  return{nodes,doc,win,winEvents,events,storage,state,click,key,open:()=>!nodes.get('tutorial').hidden};
+  return{nodes,targets,doc,win,winEvents,events,storage,state,click,key,open:()=>!nodes.get('tutorial').hidden};
 }
 test('初次开始自动引导，七步完成不扣资源或行动',()=>{
   const g=setup(),before=JSON.stringify(g.state);g.click('startButton');
@@ -55,6 +55,33 @@ test('禁用存储仍可使用，返回菜单和旋转会正确清理或重定�
   const g=setup({storageFails:true});g.click('startButton');g.win.innerWidth=390;g.win.innerHeight=320;g.winEvents.resize();
   const panel=g.nodes.get('tutorialPanel');assert.ok(parseFloat(panel.style.left)>=12);assert.ok(parseFloat(panel.style.top)>=12);
   g.nodes.get('game').style.display='none';g.events['arkham:menu']();assert.equal(g.open(),false);assert.equal(g.doc.body.style.overflow,'');assert.equal(g.doc.activeElement.id,'learnButton');
+});
+
+test('所有步骤固定右下方，不随高亮目标左右跳动',()=>{
+  const g=setup();g.win.innerWidth=1440;g.win.innerHeight=900;
+  let position=0;
+  for(const target of Object.values(g.targets)){
+    const left=position++%2?1050:20;
+    target.getBoundingClientRect=()=>({left,top:40,right:left+300,bottom:240,width:300,height:200});
+  }
+  g.click('startButton');
+  for(let step=0;step<7;step++){
+    const panel=g.nodes.get('tutorialPanel');
+    assert.equal(panel.style.left,'1048px');assert.equal(panel.style.top,'688px');
+    assert.equal(g.nodes.get('tutorialSpotlight').style.left,step%2?'1045px':'15px');
+    if(step<6)g.click('tutorialNext');
+  }
+  g.winEvents.scroll();assert.equal(g.nodes.get('tutorialPanel').style.left,'1048px');
+});
+
+test('右侧引导在窄屏及短横屏保留安全边距',()=>{
+  const g=setup();g.click('startButton');
+  for(const [width,height] of [[390,844],[568,320],[844,390]]){
+    g.win.innerWidth=width;g.win.innerHeight=height;g.winEvents.resize();
+    const panel=g.nodes.get('tutorialPanel'),panelWidth=Math.min(380,width-24);
+    assert.equal(parseFloat(panel.style.left)+panelWidth,width-12);
+    assert.equal(parseFloat(panel.style.top)+200,height-12);
+  }
 });
 
 test('教学入口与所有目标区域均存在，脚本随游戏本地加载',()=>{

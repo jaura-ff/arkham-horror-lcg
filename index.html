@@ -190,7 +190,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <h1>诡镇奇谭<span class="title-sub">聚会之夜</span></h1>
       <p>1926 年，阿卡姆。熟悉的宅邸开始变得陌生，门后的低语，正指向阁楼里被掩埋的秘密。</p>
       <p>扮演联邦探员罗兰·班克斯。收集线索、应对遭遇，在理智耗尽之前，完成这场调查。</p>
-      <button class="btn primary" onclick="startGame()">进入调查 →</button>
+      <button class="btn primary" id="startButton" onclick="startGame()">进入调查 →</button>
       <p class="start-note">单人卡牌游戏 · 每回合 3 次行动 · 无需登录</p>
     </div>
     <div class="case-file">
@@ -212,6 +212,11 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <span class="pill">回合 <b id="roundnum">1</b></span>
       <span class="pill">资源 <b id="topres">5</b></span>
       <span class="pill">线索 <b id="topclue">0</b></span>
+      <div class="sound-controls" aria-label="环境音设置">
+        <button type="button" class="btn" id="soundToggle" aria-pressed="true" aria-describedby="soundStatus">环境音：开</button>
+        <label for="soundVolume">音量</label><input id="soundVolume" type="range" min="0" max="100" value="18" aria-label="环境音音量">
+        <span id="soundStatus" class="sound-status" role="status" aria-live="polite">进入游戏后播放</span>
+      </div>
     </div>
   </header>
 
@@ -1252,6 +1257,7 @@ function resolve(code, text){
   `);
 }
 </script>
+<script src="ambience.js"></script>
 </body>
 </html>
 

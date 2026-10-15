@@ -44,5 +44,28 @@ test('内容转义且包含插画和只读用法，没有出牌操作',()=>{
   const g=setup();g.play('resource');g.run(`S.playedCards[0].card.name='<img src=x onerror=alert(1)>'`);g.click('discardPileButton');const cards=g.el('discardCards').innerHTML;assert.match(cards,/&lt;img/);assert.doesNotMatch(cards,/<img|onclick=|onHandCard\(/);assert.match(cards,/discard-art art/);assert.match(cards,/查看用法/);
 });
 test('弃牌弹窗语义完整，入口放在手牌区域',()=>{
-  assert.match(html,/<dialog id="discardDialog"[^>]*aria-labelledby="discardTitle"/);assert.match(html,/discard.js\?v=discard-pile-1/);assert.match(html.split('<div class="panel hand-panel">')[1].split('<!-- 右栏 -->')[0],/id="discardPileButton"/);
+  assert.match(html,/<dialog id="discardDialog"[^>]*aria-labelledby="discardTitle"/);assert.match(html,/discard.js\?v=character-deck-1/);assert.match(html.split('<div class="panel hand-panel">')[1].split('<!-- 右栏 -->')[0],/id="discardPileButton"/);
+});
+
+test('查阅角色配牌展示完整初始牌组和分类数量，包括弱点',()=>{
+  const g=setup();g.click('discardPileButton');g.click('discardShowDeck');
+  const cards=g.el('discardCards').innerHTML;assert.equal((cards.match(/class="discard-entry"/g)||[]).length,g.get('INVESTIGATOR.deck.length'));
+  for(const c of g.get('INVESTIGATOR.deck'))assert.ok(cards.includes(c.name),c.name);
+  assert.match(g.el('discardCount').textContent,/配牌共 10 张/);assert.match(g.el('discardCount').textContent,/资产 2 · 事件 3 · 技能 4 · 弱点 1/);assert.match(g.el('discardDescription').textContent,/不透露抽牌顺序/);
+  assert.equal(g.el('discardShowDeck')['aria-pressed'],'true');assert.equal(g.el('discardShowPile')['aria-pressed'],'false');assert.equal(g.el('discardShowPlayed')['aria-pressed'],'false');
+});
+
+test('配牌查阅独立于当前手牌、抽牌堆、弃牌及出牌历史',()=>{
+  const g=setup();g.run('S.hand=[];S.deck=[];S.discard=[];S.playedCards=[]');g.click('discardPileButton');g.click('discardShowDeck');const before=g.el('discardCards').innerHTML;
+  g.run(`S.hand=[{id:'not-in-deck',name:'不属于角色配牌',type:'event',text:'未知'}];S.deck=S.hand.slice();S.playedCards=[{card:S.hand[0],round:1}]`);g.click('discardShowDeck');assert.equal(g.el('discardCards').innerHTML,before);assert.doesNotMatch(g.el('discardCards').innerHTML,/不属于角色配牌/);
+});
+
+test('角色配牌含费用、插画、效果和用法，不提供出牌或取牌操作',()=>{
+  const g=setup();g.click('discardPileButton');g.click('discardShowDeck');const cards=g.el('discardCards').innerHTML;
+  assert.match(cards,/3 资源 \+ 1 行动 · 1 只手槽/);assert.match(cards,/不使用普通出牌费用/);assert.match(cards,/discard-art art/);assert.match(cards,/查看用法/);assert.doesNotMatch(cards,/onclick=|onHandCard\(/);
+});
+
+test('查阅和分类切换不改变游戏状态或配牌定义，关闭后重开仍默认历史',()=>{
+  const g=setup();const state=g.get('S'),deck=g.get('INVESTIGATOR.deck');g.run('Math.random=()=>{throw Error("unexpected randomness")}');g.click('discardPileButton');g.click('discardShowDeck');g.click('discardShowPile');g.click('discardShowPlayed');g.click('discardClose');assert.deepEqual(g.get('S'),state);assert.deepEqual(g.get('INVESTIGATOR.deck'),deck);
+  g.click('discardPileButton');assert.equal(g.el('discardShowPlayed')['aria-pressed'],'true');assert.equal(g.el('discardShowDeck')['aria-pressed'],'false');
 });

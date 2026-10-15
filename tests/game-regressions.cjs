@@ -260,6 +260,49 @@ test('完成调查消耗行动且先处理借机攻击，败北后不能获胜',
   const h=game();h.enemy();h.run(`S.location='attic';S.enemies[0].location='attic';S.actIdx=1;S.hp=1;finish()`);
   assert.equal(h.get('S.hp'),0);assert.match(h.document.getElementById('modalBox').innerHTML,/调查失败/);
 });
+test('地点路线有序斜向居中，连接线只连接真实相邻房间',()=>{
+  const g=game();g.run('renderLocations()');const map=g.document.getElementById('mapwrap').innerHTML;
+  assert.ok(map.indexOf('data-room="study"')<map.indexOf('data-room="hallway"'));assert.ok(map.indexOf('data-room="hallway"')<map.indexOf('data-room="attic"'));
+  for(const [room,x,y] of [['study',20,78],['hallway',50,50],['attic',80,22]])assert.match(map,new RegExp(`data-room="${room}" style="--node-x:${x}%;--node-y:${y}%"`));
+  assert.equal((map.match(/<line /g)||[]).length,2);assert.match(map,/data-from="study" data-to="hallway"/);assert.match(map,/data-from="hallway" data-to="attic"/);assert.doesNotMatch(map,/data-from="study" data-to="attic"/);
+});
+
+test('地图房间状态和线索敌人数量仍随实际状态刷新',()=>{
+  const g=game();g.run(`S.revealed.hallway=true;S.locClues.hallway=0;S.enemies=[{card:ENCOUNTER[0],location:'hallway'}];renderLocations()`);
+  let map=g.document.getElementById('mapwrap').innerHTML;assert.match(map,/可前往/);assert.match(map,/敌人 ×1/);
+  g.run(`S.enemies=[];S.location='hallway';renderLocations()`);map=g.document.getElementById('mapwrap').innerHTML;
+  assert.match(map,/map-node current[^>]*data-room="hallway"/);assert.equal(g.document.getElementById('sceneTitle').textContent,'走廊');
+});
+
+test('地图未揭示节点仍不可点击，相邻已揭示节点才提供移动入口',()=>{
+  const g=game();g.run('renderLocations()');let map=g.document.getElementById('mapwrap').innerHTML;
+  assert.doesNotMatch(map,/onclick="clickNode\('hallway'\)"/);
+  g.run('S.revealed.hallway=true;S.revealed.attic=true;renderLocations()');map=g.document.getElementById('mapwrap').innerHTML;
+  assert.match(map,/onclick="clickNode\('hallway'\)"/);assert.doesNotMatch(map,/onclick="clickNode\('attic'\)"/);
+});
+
+test('路线节点移动仍只扣一次行动，位置刷新且不能跨房间',()=>{
+  const g=game();g.run(`S.revealed.hallway=true;S.revealed.attic=true;clickNode('attic')`);assert.equal(g.get('S.actions'),3);
+  g.run(`clickNode('hallway')`);assert.equal(g.get('S.actions'),2);assert.equal(g.get('S.location'),'hallway');
+  assert.match(g.document.getElementById('mapwrap').innerHTML,/map-node current[^>]*data-room="hallway"/);
+});
+
+test('地图样式恢复图标连线及绝对定位，移除底部占位元素',()=>{
+  const css=fs.readFileSync(path.join(__dirname,'..','map.css'),'utf8');
+  assert.match(css,/position:absolute!important;left:var\(--node-x\)!important;top:var\(--node-y\)!important/);
+  assert.match(css,/\.map>svg.route-connections\{display:block/);assert.match(css,/\.node-ico\{display:grid/);
+  assert.match(css,/@container\(max-width:300px\)/);assert.match(html,/map.css\?v=route-center-1/);assert.match(html,/class="scene-route"/);assert.doesNotMatch(html,/class="scene-space"/);
+});
+
+test('路线几何在窄地图和宽地图中保留房间间距及居中顺序',()=>{
+  for(const width of [160,220,280,300,320,420,600,820]){
+    const narrow=width<=300,height=narrow?460:320,cardWidth=narrow?Math.min(96,width*0.36):Math.max(86,Math.min(138,width*0.24)),cardHeight=narrow?128:138;
+    const points=[[0.2,0.78],[0.5,0.5],[0.8,0.22]].map(([x,y])=>({x:width*x,y:height*y}));
+    for(const p of points){assert.ok(p.x-cardWidth/2>=0);assert.ok(p.x+cardWidth/2<=width);assert.ok(p.y-cardHeight/2>=0);assert.ok(p.y+cardHeight/2<=height);}
+    for(let i=1;i<points.length;i++)assert.ok(Math.abs(points[i].x-points[i-1].x)>=cardWidth || Math.abs(points[i].y-points[i-1].y)>=cardHeight);
+  }
+});
+
 test('四档混沌袋与原版战役配置完全一致，实例互不污染',()=>{
   const g=game();
   const numeric={easy:[1,1,0,0,0,-1,-1,-1,-2,-2],standard:[1,0,0,-1,-1,-1,-2,-2,-3,-4],hard:[0,0,0,-1,-1,-2,-2,-3,-3,-4,-5],expert:[0,-1,-1,-2,-2,-3,-3,-4,-4,-5,-6,-8]};

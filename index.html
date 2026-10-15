@@ -296,7 +296,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <dialog id="discardDialog" class="card-atlas" aria-labelledby="discardTitle" aria-describedby="discardDescription">
   <div class="atlas-shell">
     <header class="atlas-heading"><div><span class="atlas-kicker">ARKHAM / PLAYED ARCHIVE</span><h2 id="discardTitle">弃牌区与出牌记录</h2></div><button id="discardClose" type="button" class="btn icon-button" aria-label="关闭弃牌区" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
-    <div class="discard-switch" role="group" aria-label="记录分类"><button id="discardShowPlayed" type="button" class="btn" aria-pressed="true">所有已打出的牌</button><button id="discardShowPile" type="button" class="btn" aria-pressed="false">实际弃牌堆</button></div>
+    <div class="discard-switch" role="group" aria-label="记录分类"><button id="discardShowPlayed" type="button" class="btn" aria-pressed="true">所有已打出的牌</button><button id="discardShowPile" type="button" class="btn" aria-pressed="false">实际弃牌堆</button><button id="discardShowDeck" type="button" class="btn" aria-pressed="false">查阅角色配牌</button></div>
     <p id="discardDescription" class="atlas-notice"></p><p id="discardCount" class="atlas-count" role="status" aria-live="polite"></p>
     <div id="discardCards" class="discard-cards"></div>
     <p class="atlas-source">只供查阅，不会出牌、洗牌、回收卡牌或消耗行动。本局记录在开始新游戏时清空。</p>
@@ -1412,7 +1412,7 @@ function resolve(code, text){
 <script src="atlas.js"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
 <script src="hand-dialog.js?v=hand-confirm-1"></script>
-<script src="discard.js?v=discard-pile-1"></script>
+<script src="discard.js?v=character-deck-1"></script>
 </body>
 </html>
 

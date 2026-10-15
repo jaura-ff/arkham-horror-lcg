@@ -181,7 +181,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="noir.css">
 <link rel="stylesheet" href="atlas.css?v=action-confirm-1">
 <link rel="stylesheet" href="map.css?v=player-marker-1">
-<link rel="stylesheet" href="layout.css?v=left-actions-1">
+<link rel="stylesheet" href="layout.css?v=mini-assets-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -699,7 +699,17 @@ function renderAssets(){
   const el = document.getElementById('assets');
   if(S.assets.length===0){ el.innerHTML='<div style="color:var(--dim);font-size:11px">暂无已打出的资产</div>'; }
   else {
-    el.innerHTML = S.assets.map(a=>`<div class="asset-chip ${a.exhausted?'exhausted':''}">${a.exhausted?'':''} ${a.card.name} <span style="color:var(--dim)">(${a.card.slot})</span></div>`).join('');
+    const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    el.innerHTML = S.assets.map(a=>{
+      const c=a.card,art=CARD_ART[c.id],slot={hand:'手部',body:'身体',accessory:'饰品',ally:'盟友',arcane:'法术'}[c.slot]||c.slot||'无槽位';
+      return `<article class="asset-mini ${a.exhausted?'is-exhausted':''}">
+        <header class="asset-mini-heading"><span>资产 · 已装备</span><span class="asset-mini-state">${a.exhausted?'已力竭':'就绪'}</span></header>
+        <h3 class="asset-mini-name">${escape(c.name)}</h3>
+        ${art?`<div class="asset-mini-art art" aria-hidden="true" style="--art-x:${art[0]}%;--art-y:${art[1]}%"></div>`:'<div class="asset-mini-art asset-mini-no-art" aria-hidden="true">资产</div>'}
+        <p class="asset-mini-effect">${escape(c.text||'此资产暂无效果说明。')}</p>
+        <footer class="asset-mini-slot">${escape(slot)}${c.slot==='hand'?` · 占用 ${escape(c.slots||1)} 只手`:''}</footer>
+      </article>`;
+    }).join('');
   }
   const handUsed = S.assets.filter(a=>a.card.slot==='hand').length;
   document.getElementById('slots').innerHTML = `手槽占用：${handUsed}/2`;

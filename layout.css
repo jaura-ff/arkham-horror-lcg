@@ -12,6 +12,14 @@
 .col-center .equipment-panel{width:auto;min-width:0}
 .col-center #assets{display:flex;flex-direction:row;flex-wrap:wrap;gap:10px}
 .col-center .asset-chip{max-width:100%;overflow-wrap:anywhere}
+.asset-mini{display:flex;flex-direction:column;flex:0 1 168px;min-width:0;max-width:100%;padding:10px;border:1px solid #947442;background:#251f16;box-shadow:inset 0 0 0 3px #251f16,inset 0 0 0 4px #94744233;color:#dfd0b4;overflow-wrap:anywhere}
+.asset-mini-heading{display:flex;justify-content:space-between;gap:8px;font-size:10px;line-height:1.6;color:#b9aa8b}
+.asset-mini-state{color:#e1c38a;flex-shrink:0}.asset-mini.is-exhausted .asset-mini-state{color:#c9a993}
+.asset-mini .asset-mini-name{font:15px/1.5 Georgia,'SimSun',serif;letter-spacing:0;color:#eed7a4;text-align:center;margin:7px 0 9px}
+.asset-mini-art{width:100%;aspect-ratio:1.5;border:1px solid #7c603a;margin-bottom:10px}
+.asset-mini-no-art{display:grid;place-items:center;color:#b9aa8b;background:#30271b;font-size:12px}
+.asset-mini-effect{font-size:12px;line-height:1.7;margin:0 0 12px}
+.asset-mini-slot{border-top:1px solid #695234;padding-top:7px;margin-top:auto;color:#c5b58e;font-size:11px;line-height:1.5}
 @media(max-width:760px) and (orientation:portrait){
   .col-left>.inv-card{grid-column:1;grid-row:1}
   .col-left>.goal-panel{grid-column:2;grid-row:1}

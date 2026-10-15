@@ -6,6 +6,35 @@ const path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
+test('已装备资产使用迷你插画卡，显示名称、效果和中文槽位',()=>{
+  const g=game();g.run(`S.assets=[{card:INVESTIGATOR.deck.find(c=>c.id==='p45'),exhausted:false}];renderAssets()`);
+  const cards=g.document.getElementById('assets').innerHTML;
+  assert.match(cards,/<article class="asset-mini /);assert.match(cards,/asset-mini-art art/);assert.match(cards,/--art-x:33.3333%/);
+  assert.match(cards,/\.45 自动手枪/);assert.ok(cards.includes(g.get("INVESTIGATOR.deck.find(c=>c.id==='p45').text")));
+  assert.match(cards,/手部 · 占用 1 只手/);assert.match(cards,/就绪/);assert.doesNotMatch(cards,/\(hand\)|onclick=|<button/);
+  assert.match(g.document.getElementById('slots').innerHTML,/1\/2/);
+});
+
+test('多张迷你资产独立展示，力竭仍保留可读效果且渲染不改变状态',()=>{
+  const g=game();g.run(`S.assets=['p45','machete'].map((id,i)=>({card:INVESTIGATOR.deck.find(c=>c.id===id),exhausted:!!i}));Math.random=()=>{throw Error('unexpected random')}`);
+  const before=g.get('S');g.run('renderAssets();renderAssets()');assert.deepEqual(g.get('S'),before);
+  const cards=g.document.getElementById('assets').innerHTML;
+  assert.equal((cards.match(/<article/g)||[]).length,2);assert.match(cards,/asset-mini is-exhausted/);assert.match(cards,/已力竭/);assert.match(cards,/玛谢特砍刀/);assert.match(g.document.getElementById('slots').innerHTML,/2\/2/);
+});
+
+test('未知资产提供插画与效果缺省，卡牌文字转义',()=>{
+  const g=game();g.run(`S.assets=[{card:{id:'unknown',name:'<img src=x>',slot:'<slot>',text:'<script>bad</script>'}}];renderAssets()`);
+  let cards=g.document.getElementById('assets').innerHTML;
+  assert.match(cards,/asset-mini-no-art/);assert.match(cards,/&lt;img src=x&gt;/);assert.match(cards,/&lt;slot&gt;/);assert.match(cards,/&lt;script&gt;/);assert.doesNotMatch(cards,/<script>|<img /);
+  g.run('S.assets[0].card.text=null;renderAssets()');assert.match(g.document.getElementById('assets').innerHTML,/暂无效果说明/);
+});
+
+test('迷你资产为空时保留空状态，不影响新游戏清空',()=>{
+  const g=game();g.run('renderAssets()');assert.match(g.document.getElementById('assets').innerHTML,/暂无已打出的资产/);
+  g.run(`S.assets=[{card:INVESTIGATOR.deck[0]}];renderAssets();startGame()`);assert.match(g.document.getElementById('assets').innerHTML,/暂无已打出的资产/);
+  const css=fs.readFileSync(path.join(__dirname,'..','layout.css'),'utf8');assert.match(css,/flex:0 1 168px/);assert.match(css,/max-width:100%/);assert.match(css,/asset-mini-effect\{font-size:12px/);
+});
+
 test('抽牌及资源确认可返回，继续只执行一次，锁住其他行动',()=>{
   for(const action of ['draw','resource']){
     const g=game(),before=g.get('S');g.run(`Math.random=()=>{throw Error('unexpected random')};requestAction('${action}')`);
@@ -352,7 +381,7 @@ test('手牌独占中央底部且资产、槽位与行动入口仍然唯一',()=
 });
 
 test('左侧行动与中央资产的响应式规则已接入',()=>{
-  const css=fs.readFileSync(path.join(__dirname,'..','layout.css'),'utf8');assert.match(html,/layout.css\?v=left-actions-1/);
+  const css=fs.readFileSync(path.join(__dirname,'..','layout.css'),'utf8');assert.match(html,/layout.css\?v=mini-assets-1/);
   assert.match(css,/\.col-left \.actions\{grid-template-columns:repeat\(2/);assert.match(css,/orientation:landscape/);assert.match(css,/grid-template-columns:minmax\(0,1fr\)/);
   assert.match(css,/\.col-center \.bottom\{display:block;margin:0/);assert.match(css,/min-height:44px/);
 });

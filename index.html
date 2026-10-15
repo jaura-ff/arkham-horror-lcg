@@ -181,7 +181,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="noir.css">
 <link rel="stylesheet" href="atlas.css?v=action-confirm-1">
 <link rel="stylesheet" href="map.css?v=player-marker-1">
-<link rel="stylesheet" href="layout.css?v=mini-assets-1">
+<link rel="stylesheet" href="layout.css?v=asset-icons-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -292,6 +292,11 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 </div>
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="游戏操作"><div class="modal-box" id="modalBox"></div></div>
+<dialog id="assetInfoDialog" class="card-atlas asset-info-dialog" aria-labelledby="assetInfoTitle">
+  <div class="atlas-shell"><header class="atlas-heading"><h2 id="assetInfoTitle">资产说明</h2><button type="button" class="btn icon-button" aria-label="关闭资产说明" onclick="document.getElementById('assetInfoDialog').close()" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
+    <p id="assetInfoEffect"></p><p id="assetInfoSlot" class="atlas-source"></p>
+  </div>
+</dialog>
 <span id="guideStatus" class="guide-sr-only" role="status" aria-live="polite"></span>
 <dialog id="discardDialog" class="card-atlas" aria-labelledby="discardTitle" aria-describedby="discardDescription">
   <div class="atlas-shell">
@@ -700,19 +705,27 @@ function renderAssets(){
   if(S.assets.length===0){ el.innerHTML='<div style="color:var(--dim);font-size:11px">暂无已打出的资产</div>'; }
   else {
     const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    el.innerHTML = S.assets.map(a=>{
+    el.innerHTML = S.assets.map((a,index)=>{
       const c=a.card,art=CARD_ART[c.id],slot={hand:'手部',body:'身体',accessory:'饰品',ally:'盟友',arcane:'法术'}[c.slot]||c.slot||'无槽位';
-      return `<article class="asset-mini ${a.exhausted?'is-exhausted':''}">
-        <header class="asset-mini-heading"><span>资产 · 已装备</span><span class="asset-mini-state">${a.exhausted?'已力竭':'就绪'}</span></header>
-        <h3 class="asset-mini-name">${escape(c.name)}</h3>
-        ${art?`<div class="asset-mini-art art" aria-hidden="true" style="--art-x:${art[0]}%;--art-y:${art[1]}%"></div>`:'<div class="asset-mini-art asset-mini-no-art" aria-hidden="true">资产</div>'}
-        <p class="asset-mini-effect">${escape(c.text||'此资产暂无效果说明。')}</p>
-        <footer class="asset-mini-slot">${escape(slot)}${c.slot==='hand'?` · 占用 ${escape(c.slots||1)} 只手`:''}</footer>
-      </article>`;
+      return `<button type="button" class="asset-icon ${a.exhausted?'is-exhausted':''}" onclick="inspectAsset(${index})" aria-haspopup="dialog" aria-label="${escape(c.name)}，${a.exhausted?'已力竭':'就绪'}，${escape(slot)}，点击查看效果">
+        ${art?`<span class="asset-icon-art art" aria-hidden="true" style="--art-x:${art[0]}%;--art-y:${art[1]}%"></span>`:'<span class="asset-icon-art asset-icon-no-art" aria-hidden="true">资产</span>'}
+        <span class="asset-icon-copy"><span class="asset-icon-name">${escape(c.name)}</span><small>${a.exhausted?'已力竭':'就绪'}</small></span>
+      </button>`;
     }).join('');
   }
   const handUsed = S.assets.filter(a=>a.card.slot==='hand').length;
   document.getElementById('slots').innerHTML = `手槽占用：${handUsed}/2`;
+}
+
+function inspectAsset(index){
+  if(!S || S.test || S.pendingMove || pendingAction || pendingNavigation || document.getElementById('modal').classList.contains('open') || document.getElementById('game').inert)return;
+  const a=S.assets[index],dialog=document.getElementById('assetInfoDialog');
+  if(!a || dialog.open)return;
+  document.getElementById('assetInfoTitle').textContent=a.card.name;
+  document.getElementById('assetInfoEffect').textContent=a.card.text||'此资产暂无效果说明。';
+  const slot={hand:'手部',body:'身体',accessory:'饰品',ally:'盟友',arcane:'法术'}[a.card.slot]||a.card.slot||'无槽位';
+  document.getElementById('assetInfoSlot').textContent=`${slot}${a.card.slot==='hand'?` · 占用 ${a.card.slots||1} 只手`:''} · ${a.exhausted?'已力竭':'就绪'} · 仅供查阅，不消耗行动。`;
+  dialog.showModal();
 }
 
 function renderLocations(){

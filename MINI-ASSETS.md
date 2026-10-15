@@ -1,7 +1,7 @@
-# Mini equipped cards
+# Compact equipped-asset icons
 
-The central equipped-assets panel now renders compact 168px cards rather than text chips. Each shows local shared card artwork, name, complete current game effect, Chinese slot label and ready/exhausted state. Effects are not clipped or hidden behind hover. Flex wrapping preserves the same design on desktop and landscape phones; cards shrink inside narrower containers. Events remain in the discard/history, not equipped assets.
+Equipped assets use 48px-high buttons with a 34px local artwork icon, name and ready/exhausted status. The strip never wraps; extra equipment scrolls horizontally inside the existing panel, capped at 58px including the scrollbar. Full-size cards and inline effects were removed so equipment does not expand the game layout. Events remain in discard/history.
 
-Rendering is read-only: no additional play controls, costs, state changes or game-rule changes. Artwork uses the existing atlas; unknown assets get a neutral text fallback. Dynamic text is escaped. Empty and new-game states remain intact.
+Click/tap/Enter opens a small native read-only dialog with complete effect, Chinese slot usage and state. Escape/close dismiss it without gameplay changes. No play/re-equip controls. Test, move, confirmation and tutorial locks prevent conflicting opens. Native modality handles focus; shared dialog styles provide viewport limits and internal scrolling. Artwork uses the existing atlas with a neutral fallback. Button text is escaped; dialog values use textContent. No new dependencies.
 
-Verification: 142 automated tests pass across the existing seven test files, including four new mini-card tests. Browser visual verification remains unauthorized and was not performed.
+Verification: 144 automated tests pass across the existing seven test files. Browser visual verification remains unauthorized and was not performed.

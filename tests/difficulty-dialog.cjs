@@ -8,7 +8,7 @@ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 function setup(){
   const nodes=new Map();
   const doc={body:{style:{overflow:'auto'}},activeElement:null,createElement:()=>node(''),getElementById(id){if(!nodes.has(id))nodes.set(id,node(id));return nodes.get(id)}};
-  function node(id){const classes=new Set();return{id,style:{},value:id==='difficultySelect'?'standard':'',hidden:id==='tutorial',open:false,isConnected:true,textContent:'',children:[],listeners:{},classList:{contains:c=>classes.has(c),add:c=>classes.add(c)},append(...items){this.children.push(...items)},replaceChildren(){this.children=[]},addEventListener(event,fn){this.listeners[event]=fn},showModal(){this.open=true;this.shows=(this.shows||0)+1},close(){this.open=false;this.listeners.close?.()},focus(){doc.activeElement=this}};}
+  function node(id){const classes=new Set();return{id,style:{},value:id==='difficultySelect'?'standard':'',hidden:id==='tutorial',open:false,isConnected:true,textContent:'',children:[],listeners:{},classList:{contains:c=>classes.has(c),add:c=>classes.add(c)},setAttribute(name,value){this[name]=value},append(...items){this.children.push(...items)},replaceChildren(){this.children=[]},addEventListener(event,fn){this.listeners[event]=fn},showModal(){this.open=true;this.shows=(this.shows||0)+1},close(){this.open=false;this.listeners.close?.()},focus(){doc.activeElement=this}};}
   const context=vm.createContext({document:doc});const run=code=>vm.runInContext(code,context);
   run(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
   run(fs.readFileSync(path.join(root,'difficulty-dialog.js'),'utf8'));
@@ -62,6 +62,35 @@ test('已有弹窗、教学或进行中的游戏不叠加难度说明，非法�
 test('弹窗使用原生模态、标题关联和按钮入口，样式带视口高度限制',()=>{
   assert.match(html,/<dialog id="difficultyInfo"[^>]*aria-labelledby="difficultyInfoTitle"/);
   assert.match(html,/id="difficultyInfoButton"[^>]*aria-haspopup="dialog"/);
-  assert.match(html,/src="difficulty-dialog.js"/);
+  assert.match(html,/src="difficulty-dialog.js\?v=token-art-1"/);
   const css=fs.readFileSync(path.join(root,'atlas.css'),'utf8');assert.match(css,/max-height:calc\(100dvh - 24px\)/);assert.match(css,/difficulty-info-actions .*min-height:44px/);
+});
+
+test('四档每类指示物均有本地图形和可读标签，数量不变',()=>{
+  const g=setup();
+  for(const key of ['easy','standard','hard','expert']){
+    g.choose(key);
+    for(const tile of g.get('difficultyInfoTokens').children){
+      const label=tile.children[0],picture=label.children[0];
+      assert.ok(label.textContent);assert.match(picture.src,/^assets\/tokens\/[a-z0-9]+\.svg$/);
+      assert.ok(fs.existsSync(path.join(root,picture.src)),picture.src);assert.equal(picture.width,72);assert.equal(picture.height,72);assert.equal(picture.alt,'');assert.equal(picture['aria-hidden'],'true');
+    }
+    g.get('difficultyInfo').close();
+  }
+});
+
+test('五种特殊符号对应独立插画，所有素材无外链及脚本',()=>{
+  const g=setup();g.choose('expert');
+  const tiles=g.get('difficultyInfoTokens').children;
+  for(const [label,id] of Object.entries({'骷髅':'skull','异教徒':'cultist','石板':'tablet','自动失败':'autofail','上古印记':'elder'})){
+    assert.equal(tiles.find(t=>t.children[0].textContent===label).children[0].children[0].src,`assets/tokens/${id}.svg`);
+  }
+  const files=fs.readdirSync(path.join(root,'assets/tokens')).filter(f=>f.endsWith('.svg'));assert.equal(files.length,14);
+  for(const file of files){const svg=fs.readFileSync(path.join(root,'assets/tokens',file),'utf8');assert.match(svg,/viewBox="0 0 100 100"/);assert.doesNotMatch(svg,/<script|<foreignObject|href=|onload=/);}
+});
+
+test('图形布局使用自适应网格，资源带版本避免复用旧文字样式',()=>{
+  const css=fs.readFileSync(path.join(root,'atlas.css'),'utf8');
+  assert.match(css,/grid-template-columns:repeat\(auto-fit,minmax\(100px,1fr\)\)/);assert.match(css,/\.difficulty-token img/);
+  assert.match(html,/href="atlas.css\?v=token-art-1"/);
 });

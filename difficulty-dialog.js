@@ -16,7 +16,12 @@
     const list=byId('difficultyInfoTokens');list.replaceChildren();
     counts.forEach((count,label)=>{
       const item=document.createElement('li'),name=document.createElement('span'),amount=document.createElement('b');
+      const token=bag.find(t=>t.label===label),picture=document.createElement('img');
+      const artwork=token.autofail?'autofail':token.elder?'elder':token.symbol|| (token.mod>0?'plus1':token.mod===0?'zero':'minus'+Math.abs(token.mod));
+      picture.src=`assets/tokens/${artwork}.svg`;picture.alt='';picture.width=72;picture.height=72;
+      picture.setAttribute('aria-hidden','true');
       name.className='difficulty-token';name.textContent=label;amount.textContent=`× ${count}`;
+      name.append(picture);
       item.append(name,amount);list.append(item);
     });
     byId('difficultyInfoSide').textContent=`《聚会》参考卡：${data.hard?'困难／专家面':'简单／标准面'}`;

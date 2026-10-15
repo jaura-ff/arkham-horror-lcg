@@ -286,7 +286,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <div id="tutorial" class="tutorial-overlay" hidden>
   <div id="tutorialSpotlight" class="tutorial-spotlight" aria-hidden="true"></div>
   <section id="tutorialPanel" class="tutorial-panel" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle" aria-describedby="tutorialText">
-    <div class="tutorial-heading"><span id="tutorialProgress" aria-live="polite"></span><button id="tutorialClose" type="button" class="btn icon-button" aria-label="关闭新人指导"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></div>
+    <div class="tutorial-heading"><button id="tutorialDrag" type="button" class="tutorial-drag" aria-label="移动新人指导，方向键移动，Home 键恢复默认位置"><span id="tutorialProgress" aria-live="polite"></span><small>拖动调整位置</small></button><button id="tutorialClose" type="button" class="btn icon-button" aria-label="关闭新人指导"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></div>
     <h2 id="tutorialTitle"></h2><p id="tutorialText"></p><ul id="tutorialTips"></ul>
     <div class="tutorial-nav"><button id="tutorialSkip" type="button" class="btn">跳过引导</button><div><button id="tutorialPrev" type="button" class="btn">上一步</button><button id="tutorialNext" type="button" class="btn primary">下一步</button></div></div>
     <p class="tutorial-note">仅介绍玩法，不消耗行动或资源。</p>

@@ -1,7 +1,8 @@
 # Beginner tutorial
 
 - First start opens a seven-step, read-only tour with a highlight over the relevant game area.
-- The explanation stays docked at the bottom right with a 12px viewport margin; only the spotlight follows each target. Narrow screens keep the panel within the viewport.
+- The explanation initially sits centre-right, inset from the edges. Drag its labelled header with a mouse or touch to reposition; arrow keys move it (Shift for larger steps), Home restores the default. Buttons and body text are not drag handles.
+- User placement survives steps, scrolling and reopening within the page session. Resizing or taller content clamps it inside a 12px viewport margin. Pointer cancellation, capture loss and closing safely stop dragging. Only the spotlight follows each target.
 - Opening-screen entry: `第一次玩？新人指导`. In-game entry: the `?` button (`重看新人指导`).
 - Steps cover the actual simplified scenario rules: win condition, investigator state, movement/investigation, actions, cards, enemies and the phase loop.
 - The tour never calls game actions, draws cards or changes resources. During the tour the game surface is inert; focus stays inside the guide.

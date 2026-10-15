@@ -10,7 +10,12 @@ function setup({saved=null,storageFails=false}={}){
   const doc={body:{style:{overflow:''}},activeElement:null,getElementById:id=>nodes.get(id),querySelector:selector=>targets[selector]||null,addEventListener(name,fn){events[name]=fn}};
   function node(id){const classes=new Set();return{id,style:{},hidden:false,inert:false,disabled:false,isConnected:true,scrollTop:0,textContent:'',innerHTML:'',listeners:{},classList:{contains:x=>classes.has(x),add:x=>classes.add(x),remove:x=>classes.delete(x)},addEventListener(name,fn){this.listeners[name]=fn},getBoundingClientRect(){return{left:20,top:30,right:320,bottom:230,width:300,height:200}},scrollIntoView(){},focus(){doc.activeElement=this},closest(selector){return selector==='#startOverlay'&&['startButton','learnButton'].includes(id)?{}:null},click(){if(this.disabled)return;if(id==='startButton')nodes.get('game').style.display='block';this.listeners.click?.()}}}
   const ids=['game','tutorial','tutorialPanel','startButton','learnButton','guideButton','tutorialPrev','tutorialNext','tutorialSpotlight','modal','guideStatus','tutorialProgress','tutorialTitle','tutorialText','tutorialTips','tutorialSkip','tutorialClose'];
+  ids.push('tutorialDrag');
   ids.forEach(id=>nodes.set(id,node(id)));nodes.get('game').style.display='none';nodes.get('tutorial').hidden=true;
+  const handle=nodes.get('tutorialDrag');
+  handle.setPointerCapture=id=>{handle.captured=id};
+  handle.hasPointerCapture=id=>handle.captured===id;
+  handle.releasePointerCapture=()=>{handle.captured=null};
   const targets=Object.fromEntries(['.aa','#investigator','#scenePanel','#actions','#hand','.command-panel','#phasebar'].map(selector=>[selector,node(selector)]));
   const win={innerWidth:844,innerHeight:390,scrollX:0,scrollY:0,scrollTo(x,y){this.scrollX=x;this.scrollY=y},addEventListener(name,fn){winEvents[name]=fn}};
   const localStorage={getItem(){if(storageFails)throw Error('blocked');return storage.value},setItem(_,value){if(storageFails)throw Error('blocked');storage.value=value}};
@@ -47,7 +52,7 @@ test('上一步边界和 Escape 退出均安全',()=>{
 });
 test('Tab 焦点限制在教学内，关闭后恢复焦点',()=>{
   const g=setup({saved:'seen'});g.click('startButton');g.click('guideButton');g.nodes.get('tutorialNext').focus();
-  assert.equal(g.key('Tab'),true);assert.equal(g.doc.activeElement.id,'tutorialClose');
+  assert.equal(g.key('Tab'),true);assert.equal(g.doc.activeElement.id,'tutorialDrag');
   assert.equal(g.key('Tab',true),true);assert.equal(g.doc.activeElement.id,'tutorialNext');
   g.click('tutorialClose');assert.equal(g.doc.activeElement.id,'guideButton');
 });
@@ -57,7 +62,7 @@ test('禁用存储仍可使用，返回菜单和旋转会正确清理或重定�
   g.nodes.get('game').style.display='none';g.events['arkham:menu']();assert.equal(g.open(),false);assert.equal(g.doc.body.style.overflow,'');assert.equal(g.doc.activeElement.id,'learnButton');
 });
 
-test('所有步骤固定右下方，不随高亮目标左右跳动',()=>{
+test('默认位置居中偏右，不随高亮目标左右跳动',()=>{
   const g=setup();g.win.innerWidth=1440;g.win.innerHeight=900;
   let position=0;
   for(const target of Object.values(g.targets)){
@@ -67,11 +72,11 @@ test('所有步骤固定右下方，不随高亮目标左右跳动',()=>{
   g.click('startButton');
   for(let step=0;step<7;step++){
     const panel=g.nodes.get('tutorialPanel');
-    assert.equal(panel.style.left,'1048px');assert.equal(panel.style.top,'688px');
+    assert.equal(parseFloat(panel.style.left),(1440-380)*0.66);assert.equal(panel.style.top,'350px');
     assert.equal(g.nodes.get('tutorialSpotlight').style.left,step%2?'1045px':'15px');
     if(step<6)g.click('tutorialNext');
   }
-  g.winEvents.scroll();assert.equal(g.nodes.get('tutorialPanel').style.left,'1048px');
+  g.winEvents.scroll();assert.equal(parseFloat(g.nodes.get('tutorialPanel').style.left),(1440-380)*0.66);
 });
 
 test('右侧引导在窄屏及短横屏保留安全边距',()=>{
@@ -79,13 +84,64 @@ test('右侧引导在窄屏及短横屏保留安全边距',()=>{
   for(const [width,height] of [[390,844],[568,320],[844,390]]){
     g.win.innerWidth=width;g.win.innerHeight=height;g.winEvents.resize();
     const panel=g.nodes.get('tutorialPanel'),panelWidth=Math.min(380,width-24);
-    assert.equal(parseFloat(panel.style.left)+panelWidth,width-12);
-    assert.equal(parseFloat(panel.style.top)+200,height-12);
+    assert.ok(parseFloat(panel.style.left)>=12);assert.ok(parseFloat(panel.style.left)+panelWidth<=width-12);
+    assert.ok(parseFloat(panel.style.top)>=12);assert.ok(parseFloat(panel.style.top)+200<=height-12);
   }
+});
+
+function pointer(g,type,x,y,extra={}){
+  let prevented=false;
+  g.nodes.get('tutorialDrag').listeners[type]({pointerId:1,button:0,isPrimary:true,clientX:x,clientY:y,preventDefault(){prevented=true},...extra});
+  return prevented;
+}
+
+test('鼠标及触摸拖动标题栏，切步骤、滚动和重开保留位置',()=>{
+  for(const pointerType of ['mouse','touch']){
+    const g=setup();g.win.innerWidth=1440;g.win.innerHeight=900;g.click('startButton');
+    const panel=g.nodes.get('tutorialPanel'),before=JSON.stringify(g.state),x=parseFloat(panel.style.left),y=parseFloat(panel.style.top);
+    assert.equal(pointer(g,'pointerdown',x+20,y+20,{pointerType}),true);
+    assert.equal(g.nodes.get('tutorialDrag').captured,1);
+    pointer(g,'pointermove',x+120,y+80,{pointerType});
+    assert.equal(parseFloat(panel.style.left),x+100);assert.equal(parseFloat(panel.style.top),y+60);
+    pointer(g,'pointerup',0,0);assert.equal(g.nodes.get('tutorialDrag').captured,null);
+    const placed={...panel.style};g.click('tutorialNext');g.winEvents.scroll();assert.deepEqual(panel.style,placed);
+    g.click('tutorialClose');g.click('guideButton');assert.deepEqual(panel.style,placed);assert.equal(JSON.stringify(g.state),before);
+  }
+});
+
+test('拖动不能出屏，旋转及内容增高后重新约束位置',()=>{
+  const g=setup();g.click('startButton');const panel=g.nodes.get('tutorialPanel');
+  pointer(g,'pointerdown',100,100);pointer(g,'pointermove',9999,9999);
+  assert.equal(panel.style.left,'452px');assert.equal(panel.style.top,'178px');
+  pointer(g,'pointermove',-9999,-9999);assert.equal(panel.style.left,'12px');assert.equal(panel.style.top,'12px');
+  pointer(g,'pointermove',9999,9999);
+  g.win.innerWidth=390;g.win.innerHeight=320;g.winEvents.resize();
+  assert.equal(panel.style.left,'12px');assert.equal(panel.style.top,'108px');assert.equal(g.nodes.get('tutorialDrag').captured,null);
+  panel.getBoundingClientRect=()=>({height:296});g.click('tutorialNext');assert.equal(panel.style.top,'12px');
+});
+
+test('取消、丢失捕获、关闭会停止拖动，忽略右键及其他手指',()=>{
+  for(const ending of ['pointercancel','lostpointercapture','close']){
+    const g=setup();g.click('startButton');const panel=g.nodes.get('tutorialPanel'),before={...panel.style};
+    pointer(g,'pointerdown',100,100,{button:2});pointer(g,'pointermove',200,200);assert.deepEqual(panel.style,before);
+    pointer(g,'pointerdown',100,100);pointer(g,'pointermove',200,200,{pointerId:2});assert.deepEqual(panel.style,before);
+    if(ending==='close')g.click('tutorialClose');else pointer(g,ending,100,100);
+    pointer(g,'pointermove',200,200);assert.deepEqual(panel.style,before);assert.equal(g.nodes.get('tutorialDrag').captured,null);
+  }
+});
+
+test('标题栏方向键移动，Home 复位，不截获正文及按钮点击',()=>{
+  const g=setup();g.click('startButton');const panel=g.nodes.get('tutorialPanel'),handle=g.nodes.get('tutorialDrag'),before={...panel.style};
+  const key=(value,shiftKey=false)=>handle.listeners.keydown({key:value,shiftKey,preventDefault(){}});
+  key('ArrowLeft');assert.equal(parseFloat(panel.style.left),parseFloat(before.left)-16);
+  key('ArrowDown',true);assert.equal(parseFloat(panel.style.top),parseFloat(before.top)+40);
+  key('Home');assert.deepEqual(panel.style,before);assert.equal(panel.listeners.pointerdown,undefined);
+  g.click('tutorialNext');assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 2 / 7');
 });
 
 test('教学入口与所有目标区域均存在，脚本随游戏本地加载',()=>{
   const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
   for(const id of ['tutorial','tutorialPanel','tutorialSpotlight','learnButton','guideButton','tutorialClose','tutorialSkip','tutorialPrev','tutorialNext','tutorialTitle','tutorialText','tutorialTips','tutorialProgress','guideStatus','investigator','scenePanel','actions','hand','phasebar'])assert.ok(html.includes(`id="${id}"`),id);
   assert.ok(html.includes('src="tutorial.js"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
+  assert.ok(html.includes('id="tutorialDrag"'));assert.ok(html.includes('拖动调整位置'));
 });

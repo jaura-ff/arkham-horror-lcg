@@ -227,7 +227,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     <div class="main">
       <!-- 左栏 -->
       <div class="col-left">
-        <div class="panel inv-card" id="investigator" role="button" tabindex="0" aria-label="查看调查员详情" onclick="openInvestigatorModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvestigatorModal();}"></div>
+        <section class="panel inv-card" id="investigator" aria-label="调查员与当前状态"></section>
         <div class="panel">
           <h2>目标进度</h2>
           <div class="aa">
@@ -546,58 +546,22 @@ function renderInvestigator(){
       <div class="stat agility">敏捷<div class="v">${INVESTIGATOR.agility}</div></div>
     </div>
     <div class="gauge">
-      <div class="grow"><span> 生命</span><b>${S.hp}/${INVESTIGATOR.maxHp}</b></div>
+      <div class="grow"><span>生命</span><b>${S.hp}/${INVESTIGATOR.maxHp}<small class="gauge-percent">${Math.round(hpPct)}%</small></b></div>
       <div class="bar"><div class="fill hp" style="width:${hpPct}%"></div></div>
     </div>
     <div class="gauge">
-      <div class="grow"><span> 理智</span><b>${S.sanity}/${INVESTIGATOR.maxSanity}</b></div>
+      <div class="grow"><span>理智</span><b>${S.sanity}/${INVESTIGATOR.maxSanity}<small class="gauge-percent">${Math.round(sanPct)}%</small></b></div>
       <div class="bar"><div class="fill sanity" style="width:${sanPct}%"></div></div>
     </div>
-    <div class="resources-line">
-      <span> 资源 <b>${S.resources}</b></span>
-      <span> 线索 <b>${S.clues}</b></span>
+    <div class="resources-line investigator-status" aria-label="调查员当前状态">
+      <div class="status-pair"><span>资源</span><b data-status="resources">${S.resources}</b></div>
+      <div class="status-pair"><span>线索</span><b data-status="clues">${S.clues}</b></div>
+      <div class="status-pair"><span>行动</span><b data-status="actions" aria-label="剩余行动 ${S.actions} 次，共 3 次">${S.actions}/3</b></div>
+      <div class="status-pair"><span>位置</span><b data-status="location">${LOCATIONS[S.location].name}</b></div>
     </div>
-    <div class="inv-hint"> 点击查看完整详情</div>
   `;
 }
 
-function openInvestigatorModal(){
-  if(!S || S.test || S.gameOver || pendingNavigation) return;
-  const hpPct = Math.round(S.hp/INVESTIGATOR.maxHp*100);
-  const sanPct = Math.round(S.sanity/INVESTIGATOR.maxSanity*100);
-  document.getElementById('modalBox').innerHTML = `
-    <h3>调查员详情</h3>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-      <div style="width:54px;height:54px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:26px;background:var(--panel2)">${INVESTIGATOR.emoji}</div>
-      <div>
-        <div style="font-size:17px;font-weight:bold">${INVESTIGATOR.name}</div>
-        <div style="font-size:11px;color:var(--dim)">${INVESTIGATOR.title}</div>
-      </div>
-    </div>
-    <div class="modal-stats">
-      <div class="modal-stat will"><span> 意志</span><span class="v">${INVESTIGATOR.will}</span></div>
-      <div class="modal-stat int"><span> 智慧</span><span class="v">${INVESTIGATOR.int}</span></div>
-      <div class="modal-stat combat"><span> 战斗</span><span class="v">${INVESTIGATOR.combat}</span></div>
-      <div class="modal-stat agility"><span> 敏捷</span><span class="v">${INVESTIGATOR.agility}</span></div>
-    </div>
-    <div style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span> 生命</span><b>${S.hp}/${INVESTIGATOR.maxHp} (${hpPct}%)</b></div>
-      <div style="height:10px;border:1px solid var(--border);border-radius:5px;overflow:hidden;background:var(--panel2)"><div style="height:100%;width:${hpPct}%;background:var(--blood)"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin:8px 0 4px"><span> 理智</span><b>${S.sanity}/${INVESTIGATOR.maxSanity} (${sanPct}%)</b></div>
-      <div style="height:10px;border:1px solid var(--border);border-radius:5px;overflow:hidden;background:#0a0705"><div style="height:100%;width:${sanPct}%;background:var(--gold)"></div></div>
-    </div>
-    <div style="display:flex;gap:16px;font-size:13px;margin-top:14px;padding-top:10px;border-top:1px solid var(--border)">
-      <span> 资源 <b style="color:var(--gold)">${S.resources}</b></span>
-      <span> 线索 <b style="color:var(--gold)">${S.clues}</b></span>
-      <span> <b style="color:var(--gold)">${LOCATIONS[S.location].name}</b></span>
-    </div>
-    <div style="margin-top:14px;font-size:11px;color:var(--dim);line-height:1.6">
-      行动剩余：<b style="color:var(--text)">${S.actions}/3</b>　|　当前位置：<b style="color:var(--text)">${LOCATIONS[S.location].name}</b>
-    </div>
-    <div class="center" style="margin-top:16px"><button class="btn primary" onclick="closeModal()">${uiIcon('close')}关闭</button></div>
-  `;
-  document.getElementById('modal').classList.add('open');
-}
 
 function renderHand(){
   const el = document.getElementById('hand');
@@ -749,6 +713,9 @@ function renderActAgenda(){
 }
 
 function renderActions(){
+  // Tests consume an action before their modal resolves; keep the external
+  // investigator summary current even when only the action controls refresh.
+  renderInvestigator();
   document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation);
   const el = document.getElementById('actions');
   const controls = document.getElementById('controls');
@@ -1282,6 +1249,7 @@ function resolve(code, text){
   S.test = null;
   S.committed = [];
   S.pendingMove = false;
+  renderInvestigator();
   const win = code==='R1';
   log(`<b>${win?' 达成结算 '+code+' —— 胜利':' 触发结算 '+code+' —— 失败'}</b>`,'gold');
   log(text,'narr');

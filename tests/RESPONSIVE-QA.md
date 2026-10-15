@@ -19,8 +19,10 @@ Additional UI checks:
 - Resource action followed by portrait → landscape rotation preserves resource count, action count, round and hand contents.
 - Investigation modal fits 667 × 375 and its draw-token action remains usable.
 - Short-landscape modals have a dynamic viewport maximum height and internal vertical scrolling rather than clipped buttons.
-- Investigator details at 568 × 320: modal spans y=12–308, with 481px content in a 294px scroll area; the Close button was reached and clicked successfully.
+- Investigator details are now permanently displayed on the external character card. The previous clickable investigator modal has been removed; resource, clue, action and location values refresh together, including during skill tests.
 - Header and page padding account for display safe areas; pinch zoom is not disabled.
-- Existing game and audio regression suite: `node --test tests/ambience.cjs tests/game-regressions.cjs` (41 checks).
+- Existing game and audio regression suite: `node --test tests/ambience.cjs tests/game-regressions.cjs` (47 checks).
 
 No game rules, card data, random draw logic or audio lifecycle code changed.
+
+Latest external-status consolidation was checked by regression tests and source inspection only; the previously recorded viewport checks were not repeated because browser preview was not authorized.

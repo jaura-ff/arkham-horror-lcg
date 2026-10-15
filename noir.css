@@ -1,4 +1,6 @@
 /* Noir cinema: illustrated spaces, brass geometry, legible live game controls. */
+.sound-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:235px}.sound-controls .btn{font-size:11px;padding:5px 9px;min-height:34px}.sound-controls label{font-size:10px;color:var(--dim)}.sound-controls input{width:66px;accent-color:var(--gold)}.sound-status{flex-basis:100%;font-size:9px;line-height:1.3;color:var(--dim)}
+@media(max-width:760px){.topstats{flex-wrap:wrap!important}.sound-controls{max-width:100%;flex-basis:100%;justify-content:flex-end}.sound-status{flex-basis:auto}.sound-controls .btn{min-height:36px}.sound-controls input{min-height:32px}.topbar .topstats{width:100%}}
 .enemy-panel:not(:has(.enemy)){display:none}
 :root{--bg:#151311;--panel:#1c1a16;--panel2:#28241d;--border:#5a4930;--gold:#dab979;--gold-dim:#9a7843;--blood:#d48c79;--blood-dim:#754b40;--text:#f2e6cd;--dim:#c0b29a;--green:#c5b68b;--blue:#b1b5b5;--purple:#b1b5b5}
 body{background:#151311;font-family:'Segoe UI','Microsoft YaHei',sans-serif}

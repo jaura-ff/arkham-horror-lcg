@@ -180,6 +180,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 </style>
 <link rel="stylesheet" href="noir.css">
 <link rel="stylesheet" href="atlas.css?v=hand-confirm-1">
+<link rel="stylesheet" href="map.css?v=route-center-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -248,9 +249,10 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <div class="col-center">
         <div class="panel scene-panel" id="scenePanel" data-location="study">
           <div class="scene-readout"><span class="scene-kicker">THE GATHERING / 探索宅邸</span><h2 id="sceneTitle">书房</h2><p id="sceneDescription"></p><div id="sceneClues"></div></div>
-          <div class="scene-space" aria-hidden="true"></div>
-          <h2 class="route-label">宅邸路线 <span class="cnt" id="locationhint"></span></h2>
-          <div class="map-wrap" id="mapwrap"></div>
+          <div class="scene-route">
+            <h2 class="route-label">宅邸路线 <span class="cnt" id="locationhint"></span></h2>
+            <div class="map-wrap" id="mapwrap"></div>
+          </div>
         </div>
         <div class="panel enemy-panel">
           <h2>敌人 <span class="cnt" id="enemycount"></span></h2>
@@ -695,9 +697,9 @@ function renderLocations(){
   const ids = Object.keys(LOCATIONS);
   // 预设节点坐标（百分比定位）
   const pos = {
-    study:{x:18, y:48},
-    hallway:{x:50, y:48},
-    attic:{x:82, y:48},
+    study:{x:20, y:78},
+    hallway:{x:50, y:50},
+    attic:{x:80, y:22},
   };
   // 当前位置的相邻地点
   const current = S.location;
@@ -705,7 +707,7 @@ function renderLocations(){
   hint.textContent = `当前：${LOCATIONS[current].name} · 可前往：${neighbors.map(c=>LOCATIONS[c].name).join('、')}`;
 
   // 画连线（SVG）
-  let svg = '<svg viewBox="0 0 100 100" preserveAspectRatio="none">';
+  let svg = '<svg class="route-connections" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">';
   const drawn = new Set();
   ids.forEach(id=>{
     LOCATIONS[id].conn.forEach(c=>{
@@ -713,7 +715,7 @@ function renderLocations(){
       if(drawn.has(key)) return;
       drawn.add(key);
       const a = pos[id], b = pos[c];
-      svg += `<line class="map-link" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" />`;
+      svg += `<line class="map-link" data-from="${id}" data-to="${c}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" vector-effect="non-scaling-stroke" />`;
     });
   });
   svg += '</svg>';
@@ -739,7 +741,7 @@ function renderLocations(){
         <div class="node-sub">迷雾 ${l.shroud}</div>
         ${clues>0?`<span class="node-clue"> 线索 ×${clues}</span>`:''}
         ${enemyHere>0?`<span class="node-enemy"> 敌人 ×${enemyHere}</span>`:''}
-        ${isCurrent?'<span class="you"> 你在这里</span>':''}
+        ${isCurrent?'<span class="you"> 你在这里</span>':isReachable?'<span class="node-access">可前往</span>':''}
       `;
     } else {
       inner = `
@@ -749,7 +751,7 @@ function renderLocations(){
       `;
     }
     const click = (revealed && (isReachable || isCurrent)) ? `role="button" tabindex="0" onclick="clickNode('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickNode('${id}');}"` : '';
-    return `<div class="map-node ${cls.join(' ')}" style="left:${p.x}%;top:${p.y}%" ${click}>
+    return `<div class="map-node ${cls.join(' ')}" data-room="${id}" style="--node-x:${p.x}%;--node-y:${p.y}%" ${click}>
       <div class="node-card">${inner}</div>
     </div>`;
   }).join('');

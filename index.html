@@ -179,7 +179,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
 </style>
 <link rel="stylesheet" href="noir.css">
-<link rel="stylesheet" href="atlas.css?v=discard-pile-1">
+<link rel="stylesheet" href="atlas.css?v=action-confirm-1">
 <link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=left-actions-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
@@ -307,7 +307,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     <header class="atlas-heading"><div><span class="atlas-kicker" id="handCardType"></span><h2 id="handCardTitle">手牌说明</h2></div><button type="button" id="handCardClose" class="btn icon-button" aria-label="关闭卡牌说明" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
     <div class="hand-card-layout"><div id="handCardArt" class="art hand-card-art" aria-hidden="true"></div><div><h3>卡牌效果</h3><p id="handCardEffect"></p><h3>如何使用</h3><p id="handCardUsage"></p><p id="handCardCost" class="atlas-notice"></p></div></div>
     <p id="handCardWarning" class="hand-card-warning" role="status" aria-live="polite"></p>
-    <div class="hand-card-actions"><button type="button" id="handCardCancel" class="btn">取消，继续考虑</button><button type="button" id="handCardPlay" class="btn primary">出牌</button></div>
+    <div class="hand-card-actions"><button type="button" id="handCardCancel" class="btn">返回</button><button type="button" id="handCardPlay" class="btn primary">继续 · 出牌</button></div>
   </div>
 </dialog>
 <dialog id="difficultyInfo" class="card-atlas difficulty-info" aria-labelledby="difficultyInfoTitle" aria-describedby="difficultyInfoSummary">
@@ -446,13 +446,14 @@ function updateDifficultyPreview(){
 let S = null;
 let selectedHandCard = null;
 let pendingNavigation = false;
+let pendingAction = null;
 function uiIcon(name){
   if(!['play','home','restart','close','sound','mute','back','next'].includes(name)) return '';
   return `<svg class="ui-icon" aria-hidden="true" focusable="false"><use href="assets/icons/ui.svg#${name}"></use></svg>`;
 }
 
 function requestReturnMenu(){
-  if(!S || S.test || S.pendingMove || pendingNavigation) return;
+  if(!S || S.test || S.pendingMove || pendingNavigation || pendingAction) return;
   pendingNavigation = true;
   render();
   openModal(`<h3>${uiIcon('home')} 返回主菜单？</h3>
@@ -481,6 +482,7 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 
 function startGame(){
   pendingNavigation = false;
+  pendingAction = null;
   selectedHandCard = null;
   const difficulty=difficultyKey(document.getElementById('difficultySelect')?.value);
   document.getElementById('log').innerHTML = '';
@@ -606,7 +608,7 @@ function renderPhaseBar(){
 }
 
 function renderTopStats(){
-  document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation);
+  document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation || pendingAction);
   document.getElementById('roundnum').textContent = S.round;
   document.getElementById('currentDifficulty').textContent = DIFFICULTIES[difficultyKey(S.difficulty)].name;
   document.getElementById('topres').textContent = S.resources;
@@ -656,7 +658,7 @@ function renderHand(){
   el.innerHTML = S.hand.map((c,i)=>{
     const typeLabel = {asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[c.type]||c.type;
     const iconStr = skillIcons(c);
-    const disabled = S.gameOver || !!S.test || S.pendingMove || pendingNavigation;
+    const disabled = S.gameOver || !!S.test || S.pendingMove || pendingNavigation || pendingAction;
     const art = CARD_ART[c.id] || [0,0];
     return `<button id="hand-card-${i}" type="button" class="card ${c.type} ${selectedHandCard===c?'is-selected':''}" aria-pressed="${selectedHandCard===c}" aria-haspopup="dialog" aria-describedby="handInteractionHint" aria-label="${c.name}，${typeLabel}，费用 ${c.cost}。${c.text} 双击查看效果并确认出牌。" ${disabled?'disabled':''} onclick="inspectHandCard(${i},event)">
       <span class="ccost">${c.cost>0?c.cost:'—'}</span>
@@ -766,7 +768,7 @@ function renderLocations(){
         <div class="node-sub">尚未探索</div>
       `;
     }
-    const click = (revealed && (isReachable || isCurrent)) ? `role="button" tabindex="0" onclick="clickNode('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clickNode('${id}');}"` : '';
+    const click = (revealed && (isReachable || isCurrent)) ? `role="button" tabindex="0" onclick="requestMapMove('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();requestMapMove('${id}');}"` : '';
     return `<div class="map-node ${cls.join(' ')}" data-room="${id}" style="--node-x:${p.x}%;--node-y:${p.y}%" ${click}>
       <div class="node-card">${inner}</div>
       ${isCurrent?`<span class="map-player-marker" role="img" aria-label="罗兰·班克斯的当前位置：${l.name}"><span class="map-player-portrait art" aria-hidden="true" style="--art-x:0%;--art-y:0%"></span></span>`:''}
@@ -819,7 +821,7 @@ function renderActions(){
   // Tests consume an action before their modal resolves; keep the external
   // investigator summary current even when only the action controls refresh.
   renderInvestigator();
-  document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation);
+  document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation || pendingAction);
   const el = document.getElementById('actions');
   const controls = document.getElementById('controls');
   const cnt = document.getElementById('actioncount');
@@ -840,18 +842,18 @@ function renderActions(){
     if(S.actIdx===1 && S.location==='attic'){
       actions.push(btn(' 完成调查','finish',canTakeAction,'结束调查'));
     }
-    controls.innerHTML = `<button class="btn" onclick="endTurn()" ${S.actions===3||S.test||S.pendingMove||pendingNavigation?'disabled':''}>${uiIcon('next')}结束回合 </button>
+    controls.innerHTML = `<button class="btn" onclick="requestAction('endTurn')" ${S.actions===3||S.test||S.pendingMove||pendingNavigation||pendingAction?'disabled':''}>${uiIcon('next')}结束回合 </button>
       <span style="color:var(--dim);font-size:11px">${S.actions===3?'（至少执行 1 个行动后才能结束回合）':''}</span>`;
   } else {
     cnt.textContent = '';
-    actions.push(btn(' 继续','next',!S.test,'进入下一阶段'));
+    actions.push(btn(' 继续','next',!S.test&&!pendingAction,'进入下一阶段'));
     controls.innerHTML='';
   }
   el.innerHTML = actions.join('');
 }
 
 function btn(label, fn, enabled, hint){
-  return `<button class="btn action-btn ${fn==='investigate'?'investigate-btn':''}" data-action="${fn}" onclick="doAction('${fn}')" ${enabled?'':'disabled'}>${label}${hint?`<small>${hint}</small>`:''}</button>`;
+  return `<button class="btn action-btn ${fn==='investigate'?'investigate-btn':''}" data-action="${fn}" onclick="requestAction('${fn}')" ${enabled?'':'disabled'}>${label}${hint?`<small>${hint}</small>`:''}</button>`;
 }
 
 function hasEngagedReadyEnemy(){
@@ -862,20 +864,71 @@ function hasLocalEnemy(){
 }
 
 /* ============ 行动处理 ============ */
+function actionRisk(){
+  const enemies=S.enemies.filter(e=>e.engaged&&!e.exhausted);
+  return enemies.length?`继续将触发借机攻击：${enemies.reduce((n,e)=>n+e.card.dmg,0)} 伤害、${enemies.reduce((n,e)=>n+e.card.horror,0)} 恐惧。若被击败，行动效果不会执行。`:'';
+}
+function showActionConfirmation(label,description,run,risk=''){
+  pendingAction={run};
+  openModal(`<h3>行动确认：${label}</h3><p class="action-confirm-copy">${description}</p>
+    ${risk?`<p class="action-confirm-warning">${risk}</p>`:''}
+    <p class="action-confirm-note">返回不消耗行动、资源或卡牌；继续后正式执行。</p>
+    <div class="action-confirm-buttons"><button class="btn" onclick="closeModal()">${uiIcon('back')}返回</button>
+    <button class="btn primary" onclick="confirmAction()">${uiIcon('next')}继续</button></div>`);
+  renderActions();
+  document.querySelector?.('#modalBox .action-confirm-buttons .btn')?.focus?.();
+}
+function confirmAction(){
+  if(!pendingAction || !S || S.gameOver)return;
+  const run=pendingAction.run;
+  closeModal();
+  run();
+}
+function requestAction(fn){
+  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || pendingAction)return;
+  if(fn==='next'){
+    if(S.phase!=='investigation')showActionConfirmation('进入下一阶段','继续推进阶段并结算相应效果。',next);
+    return;
+  }
+  if(fn==='endTurn'){
+    if(S.phase==='investigation'&&S.actions<3)showActionConfirmation('结束回合',`放弃剩余 ${S.actions} 次行动，继续结算敌人和后续阶段。`,endTurn);
+    return;
+  }
+  if(!canAct())return;
+  if(fn==='move'){move();return;}
+  if(fn==='investigate'){investigate(true);return;}
+  if(fn==='fight'){fight(true);return;}
+  if(fn==='evade'){evade(true);return;}
+  const choices={draw:['抽牌','消耗 1 次行动，抽取 1 张牌。',draw],resource:['获取资源','消耗 1 次行动，获得 1 资源。',resource],
+    advanceAct:['推进幕','消耗 1 次行动与 3 条线索，推进当前幕。',advanceAct],finish:['完成调查','消耗 1 次行动，完成调查并结束本局。',finish]};
+  if(fn==='advanceAct'&&(S.actIdx!==0||S.clues<3))return;
+  if(fn==='finish'&&(S.actIdx!==1||S.location!=='attic'))return;
+  const choice=choices[fn];if(choice)showActionConfirmation(...choice,actionRisk());
+}
+function requestMapMove(id){
+  if(!canAct() || id===S.location || !S.revealed[id])return;
+  requestMove(id);
+}
+function requestMove(id){
+  if(!S || S.gameOver || S.test || pendingNavigation || pendingAction || S.phase!=='investigation' || S.actions<=0)return;
+  if(!LOCATIONS[S.location].conn.includes(id))return;
+  closeModal();
+  showActionConfirmation('移动',`消耗 1 次行动，前往${S.revealed[id]?LOCATIONS[id].name:'所选未揭示地点'}。`,()=>doMove(id),actionRisk());
+}
 function doAction(fn){
-  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation) return;
+  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || pendingAction) return;
   if(fn==='next') { if(S.phase!=='investigation') next(); return; }
   if(!canAct()) return;
   const fnMap = {draw, resource, move, investigate, fight, evade, finish, advanceAct};
   if(fnMap[fn]) fnMap[fn]();
 }
 
-function canAct(){
-  return !!S && !S.gameOver && !S.test && !S.pendingMove && !pendingNavigation && S.phase==='investigation' && S.actions>0;
+function canAct(ignoreTest=false){
+  return !!S && !S.gameOver && (ignoreTest || !S.test) && !S.pendingMove && !pendingNavigation && !pendingAction && S.phase==='investigation' && S.actions>0;
 }
 
-function beginAction(exempt=false){
-  if(!canAct()) return false;
+function beginAction(exempt=false,stagedTest=null){
+  if(!canAct(!!stagedTest && S.test===stagedTest)) return false;
   S.actions--;
   if(!exempt) attackOfOpportunity();
   return !S.gameOver;
@@ -925,9 +978,9 @@ function move(){
     ${loc.conn.map(id=>{
       const l = LOCATIONS[id];
       const rev = S.revealed[id];
-      return `<button class="btn move-btn" style="margin:5px;display:block;width:100%;text-align:left" onclick="doMove('${id}')"><span class="move-ico">${rev?(LOC_ICONS[id]||''):'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3a7 7 0 0 0-7 7c0 5 7 11 7 11s7-6 7-11a7 7 0 0 0-7-7z"/><circle cx="12" cy="10" r="2.4"/></svg>'}</span>${rev?l.name:'未揭示地点'} <span style="color:var(--dim);font-size:10px">${rev?'· 迷雾 '+l.shroud:''}</span></button>`;
+      return `<button class="btn move-btn" style="margin:5px;display:block;width:100%;text-align:left" onclick="requestMove('${id}')"><span class="move-ico">${rev?(LOC_ICONS[id]||''):'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3a7 7 0 0 0-7 7c0 5 7 11 7 11s7-6 7-11a7 7 0 0 0-7-7z"/><circle cx="12" cy="10" r="2.4"/></svg>'}</span>${rev?l.name:'未揭示地点'} <span style="color:var(--dim);font-size:10px">${rev?'· 迷雾 '+l.shroud:''}</span></button>`;
     }).join('')}
-    <button class="btn danger" style="margin:5px;display:block;width:100%" onclick="closeModal()">${uiIcon('back')}取消</button>
+    <button class="btn" style="margin:5px;display:block;width:100%" onclick="closeModal()">${uiIcon('back')}返回</button>
   `);
   renderActions();
 }
@@ -950,14 +1003,14 @@ function doMove(id){
   render();
 }
 
-function investigate(){
+function investigate(preview=false){
   if(!canAct()) return;
   const loc = LOCATIONS[S.location];
   if(S.locClues[S.location]<=0){
     log('这个地点已经没有线索了。','dim');
     return;
   }
-  if(!beginAction()) return;
+  if(!preview && !beginAction()) return;
   startTest('int', loc.shroud, '调查', (success)=>{
     if(success){
       S.locClues[S.location]--;
@@ -967,16 +1020,16 @@ function investigate(){
       log('你没有发现任何线索。','dim');
     }
     render();
-  });
+  },0,preview?false:null);
 }
 
-function fight(){
+function fight(preview=false){
   if(!canAct()) return;
   // 战斗是豁免行动
   const target = S.enemies.find(e=>e.location===S.location && e.engaged && !e.exhausted)
               || S.enemies.find(e=>e.location===S.location);
   if(!target){ log('当前位置没有可攻击的敌人。','dim'); return; }
-  if(!beginAction(true)) return;
+  if(!preview && !beginAction(true)) return;
   let bonus = 0, extraDmg = 0;
   S.assets.forEach(a=>{
     if(a.card.id==='p45'){ bonus+=1; extraDmg+=1; }
@@ -1002,17 +1055,17 @@ function fight(){
       log('你的攻击落空了。','dim');
     }
     render();
-  }, bonus);
+  }, bonus,preview?true:null);
 }
 
-function evade(){
+function evade(preview=false){
   if(!canAct()) return;
   // 闪避是豁免行动
   const target = S.enemies.find(e=>e.engaged && !e.exhausted);
   if(!target){ log('没有与你交缠且就绪的敌人。','dim'); return; }
-  if(!beginAction(true)) return;
+  if(!preview && !beginAction(true)) return;
   const bonus = S.evadeBonus;
-  S.evadeBonus = 0;
+  if(!preview) S.evadeBonus = 0;
   startTest('agility', target.card.evade, '闪避', (success)=>{
     if(success){
       target.exhausted = true;
@@ -1022,7 +1075,7 @@ function evade(){
       log('闪避失败，敌人仍与你交缠。','bad');
     }
     render();
-  }, bonus);
+  }, bonus,preview?true:null,preview?()=>{S.evadeBonus=0}:null);
 }
 
 function finish(){
@@ -1047,9 +1100,9 @@ function next(){
 }
 
 /* ============ 检定系统 ============ */
-function startTest(skill, difficulty, label, onDone, bonus=0){
+function startTest(skill, difficulty, label, onDone, bonus=0,actionExempt=null,onStart=null){
   if(S.gameOver || S.test) return;
-  S.test = {skill, difficulty, label, onDone, bonus, resolved:false};
+  S.test = {skill, difficulty, label, onDone, bonus, resolved:false,actionExempt,onStart};
   S.committed = [];
   openTestModal();
   renderActions();
@@ -1080,8 +1133,10 @@ function openTestModal(){
           </div>`;
         }).join('')}
       </div>
-      <div class="center mb">
-        <button class="btn primary" onclick="resolveTest()">抽取混沌指示物 </button>
+      <p class="action-confirm-note">${t.actionExempt!==null?'继续消耗 1 次行动并抽取指示物；返回不消耗行动或投入牌。':'这是已触发的强制检定，不能取消。'}${t.actionExempt===false?' '+actionRisk():''}</p>
+      <div class="action-confirm-buttons">
+        <button class="btn" onclick="cancelTest()" ${t.actionExempt===null?'disabled title="已触发的检定不能取消"':''}>${uiIcon('back')}返回</button>
+        <button class="btn primary" onclick="resolveTest()">${uiIcon('next')}继续 · 抽取混沌指示物</button>
       </div>
     </div>
   `;
@@ -1155,6 +1210,11 @@ function resolveTest(){
   const t = S.test;
   if(!t || t.resolved || S.gameOver) return;
   t.resolved = true;
+  if(t.actionExempt!==null){
+    if(!beginAction(t.actionExempt,t))return;
+    if(t.onStart)t.onStart();
+    renderActions();
+  }
   const base = skillValue(t.skill);
   let total = base + t.bonus + S.committed.reduce((s,c)=>s+commitBonus(c),0);
   const token=resolveChaosTokens();
@@ -1181,7 +1241,8 @@ function resolveTest(){
       ${result?'<span class="result-good"> 检定成功</span>':'<span class="result-bad"> 检定失败</span>'}
     </div>
     ${t.searchGhoul?`<div class="ghoul-choice"><label for="ghoulSearchChoice">检定结束后寻找并抽取一名食尸鬼</label>${choices.length?`<select id="ghoulSearchChoice">${choices.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>`:'<p>遭遇牌组及弃牌堆中没有可选择的食尸鬼。</p>'}</div>`:''}
-    <div class="center mb"><button class="btn primary" onclick="finishTest(${result})">${uiIcon('next')}确定</button></div>
+    <p class="action-confirm-note">指示物已抽取，不能返回重抽。</p>
+    <div class="action-confirm-buttons"><button class="btn" disabled title="已抽取指示物，不能撤销">${uiIcon('back')}返回</button><button class="btn primary" onclick="finishTest(${result})">${uiIcon('next')}继续 · 结算结果</button></div>
   `;
   S.testResult = result;
 }
@@ -1197,9 +1258,14 @@ function finishTest(result){
   if(t.searchGhoul && !S.gameOver){drawSearchedGhoul(ghoulId);render();}
 }
 
+function cancelTest(){
+  if(!S || !S.test || S.test.resolved || S.test.actionExempt===null)return;
+  S.test=null;S.committed=[];closeModal();render();
+}
 function closeModal(){
   if(S && S.test && !S.gameOver) return;
   if(S) S.pendingMove = false;
+  pendingAction = null;
   document.getElementById('modal').classList.remove('open');
   if(S) renderActions();
 }
@@ -1207,13 +1273,13 @@ function openModal(html){ document.getElementById('modalBox').innerHTML=html; do
 
 /* ============ 阶段流转 ============ */
 function endTurn(){
-  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || S.phase!=='investigation' || S.actions===3) return;
+  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || pendingAction || S.phase!=='investigation' || S.actions===3) return;
   S.actions = 0;
   advancePhase();
 }
 
 function advancePhase(){
-  if(S.gameOver || S.test || S.pendingMove) return;
+  if(S.gameOver || S.test || S.pendingMove || pendingAction || pendingNavigation) return;
   if(S.phase==='investigation'){ S.phase='enemy'; log('—— 敌人阶段 ——','gold'); enemyPhase(); }
   else if(S.phase==='enemy'){ S.phase='upkeep'; log('—— 维持阶段 ——','gold'); upkeepPhase(); }
   else if(S.phase==='upkeep'){ S.phase='mythos'; log('—— 神话阶段 ——','gold'); mythosPhase(); }
@@ -1411,7 +1477,7 @@ function resolve(code, text){
 <script src="tutorial.js"></script>
 <script src="atlas.js"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
-<script src="hand-dialog.js?v=hand-confirm-1"></script>
+<script src="hand-dialog.js?v=action-confirm-1"></script>
 <script src="discard.js?v=character-deck-1"></script>
 </body>
 </html>

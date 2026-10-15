@@ -49,7 +49,7 @@
     previous.disabled = index === 0;
     next.textContent = index === steps.length-1 ? '开始调查' : '下一步';
     target = document.querySelector(step.target);
-    target?.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+    target?.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
     panel.scrollTop = 0;
     place();
     if (document.activeElement === previous && previous.disabled) next.focus();

@@ -57,3 +57,13 @@ test('播放失败释放音频并显示重试，不残留计时器',async()=>{
   const g=setup({rejectResume:true});await g.fire('startButton');
   assert.equal(g.nodes.get('soundToggle').dataset.audioState,'error');assert.equal(g.contexts[0].state,'closed');assert.equal(g.timers.size,0);
 });
+
+test('返回菜单暂停环境音，新一局复用音频图且图标跟随开关',async()=>{
+  const g=setup();await g.fire('startButton');
+  assert.match(g.nodes.get('soundToggle').innerHTML,/ui.svg#sound/);
+  g.doc.listeners['arkham:menu']();await g.flush();
+  assert.equal(g.contexts[0].state,'suspended');assert.equal(g.timers.size,0);
+  assert.equal(g.nodes.get('soundToggle').dataset.audioState,'ready');
+  await g.fire('startButton');assert.equal(g.contexts.length,1);assert.equal(g.contexts[0].state,'running');
+  await g.fire('soundToggle');assert.match(g.nodes.get('soundToggle').innerHTML,/ui.svg#mute/);
+});

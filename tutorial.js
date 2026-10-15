@@ -6,6 +6,7 @@
   const start = byId('startButton'), learn = byId('learnButton'), guide = byId('guideButton');
   const previous = byId('tutorialPrev'), next = byId('tutorialNext');
   const spotlight = byId('tutorialSpotlight');
+  const handle = byId('tutorialDrag');
   if (!game || !overlay || !panel || !start || !learn || !guide || !previous || !next || !spotlight) return;
   const key = 'arkham-tutorial-v1';
   const steps = [
@@ -19,8 +20,19 @@
   ];
   let active = false, index = 0, seen = false, lastFocus = null;
   let savedOverflow = '', savedInert = false, savedScroll = [0, 0], target = null;
+  let position = null, drag = null;
   try { seen = !!localStorage.getItem(key); } catch (_) {}
 
+  function movePanel(x, y) {
+    const width = Math.min(380, window.innerWidth - 24);
+    const height = panel.getBoundingClientRect().height;
+    const point = {
+      x: Math.max(12, Math.min(window.innerWidth - width - 12, x)),
+      y: Math.max(12, Math.min(window.innerHeight - height - 12, y))
+    };
+    Object.assign(panel.style, {left:point.x+'px',top:point.y+'px',right:'auto',bottom:'auto'});
+    return point;
+  }
   function place() {
     if (!active) return;
     const width = window.innerWidth, height = window.innerHeight;
@@ -33,11 +45,44 @@
     } else spotlight.hidden = true;
     const box = panel.getBoundingClientRect();
     const panelWidth = Math.min(380, width - 24), panelHeight = box.height;
-    // Keep the explanation in the right-hand space, independently of the spotlight.
-    const x = Math.max(12,width-panelWidth-12);
-    const y = Math.max(12,height-panelHeight-12);
-    Object.assign(panel.style, {left:x+'px',top:y+'px',right:'auto',bottom:'auto'});
+    // Start centre-right, away from both edges; user placement survives step changes.
+    const point = movePanel(position?.x ?? (width-panelWidth)*0.66,
+      position?.y ?? (height-panelHeight)*0.5);
+    if (position) position = point;
   }
+  function endDrag() {
+    if (!drag) return;
+    const pointerId = drag.id;
+    drag = null;
+    panel.classList.remove('is-dragging');
+    if (handle?.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
+  }
+  handle?.addEventListener('pointerdown',event=>{
+    if (!active || drag || event.isPrimary === false || (event.button != null && event.button !== 0)) return;
+    drag = {id:event.pointerId,x:event.clientX,y:event.clientY,left:parseFloat(panel.style.left),top:parseFloat(panel.style.top)};
+    handle.setPointerCapture(event.pointerId);
+    panel.classList.add('is-dragging');
+    handle.focus();
+    event.preventDefault();
+  });
+  handle?.addEventListener('pointermove',event=>{
+    if (!drag || event.pointerId !== drag.id) return;
+    position = movePanel(drag.left+event.clientX-drag.x,drag.top+event.clientY-drag.y);
+    event.preventDefault();
+  });
+  for (const name of ['pointerup','pointercancel','lostpointercapture']) {
+    handle?.addEventListener(name,event=>{if (drag && event.pointerId === drag.id) endDrag();});
+  }
+  handle?.addEventListener('keydown',event=>{
+    if (!active) return;
+    const delta = {ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[event.key];
+    if (event.key === 'Home') { endDrag(); position = null; place(); }
+    else if (delta) {
+      const amount = event.shiftKey ? 40 : 16;
+      position = movePanel(parseFloat(panel.style.left)+delta[0]*amount,parseFloat(panel.style.top)+delta[1]*amount);
+    } else return;
+    event.preventDefault();
+  });
   function render() {
     const step = steps[index];
     byId('tutorialProgress').textContent = `新人指导 ${index+1} / ${steps.length}`;
@@ -65,6 +110,7 @@
   }
   function close(remember = true) {
     if (!active) return;
+    endDrag();
     active = false; overlay.hidden = true; target = null;
     document.body.style.overflow = savedOverflow; game.inert = savedInert;
     window.scrollTo(...savedScroll);
@@ -84,12 +130,12 @@
     if(!active)return;
     if(event.key==='Escape'){event.preventDefault();close();return;}
     if(event.key!=='Tab')return;
-    const buttons=[byId('tutorialClose'),byId('tutorialSkip'),previous,next].filter(button=>!button.disabled);
+    const buttons=[handle,byId('tutorialClose'),byId('tutorialSkip'),previous,next].filter(button=>button && !button.disabled);
     const first=buttons[0],last=buttons[buttons.length-1];
     if(event.shiftKey && document.activeElement===first){event.preventDefault();last.focus();}
     else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first.focus();}
   });
-  window.addEventListener('resize',place);
+  window.addEventListener('resize',()=>{endDrag();place();});
   window.addEventListener('scroll',place,true);
   document.addEventListener('arkham:menu',()=>close(false));
 })();

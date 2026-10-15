@@ -260,6 +260,103 @@ test('完成调查消耗行动且先处理借机攻击，败北后不能获胜',
   const h=game();h.enemy();h.run(`S.location='attic';S.enemies[0].location='attic';S.actIdx=1;S.hp=1;finish()`);
   assert.equal(h.get('S.hp'),0);assert.match(h.document.getElementById('modalBox').innerHTML,/调查失败/);
 });
+test('四档混沌袋与原版战役配置完全一致，实例互不污染',()=>{
+  const g=game();
+  const numeric={easy:[1,1,0,0,0,-1,-1,-1,-2,-2],standard:[1,0,0,-1,-1,-1,-2,-2,-3,-4],hard:[0,0,0,-1,-1,-2,-2,-3,-3,-4,-5],expert:[0,-1,-1,-2,-2,-3,-3,-4,-4,-5,-6,-8]};
+  for(const [key,numbers] of Object.entries(numeric)){
+    const bag=g.get(`makeChaosBag('${key}')`);assert.deepEqual(bag.filter(t=>'mod'in t).map(t=>t.mod),numbers);
+    assert.equal(bag.filter(t=>t.symbol==='skull').length,2);assert.equal(bag.filter(t=>t.symbol==='cultist').length,1);assert.equal(bag.filter(t=>t.symbol==='tablet').length,1);
+    assert.equal(bag.filter(t=>t.autofail).length,1);assert.equal(bag.filter(t=>t.elder).length,1);assert.equal(bag.length,numbers.length+6);
+  }
+  g.run(`const isolated=makeChaosBag('easy');isolated[0].mod=99`);assert.equal(g.get(`makeChaosBag('easy')[0].mod`),1);
+});
+
+test('选择只在开局生效，默认标准，起始数值不随难度变动',()=>{
+  const g=game();assert.equal(g.get('S.difficulty'),'standard');
+  for(const key of ['easy','standard','hard','expert','invalid','__proto__']){
+    g.document.getElementById('difficultySelect').value=key;g.run('startGame()');
+    assert.equal(g.get('S.difficulty'),['invalid','__proto__'].includes(key)?'standard':key);
+    assert.deepEqual(g.get('[S.resources,S.hp,S.sanity,S.actions,S.hand.length]'),[5,9,5,3,5]);
+    const before=g.get('S.chaos');g.document.getElementById('difficultySelect').value='easy';g.run('updateDifficultyPreview();render()');assert.deepEqual(g.get('S.chaos'),before);
+  }
+});
+
+test('简单标准骷髅只按同地点食尸鬼数量扣值，包含力竭敌人',()=>{
+  const g=game();g.enemy();g.run(`S.enemies[0].exhausted=true;S.enemies.push({...S.enemies[0],location:'attic'});S.chaos=[{label:'骷髅',symbol:'skull'}]`);
+  for(const key of ['easy','standard']){g.run(`S.difficulty='${key}'`);assert.equal(g.get('resolveChaosTokens().mod'),-1);}
+  g.run(`S.enemies[0].card={type:'enemy',name:'老鼠'};S.enemies[1].card=S.enemies[0].card`);assert.equal(g.get('resolveChaosTokens().mod'),0);
+});
+
+test('简单标准异教徒失败才受恐惧，成功不受，不能重复结算',()=>{
+  for(const difficulty of [2,5]){
+    const g=game();g.run(`S.chaos=[{label:'异教徒',symbol:'cultist'}];startTest('will',${difficulty},'测试',()=>{});resolveTest()`);
+    assert.equal(g.get('S.sanity'),difficulty===5?4:5);g.run('resolveTest()');assert.equal(g.get('S.sanity'),difficulty===5?4:5);
+  }
+});
+
+test('困难专家异教徒继续抽取且不放回，失败额外两恐惧',()=>{
+  for(const key of ['hard','expert']){
+    const g=game();g.run(`S.difficulty='${key}';Math.random=()=>0;S.chaos=[{label:'异教徒',symbol:'cultist'},{label:'-2',mod:-2}];startTest('will',2,'测试',()=>{});resolveTest()`);
+    assert.equal(g.get('S.testResult'),false);assert.equal(g.get('S.sanity'),3);assert.equal(g.get('S.chaos.length'),2);
+    assert.match(g.document.getElementById('modalBox').innerHTML,/异教徒 → -2/);
+  }
+});
+
+test('困难异教徒接上古印记成功不扣恐惧，接自动失败仍失败',()=>{
+  for(const autofail of [false,true]){
+    const g=game();g.run(`S.difficulty='hard';Math.random=()=>0;S.chaos=[{label:'异教徒',symbol:'cultist'},{label:'后续',elder:${!autofail},autofail:${autofail}}];startTest('will',2,'测试',()=>{});resolveTest()`);
+    assert.equal(g.get('S.testResult'),!autofail);assert.equal(g.get('S.sanity'),autofail?3:5);
+  }
+});
+
+test('石板按参考卡两面结算，同地点没有食尸鬼时不受伤',()=>{
+  for(const hard of [false,true])for(const local of [false,true]){
+    const g=game();if(local)g.enemy();
+    g.run(`S.difficulty='${hard?'hard':'standard'}';S.chaos=[{label:'石板',symbol:'tablet'}];startTest('will',0,'测试',()=>{});resolveTest()`);
+    assert.equal(g.get('S.hp'),local?8:9);assert.equal(g.get('S.sanity'),local&&hard?4:5);
+    assert.equal(g.get('S.testResult'),true); // Tablet damage is independent of passing.
+  }
+});
+
+test('符号致命伤害或恐惧时立即终止检定，不覆盖失败弹窗',()=>{
+  for(const token of ['tablet','cultist']){
+    const g=game();g.enemy();g.run(`S.difficulty='hard';S.hp=1;S.sanity=1;S.chaos=[{label:'符号',symbol:'${token}'},{label:'-8',mod:-8}];Math.random=()=>0;startTest('will',9,'测试',()=>{S.resources=999});resolveTest();finishTest(false)`);
+    assert.equal(g.get('S.gameOver'),true);assert.equal(g.get('S.resources'),5);assert.match(g.document.getElementById('modalBox').innerHTML,/调查失败/);
+  }
+});
+
+test('上古印记按当前地点线索加值，不保证成功且不回血',()=>{
+  for(const clues of [0,2]){
+    const g=game();g.run(`S.hp=6;S.locClues.study=${clues};S.chaos=[{label:'上古印记',elder:true}];startTest('int',5,'测试',()=>{});resolveTest()`);
+    assert.equal(g.get('S.testResult'),clues===2);assert.equal(g.get('S.hp'),6);
+  }
+});
+
+test('自动失败即使难度零也失败，负技能值最低为零',()=>{
+  const g=game();g.run(`S.chaos=[{label:'自动失败',autofail:true}];startTest('int',0,'测试',()=>{});resolveTest()`);assert.equal(g.get('S.testResult'),false);
+  assert.match(g.document.getElementById('modalBox').innerHTML,/最终技能值：<b>0<\/b>/);
+  const h=game();h.run(`S.chaos=[{label:'-8',mod:-8}];startTest('int',0,'测试',()=>{});resolveTest()`);assert.equal(h.get('S.testResult'),true);
+});
+
+test('困难骷髅失败在检定结束后按玩家选择从弃牌堆抽取食尸鬼',()=>{
+  const g=game();g.run(`S.difficulty='hard';S.encounter=[{...ENCOUNTER[0]}];S.encounterDiscard=[{...ENCOUNTER[2]}];S.chaos=[{label:'骷髅',symbol:'skull'}];startTest('int',4,'测试',()=>{S.resources++});resolveTest()`);
+  assert.equal(g.get('S.enemies.length'),0);assert.match(g.document.getElementById('modalBox').innerHTML,/ghoulSearchChoice/);
+  g.document.getElementById('ghoulSearchChoice').value='ghoul3';g.run('finishTest(false);finishTest(false)');
+  assert.equal(g.get('S.enemies.length'),1);assert.equal(g.get('S.enemies[0].card.id'),'ghoul3');assert.equal(g.get('S.enemies[0].engaged'),true);assert.equal(g.get('S.encounterDiscard.length'),0);assert.equal(g.get('S.resources'),6);
+});
+
+test('困难骷髅成功不找敌人，无可搜索敌人或检定致死均安全',()=>{
+  const g=game();g.run(`S.difficulty='expert';S.chaos=[{label:'骷髅',symbol:'skull'}];startTest('combat',1,'测试',()=>{});resolveTest();finishTest(true)`);assert.equal(g.get('S.enemies.length'),0);
+  const h=game();h.run(`S.difficulty='hard';S.encounter=[];S.encounterDiscard=[];S.chaos=[{label:'骷髅',symbol:'skull'}];startTest('int',5,'测试',()=>{});resolveTest();finishTest(false)`);assert.equal(h.get('S.enemies.length'),0);
+  const j=game();j.run(`S.difficulty='hard';S.chaos=[{label:'骷髅',symbol:'skull'}];startTest('int',5,'测试',()=>{S.hp=0;checkDefeat()});resolveTest();finishTest(false)`);assert.equal(j.get('S.enemies.length'),0);
+});
+
+test('开始页难度入口、参考袋详情和局内难度显示均存在',()=>{
+  for(const id of ['difficultySelect','difficultyPreview','difficultyBag','difficultyScope','currentDifficulty'])assert.ok(html.includes(`id="${id}"`));
+  assert.match(html,/option value="standard" selected/);assert.match(html,/updateDifficultyPreview\(\);/);
+  assert.match(html,/并非完整官方战役/);
+});
+
 test('三线索推进幕后移动至阁楼可达成胜利结算',()=>{
   const g=game();g.run(`S.clues=3;S.location='hallway';advanceAct();doMove('attic');finish()`);
   assert.deepEqual(g.get('[S.actIdx,S.clues,S.location,S.actions,S.gameOver]'),[1,0,'attic',0,true]);

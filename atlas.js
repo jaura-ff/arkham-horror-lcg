@@ -23,7 +23,7 @@
   const add = (type,name,text,fields,use,art=null) => cards.push({type,name,text,fields,use,art});
   add('investigator',INVESTIGATOR.name,INVESTIGATOR.title,
     [['意志',INVESTIGATOR.will],['智慧',INVESTIGATOR.int],['战斗',INVESTIGATOR.combat],['敏捷',INVESTIGATOR.agility],['生命',INVESTIGATOR.maxHp],['理智',INVESTIGATOR.maxSanity]],
-    '这些是开局基础值，不是当前剩余状态。本作未实现实体罗兰的完整人物能力；受伤、恐惧与临时检定加值请以游戏面板为准。',[0,0]);
+    '这些是开局基础值，不是当前剩余状态。上古印记按当前地点每个线索 +1，不保证成功或治疗。本作未实现实体罗兰的完整人物能力；受伤、恐惧与临时检定加值请以游戏面板为准。',[0,0]);
   for (const c of INVESTIGATOR.deck) {
     const fields = [['打出费用',c.type==='skill'||c.type==='weak'?'不直接打出':c.cost+' 资源']];
     if(c.slot) fields.push(['槽位',(c.slots||1)+' 只手槽']);

@@ -191,6 +191,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <h1>诡镇奇谭<span class="title-sub">聚会之夜</span></h1>
       <p>1926 年，阿卡姆。熟悉的宅邸开始变得陌生，门后的低语，正指向阁楼里被掩埋的秘密。</p>
       <p>扮演联邦探员罗兰·班克斯。收集线索、应对遭遇，在理智耗尽之前，完成这场调查。</p>
+      <div class="difficulty-picker"><label for="difficultySelect">调查难度</label><select id="difficultySelect" aria-describedby="difficultyPreview difficultyScope" onchange="updateDifficultyPreview()"><option value="easy">简单 / Easy</option><option value="standard" selected>标准 / Standard</option><option value="hard">困难 / Hard</option><option value="expert">专家 / Expert</option></select><p id="difficultyPreview" role="status" aria-live="polite"></p><details><summary>查看混沌袋与规则来源</summary><p id="difficultyBag"></p><p>简单／标准使用参考卡正面；困难／专家使用背面。难度开局锁定，返回菜单后可为新一局重选。</p><a href="https://images-cdn.fantasyflightgames.com/filer_public/8d/30/8d308b73-92f1-4b1e-aa7f-ce39e8d79786/night_of_the_zealot_campaign_guide.pdf#page=1" target="_blank" rel="noopener noreferrer">官方《狂热之夜》战役设置</a></details><p id="difficultyScope">按原版《狂热之夜》混沌袋及《聚会》参考卡实现难度；场景、牌组和其他玩法仍为本网页简化版，并非完整官方战役。</p></div>
       <button class="btn primary start-button" id="startButton" onclick="startGame()"><span class="start-emblem"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#play"></use></svg></span><span>开始游戏<small>START INVESTIGATION</small></span></button>
       <button class="btn learn-button" id="learnButton" type="button">第一次玩？新人指导</button>
       <button class="btn atlas-entry" id="menuAtlasButton" type="button">卡牌图鉴 / 阅读卡牌</button>
@@ -216,6 +217,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <button type="button" class="btn icon-button guide-button" id="guideButton" aria-label="重看新人指导" title="新人指导">?</button>
       <button type="button" class="btn" id="atlasButton">卡牌图鉴</button>
       <span class="pill">回合 <b id="roundnum">1</b></span>
+      <span class="pill">难度 <b id="currentDifficulty">标准</b></span>
       <span class="pill">资源 <b id="topres">5</b></span>
       <span class="pill">线索 <b id="topclue">0</b></span>
       <div class="sound-controls" aria-label="环境音设置">
@@ -384,15 +386,25 @@ const ENCOUNTER = [
   {id:'whisper2', name:'恐惧低语', type:'treachery', text:'进行意志(2)检定：失败则承受 1 点恐惧。'},
 ];
 
-// 混沌袋（标准难度）
-const CHAOS_BAG = [
-  {label:'0', mod:0}, {label:'0', mod:0},
-  {label:'+1', mod:1},
-  {label:'-1', mod:-1}, {label:'-1', mod:-1},
-  {label:'-2', mod:-2},
-  {label:' 自动失败', autofail:true},
-  {label:' 上古印记', elder:true},
-];
+// Original Night of the Zealot campaign setup, p. 1. Six symbol tokens per bag.
+const DIFFICULTIES = {
+  easy:{name:'简单',numbers:[1,1,0,0,0,-1,-1,-1,-2,-2],hard:false,description:'偏重体验故事，数值修正较温和。'},
+  standard:{name:'标准',numbers:[1,0,0,-1,-1,-1,-2,-2,-3,-4],hard:false,description:'标准挑战，需要为关键检定投入卡牌。'},
+  hard:{name:'困难',numbers:[0,0,0,-1,-1,-2,-2,-3,-3,-4,-5],hard:true,description:'更严厉的符号后果，检定失败可能招来食尸鬼。'},
+  expert:{name:'专家',numbers:[0,-1,-1,-2,-2,-3,-3,-4,-4,-5,-6,-8],hard:true,description:'最严峻的数值袋，使用困难／专家符号效果。'}
+};
+function difficultyKey(value){return Object.hasOwn(DIFFICULTIES,value)?value:'standard';}
+function makeChaosBag(key){
+  return [...DIFFICULTIES[difficultyKey(key)].numbers.map(mod=>({label:mod>0?'+'+mod:String(mod),mod})),
+    {label:'骷髅',symbol:'skull'},{label:'骷髅',symbol:'skull'},{label:'异教徒',symbol:'cultist'},
+    {label:'石板',symbol:'tablet'},{label:'自动失败',autofail:true},{label:'上古印记',elder:true}];
+}
+function updateDifficultyPreview(){
+  const key=difficultyKey(document.getElementById('difficultySelect')?.value),d=DIFFICULTIES[key],bag=makeChaosBag(key);
+  document.getElementById('difficultyPreview').textContent=`${d.description} ${bag.length} 枚指示物 · ${d.hard?'困难／专家':'简单／标准'}参考卡。`;
+  const symbols=d.hard?'骷髅：−2，失败后在检定结束时寻找并抽取食尸鬼。\n异教徒：再抽一枚，失败额外受 2 恐惧。\n石板：−4，同地点有食尸鬼则受 1 伤害和 1 恐惧。':'骷髅：−X，X 为同地点食尸鬼数量。\n异教徒：−1，失败额外受 1 恐惧。\n石板：−2，同地点有食尸鬼则受 1 伤害。';
+  document.getElementById('difficultyBag').textContent=bag.map(t=>t.label).join('、')+'\n\n'+symbols+'\n上古印记：按罗兰当前地点的每个线索 +1，不保证成功。自动失败：无条件检定失败。';
+}
 
 /* ============ 状态 ============ */
 let S = null;
@@ -432,9 +444,11 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 
 function startGame(){
   pendingNavigation = false;
+  const difficulty=difficultyKey(document.getElementById('difficultySelect')?.value);
   document.getElementById('log').innerHTML = '';
   S = {
     phase:'investigation',
+    difficulty,
     round:1,
     hp:INVESTIGATOR.maxHp, sanity:INVESTIGATOR.maxSanity,
     resources:5,
@@ -449,7 +463,7 @@ function startGame(){
     enemies:[], // {card, hp, engaged, exhausted, location}
     encounter:shuffle(ENCOUNTER.map(c=>({...c}))),
     encounterDiscard:[],
-    chaos:CHAOS_BAG.slice(),
+    chaos:makeChaosBag(difficulty),
     actions:3,
     gameOver:false,
     test:null,
@@ -464,6 +478,7 @@ function startGame(){
   log('<span class="narr">—— 聚会之夜：第一幕 · 书房 ——</span>','gold');
   log('你握紧配枪，踏入熟悉却异常诡异的书房。','narr');
   log('第一回合跳过神话阶段，直接进入调查阶段。','gold');
+  log(`调查难度：${DIFFICULTIES[difficulty].name}；混沌袋 ${S.chaos.length} 枚。`,'gold');
   render();
 }
 
@@ -554,6 +569,7 @@ function renderPhaseBar(){
 function renderTopStats(){
   document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation);
   document.getElementById('roundnum').textContent = S.round;
+  document.getElementById('currentDifficulty').textContent = DIFFICULTIES[difficultyKey(S.difficulty)].name;
   document.getElementById('topres').textContent = S.resources;
   document.getElementById('topclue').textContent = S.clues;
 }
@@ -1042,28 +1058,65 @@ function toggleCommit(idx){
   openTestModal();
 }
 
+function isGhoul(c){return c.type==='enemy' && (c.traits?.includes('Ghoul') || c.name?.startsWith('食尸鬼'));}
+function availableGhouls(){return [...S.encounter,...S.encounterDiscard].filter(isGhoul);}
+function drawSearchedGhoul(id){
+  const card=availableGhouls().find(c=>c.id===id)||availableGhouls()[0];
+  if(card){
+    const source=S.encounter.includes(card)?S.encounter:S.encounterDiscard;
+    source.splice(source.indexOf(card),1);
+    S.enemies.push({card,hp:card.hp,engaged:true,exhausted:false,location:S.location});
+    log(`骷髅后果：你抽到 ${card.name}，在当前地点交缠。`,'bad');
+  }else log('骷髅后果：遭遇牌组及弃牌堆没有可寻找的食尸鬼。','dim');
+  shuffle(S.encounter);
+}
+function resolveChaosTokens(){
+  const hard=DIFFICULTIES[difficultyKey(S.difficulty)].hard;
+  const localGhouls=S.enemies.filter(e=>e.location===S.location && isGhoul(e.card)).length;
+  const available=S.chaos.slice(),labels=[];
+  let mod=0,autofail=false,failHorror=0,damage=0,horror=0,searchGhoul=false;
+  // Revealed tokens stay out of the bag until this test ends, including chained draws.
+  while(available.length){
+    const [token]=available.splice(Math.floor(Math.random()*available.length),1);
+    labels.push(token.label);
+    if(token.autofail)autofail=true;
+    else if(token.elder)mod+=S.locClues[S.location]||0;
+    else if(token.symbol==='skull'){
+      mod+=hard?-2:-localGhouls;searchGhoul=hard;
+    }else if(token.symbol==='cultist'){
+      failHorror+=hard?2:1;
+      if(hard)continue;
+      mod-=1;
+    }else if(token.symbol==='tablet'){
+      mod+=hard?-4:-2;
+      if(localGhouls){damage++;if(hard)horror++;}
+    }else mod+=token.mod||0;
+    break;
+  }
+  return {mod,autofail,failHorror,damage,horror,searchGhoul,label:labels.join(' → ')};
+}
 function resolveTest(){
   const t = S.test;
   if(!t || t.resolved || S.gameOver) return;
   t.resolved = true;
   const base = skillValue(t.skill);
   let total = base + t.bonus + S.committed.reduce((s,c)=>s+commitBonus(c),0);
-  const token = S.chaos[Math.floor(Math.random()*S.chaos.length)];
-  let result;
-  let tokenHtml;
-  if(token.autofail){
-    result = false; tokenHtml = '失败';
-  } else if(token.elder){
-    total += 1; result = true; tokenHtml = '印记';
-    S.hp = Math.min(INVESTIGATOR.maxHp, S.hp+1);
-    log(' 上古印记：你恢复 1 点生命。','good');
-  } else {
-    total += token.mod; result = total >= t.difficulty; tokenHtml = token.label;
-  }
+  const token=resolveChaosTokens();
+  total=token.autofail?0:Math.max(0,total+token.mod);
+  const result=!token.autofail && total>=t.difficulty;
+  const tokenHtml=token.label;
+  t.searchGhoul=token.searchGhoul && !result;
   S.committed.forEach(c=>{
     S.hand = S.hand.filter(x=>x!==c);
     S.discard.push(c);
   });
+  const damage=token.damage,horror=token.horror+(!result?token.failHorror:0);
+  if(damage||horror){
+    S.hp=Math.max(0,S.hp-damage);S.sanity=Math.max(0,S.sanity-horror);
+    log(`混沌符号效果：承受 ${damage} 伤害、${horror} 恐惧。`,'bad');
+    checkDefeat();render();if(S.gameOver)return;
+  }
+  const choices=t.searchGhoul?availableGhouls().filter((c,i,a)=>a.findIndex(x=>x.id===c.id)===i):[];
   document.getElementById('modalBox').innerHTML = `
     <h3>检定结果</h3>
     <div class="chaos">${tokenHtml}</div>
@@ -1071,6 +1124,7 @@ function resolveTest(){
       最终技能值：<b>${total}</b> vs 难度 ${t.difficulty}<br><br>
       ${result?'<span class="result-good"> 检定成功</span>':'<span class="result-bad"> 检定失败</span>'}
     </div>
+    ${t.searchGhoul?`<div class="ghoul-choice"><label for="ghoulSearchChoice">检定结束后寻找并抽取一名食尸鬼</label>${choices.length?`<select id="ghoulSearchChoice">${choices.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>`:'<p>遭遇牌组及弃牌堆中没有可选择的食尸鬼。</p>'}</div>`:''}
     <div class="center mb"><button class="btn primary" onclick="finishTest(${result})">${uiIcon('next')}确定</button></div>
   `;
   S.testResult = result;
@@ -1080,9 +1134,11 @@ function finishTest(result){
   const t = S.test;
   if(!t || !t.resolved || S.gameOver) return;
   result = S.testResult;
+  const ghoulId=t.searchGhoul?document.getElementById('ghoulSearchChoice')?.value:null;
   S.test = null; S.committed=[];
   closeModal();
   t.onDone(result);
+  if(t.searchGhoul && !S.gameOver){drawSearchedGhoul(ghoulId);render();}
 }
 
 function closeModal(){
@@ -1294,6 +1350,7 @@ function resolve(code, text){
 }
 </script>
 <script src="ambience.js"></script>
+<script>updateDifficultyPreview();</script>
 <script src="tutorial.js"></script>
 <script src="atlas.js"></script>
 </body>

@@ -35,6 +35,32 @@ test('黑色电影场景信息随移动刷新，不改变移动规则',()=>{
   assert.match(g.document.getElementById('sceneClues').textContent,/线索 1/);
 });
 
+test('人物牌外部统一显示资源、线索、行动和位置，检定时即时刷新',()=>{
+  const g=game();g.run(`renderInvestigator()`);
+  let summary=g.document.getElementById('investigator').innerHTML;
+  assert.match(summary,/data-status="resources">5</);
+  assert.match(summary,/data-status="clues">0</);
+  assert.match(summary,/data-status="location">书房</);
+  assert.match(summary,/data-status="actions"[^>]*>3\/3</);
+  g.run(`resource();S.revealed.hallway=true;clickNode('hallway');investigate()`);
+  summary=g.document.getElementById('investigator').innerHTML;
+  assert.match(summary,/data-status="resources">6</);
+  assert.match(summary,/data-status="location">走廊</);
+  assert.match(summary,/data-status="actions"[^>]*>0\/3</);
+  assert.notEqual(g.get('S.test'),null);
+  assert.doesNotMatch(summary,/点击查看/);
+});
+
+test('人物牌不再是按钮，详情弹窗已删除，受伤后外部状态同步',()=>{
+  const actor=html.match(/<section[^>]+id="investigator"[^>]*>/)[0];
+  assert.doesNotMatch(actor,/onclick|onkeydown|tabindex|role="button"/);
+  assert.doesNotMatch(html,/function openInvestigatorModal/);
+  const g=game();g.enemy();g.run(`S.hp=1;resource()`);
+  assert.equal(g.get('S.gameOver'),true);
+  const summary=g.document.getElementById('investigator').innerHTML;
+  assert.match(summary,/0\/9/);assert.match(summary,/gauge-percent">0%/);
+});
+
 test('返回菜单需确认，取消不改变进度，确认后可重新开始',()=>{
   const g=game();g.run(`resource();requestReturnMenu()`);
   assert.equal(g.get('pendingNavigation'),true);assert.equal(g.get('canAct()'),false);
@@ -92,7 +118,7 @@ test('继续按钮完成敌人→维持→神话→调查完整流程',()=>{
 });
 test('神话检定未完成时不能推进或覆盖检定，确认后可继续',()=>{
   const g=game();g.run(`S.encounter=[{...ENCOUNTER.find(c=>c.id==='whisper1')}];resource();endTurn();next();next()`);
-  assert.equal(g.get('S.test.skill'),'will');g.run(`doAction('next');next();openInvestigatorModal()`);
+  assert.equal(g.get('S.test.skill'),'will');g.run(`doAction('next');next();renderInvestigator()`);
   assert.equal(g.get('S.phase'),'mythos');assert.equal(g.get('S.test.skill'),'will');
   g.finish();g.run(`doAction('next')`);assert.equal(g.get('S.phase'),'investigation');
 });

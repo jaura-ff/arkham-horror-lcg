@@ -182,6 +182,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="atlas.css?v=action-confirm-1">
 <link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=asset-icons-1">
+<link rel="stylesheet" href="phase-transition.css?v=phase-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -292,6 +293,9 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 </div>
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="游戏操作"><div class="modal-box" id="modalBox"></div></div>
+<dialog id="phaseAnnouncement" class="phase-announcement" aria-labelledby="phaseAnnouncementTitle" aria-describedby="phaseAnnouncementHint">
+  <div class="phase-announcement-shell"><p class="phase-announcement-kicker">ARKHAM / NEXT PHASE</p><p id="phaseAnnouncementRound" class="phase-announcement-round"></p><p class="phase-announcement-label">即将进入</p><h2 id="phaseAnnouncementTitle" tabindex="-1"></h2><p id="phaseAnnouncementHint">停留 3 秒后自动继续</p></div>
+</dialog>
 <dialog id="assetInfoDialog" class="card-atlas asset-info-dialog" aria-labelledby="assetInfoTitle">
   <div class="atlas-shell"><header class="atlas-heading"><h2 id="assetInfoTitle">资产说明</h2><button type="button" class="btn icon-button" aria-label="关闭资产说明" onclick="document.getElementById('assetInfoDialog').close()" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
     <p id="assetInfoEffect"></p><p id="assetInfoSlot" class="atlas-source"></p>
@@ -452,13 +456,14 @@ let S = null;
 let selectedHandCard = null;
 let pendingNavigation = false;
 let pendingAction = null;
+let phaseTransitionActive = false;
 function uiIcon(name){
   if(!['play','home','restart','close','sound','mute','back','next'].includes(name)) return '';
   return `<svg class="ui-icon" aria-hidden="true" focusable="false"><use href="assets/icons/ui.svg#${name}"></use></svg>`;
 }
 
 function requestReturnMenu(){
-  if(!S || S.test || S.pendingMove || pendingNavigation || pendingAction) return;
+  if(!S || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive) return;
   pendingNavigation = true;
   render();
   openModal(`<h3>${uiIcon('home')} 返回主菜单？</h3>
@@ -486,6 +491,8 @@ function confirmReturnMenu(){
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
 function startGame(){
+  if(typeof resetPhaseAnnouncement==='function')resetPhaseAnnouncement();
+  phaseTransitionActive = false;
   pendingNavigation = false;
   pendingAction = null;
   selectedHandCard = null;
@@ -525,6 +532,7 @@ function startGame(){
   log('第一回合跳过神话阶段，直接进入调查阶段。','gold');
   log(`调查难度：${DIFFICULTIES[difficulty].name}；混沌袋 ${S.chaos.length} 枚。`,'gold');
   render();
+  if(typeof announcePhase==='function')announcePhase('investigation',()=>{});
 }
 
 function drawOpeningHand(){
@@ -613,7 +621,7 @@ function renderPhaseBar(){
 }
 
 function renderTopStats(){
-  document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation || pendingAction);
+  document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive);
   document.getElementById('roundnum').textContent = S.round;
   document.getElementById('currentDifficulty').textContent = DIFFICULTIES[difficultyKey(S.difficulty)].name;
   document.getElementById('topres').textContent = S.resources;
@@ -663,7 +671,7 @@ function renderHand(){
   el.innerHTML = S.hand.map((c,i)=>{
     const typeLabel = {asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[c.type]||c.type;
     const iconStr = skillIcons(c);
-    const disabled = S.gameOver || !!S.test || S.pendingMove || pendingNavigation || pendingAction;
+    const disabled = S.gameOver || !!S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive;
     const art = CARD_ART[c.id] || [0,0];
     return `<button id="hand-card-${i}" type="button" class="card ${c.type} ${selectedHandCard===c?'is-selected':''}" aria-pressed="${selectedHandCard===c}" aria-haspopup="dialog" aria-describedby="handInteractionHint" aria-label="${c.name}，${typeLabel}，费用 ${c.cost}。${c.text} 双击查看效果并确认出牌。" ${disabled?'disabled':''} onclick="inspectHandCard(${i},event)">
       <span class="ccost">${c.cost>0?c.cost:'—'}</span>
@@ -718,7 +726,7 @@ function renderAssets(){
 }
 
 function inspectAsset(index){
-  if(!S || S.test || S.pendingMove || pendingAction || pendingNavigation || document.getElementById('modal').classList.contains('open') || document.getElementById('game').inert)return;
+  if(!S || S.test || S.pendingMove || pendingAction || pendingNavigation || phaseTransitionActive || document.getElementById('modal').classList.contains('open') || document.getElementById('game').inert)return;
   const a=S.assets[index],dialog=document.getElementById('assetInfoDialog');
   if(!a || dialog.open)return;
   document.getElementById('assetInfoTitle').textContent=a.card.name;
@@ -844,7 +852,7 @@ function renderActions(){
   // Tests consume an action before their modal resolves; keep the external
   // investigator summary current even when only the action controls refresh.
   renderInvestigator();
-  document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation || pendingAction);
+  document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive);
   const el = document.getElementById('actions');
   const controls = document.getElementById('controls');
   const cnt = document.getElementById('actioncount');
@@ -865,11 +873,11 @@ function renderActions(){
     if(S.actIdx===1 && S.location==='attic'){
       actions.push(btn(' 完成调查','finish',canTakeAction,'结束调查'));
     }
-    controls.innerHTML = `<button class="btn" onclick="requestAction('endTurn')" ${S.actions===3||S.test||S.pendingMove||pendingNavigation||pendingAction?'disabled':''}>${uiIcon('next')}结束回合 </button>
+    controls.innerHTML = `<button class="btn" onclick="requestAction('endTurn')" ${S.actions===3||S.test||S.pendingMove||pendingNavigation||pendingAction||phaseTransitionActive?'disabled':''}>${uiIcon('next')}结束回合 </button>
       <span style="color:var(--dim);font-size:11px">${S.actions===3?'（至少执行 1 个行动后才能结束回合）':''}</span>`;
   } else {
     cnt.textContent = '';
-    actions.push(btn(' 继续','next',!S.test&&!pendingAction,'进入下一阶段'));
+    actions.push(btn(' 继续','next',!S.test&&!pendingAction&&!phaseTransitionActive,'进入下一阶段'));
     controls.innerHTML='';
   }
   el.innerHTML = actions.join('');
@@ -908,7 +916,7 @@ function confirmAction(){
   run();
 }
 function requestAction(fn){
-  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || pendingAction)return;
+  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive)return;
   if(fn==='next'){
     if(S.phase!=='investigation')showActionConfirmation('进入下一阶段','继续推进阶段并结算相应效果。',next);
     return;
@@ -933,13 +941,13 @@ function requestMapMove(id){
   requestMove(id);
 }
 function requestMove(id){
-  if(!S || S.gameOver || S.test || pendingNavigation || pendingAction || S.phase!=='investigation' || S.actions<=0)return;
+  if(!S || S.gameOver || S.test || pendingNavigation || pendingAction || phaseTransitionActive || S.phase!=='investigation' || S.actions<=0)return;
   if(!LOCATIONS[S.location].conn.includes(id))return;
   closeModal();
   showActionConfirmation('移动',`消耗 1 次行动，前往${S.revealed[id]?LOCATIONS[id].name:'所选未揭示地点'}。`,()=>doMove(id),actionRisk());
 }
 function doAction(fn){
-  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || pendingAction) return;
+  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive) return;
   if(fn==='next') { if(S.phase!=='investigation') next(); return; }
   if(!canAct()) return;
   const fnMap = {draw, resource, move, investigate, fight, evade, finish, advanceAct};
@@ -947,7 +955,7 @@ function doAction(fn){
 }
 
 function canAct(ignoreTest=false){
-  return !!S && !S.gameOver && (ignoreTest || !S.test) && !S.pendingMove && !pendingNavigation && !pendingAction && S.phase==='investigation' && S.actions>0;
+  return !!S && !S.gameOver && (ignoreTest || !S.test) && !S.pendingMove && !pendingNavigation && !pendingAction && !phaseTransitionActive && S.phase==='investigation' && S.actions>0;
 }
 
 function beginAction(exempt=false,stagedTest=null){
@@ -1296,13 +1304,20 @@ function openModal(html){ document.getElementById('modalBox').innerHTML=html; do
 
 /* ============ 阶段流转 ============ */
 function endTurn(){
-  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || pendingAction || S.phase!=='investigation' || S.actions===3) return;
+  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive || S.phase!=='investigation' || S.actions===3) return;
   S.actions = 0;
   advancePhase();
 }
 
 function advancePhase(){
-  if(S.gameOver || S.test || S.pendingMove || pendingAction || pendingNavigation) return;
+  if(!S || S.gameOver || S.test || S.pendingMove || pendingAction || pendingNavigation || phaseTransitionActive) return;
+  const nextPhase={investigation:'enemy',enemy:'upkeep',upkeep:'mythos',mythos:'investigation'}[S.phase];
+  if(!nextPhase)return;
+  if(typeof announcePhase==='function')announcePhase(nextPhase,enterPhase);
+  else enterPhase();
+}
+function enterPhase(){
+  if(!S || S.gameOver || S.test || S.pendingMove || pendingAction || pendingNavigation || phaseTransitionActive)return;
   if(S.phase==='investigation'){ S.phase='enemy'; log('—— 敌人阶段 ——','gold'); enemyPhase(); }
   else if(S.phase==='enemy'){ S.phase='upkeep'; log('—— 维持阶段 ——','gold'); upkeepPhase(); }
   else if(S.phase==='upkeep'){ S.phase='mythos'; log('—— 神话阶段 ——','gold'); mythosPhase(); }
@@ -1497,7 +1512,8 @@ function resolve(code, text){
 </script>
 <script src="ambience.js"></script>
 <script>updateDifficultyPreview();</script>
-<script src="tutorial.js"></script>
+<script src="phase-transition.js?v=phase-1"></script>
+<script src="tutorial.js?v=phase-1"></script>
 <script src="atlas.js"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
 <script src="hand-dialog.js?v=action-confirm-1"></script>

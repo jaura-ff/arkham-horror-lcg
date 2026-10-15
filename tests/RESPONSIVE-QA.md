@@ -21,8 +21,8 @@ Additional UI checks:
 - Short-landscape modals have a dynamic viewport maximum height and internal vertical scrolling rather than clipped buttons.
 - Investigator details are now permanently displayed on the external character card. The previous clickable investigator modal has been removed; resource, clue, action and location values refresh together, including during skill tests.
 - Header and page padding account for display safe areas; pinch zoom is not disabled.
-- Existing game and audio regression suite: `node --test tests/ambience.cjs tests/game-regressions.cjs` (47 checks).
+- Game, audio and tutorial regression suite: `node --test tests/ambience.cjs tests/game-regressions.cjs tests/tutorial.cjs` (55 checks).
 
 No game rules, card data, random draw logic or audio lifecycle code changed.
 
-Latest external-status consolidation was checked by regression tests and source inspection only; the previously recorded viewport checks were not repeated because browser preview was not authorized.
+Latest external-status consolidation and beginner tutorial were checked by regression tests and source inspection only; the previously recorded viewport checks were not repeated because browser preview was not authorized. Tutorial cards use a dynamic viewport maximum height, internal scrolling, 44px navigation targets and resize-based spotlight placement, but this update has not been visually verified in a browser.

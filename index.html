@@ -181,6 +181,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="noir.css">
 <link rel="stylesheet" href="atlas.css?v=hand-confirm-1">
 <link rel="stylesheet" href="map.css?v=route-center-1">
+<link rel="stylesheet" href="layout.css?v=left-actions-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -236,7 +237,12 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <!-- 左栏 -->
       <div class="col-left">
         <section class="panel inv-card" id="investigator" aria-label="调查员与当前状态"></section>
-        <div class="panel">
+        <div class="panel command-panel" id="commandPanel">
+          <h2>行动 <span class="cnt" id="actioncount"></span></h2>
+          <div class="actions" id="actions"></div>
+          <div id="controls"></div>
+        </div>
+        <div class="panel goal-panel">
           <h2>目标进度</h2>
           <div class="aa">
             <div class="side act"><h3>幕 Act</h3><div class="txt" id="act"></div></div>
@@ -258,21 +264,16 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
           <h2>敌人 <span class="cnt" id="enemycount"></span></h2>
           <div id="enemies"></div>
         </div>
-        <div class="panel command-panel">
-          <h2>行动 <span class="cnt" id="actioncount"></span></h2>
-          <div class="actions" id="actions"></div>
-          <div id="controls"></div>
+        <div class="panel equipment-panel">
+          <h2>已打出的资产 <span class="cnt">装备中</span></h2>
+          <div id="assets"></div>
+          <div class="slots" id="slots"></div>
         </div>
         <div class="bottom">
           <div class="panel hand-panel">
             <h2>手牌 <span class="cnt" id="handcount"></span></h2>
             <p class="hand-interaction-hint" id="handInteractionHint">单击选中 · 双击／快速连点两次查看效果 · 弹窗确认后才出牌</p>
             <div class="hand" id="hand"></div>
-          </div>
-          <div class="panel equipment-panel">
-            <h2>已打出的资产 <span class="cnt">装备中</span></h2>
-            <div id="assets"></div>
-            <div class="slots" id="slots"></div>
           </div>
         </div>
       </div>

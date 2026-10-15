@@ -24,7 +24,8 @@
   }
   function ui(state) {
     toggle.setAttribute('aria-pressed', String(enabled));
-    toggle.textContent = state === 'error' ? '音效：点击重试' : `环境音：${enabled ? '开' : '关'}`;
+    const label = state === 'error' ? '音效：点击重试' : `环境音：${enabled ? '开' : '关'}`;
+    toggle.innerHTML = `<svg class="ui-icon" aria-hidden="true" focusable="false"><use href="assets/icons/ui.svg#${enabled && volume > 0 ? 'sound' : 'mute'}"></use></svg><span>${label}</span>`;
     toggle.dataset.audioState = state;
     status.textContent = ({ready:'进入游戏后播放',playing:'环境音播放中',paused:'后台已暂停',muted:'环境音已关闭',silent:'音量为零',error:'浏览器未允许播放，请点击重试',unsupported:'浏览器不支持音效'})[state];
   }
@@ -145,6 +146,13 @@
     }
   });
   start.addEventListener('click', () => { entered = true; apply(); });
+  document.addEventListener('arkham:menu', () => {
+    entered = false;
+    ++revision;
+    clearAmbienceTimer();
+    if(context) context.suspend().catch(() => {});
+    ui(enabled ? 'ready' : 'muted');
+  });
   document.addEventListener('visibilitychange', () => { if (entered) apply(); });
   window.addEventListener('pagehide', () => {
     ++revision; clearAmbienceTimer();

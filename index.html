@@ -190,7 +190,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <h1>诡镇奇谭<span class="title-sub">聚会之夜</span></h1>
       <p>1926 年，阿卡姆。熟悉的宅邸开始变得陌生，门后的低语，正指向阁楼里被掩埋的秘密。</p>
       <p>扮演联邦探员罗兰·班克斯。收集线索、应对遭遇，在理智耗尽之前，完成这场调查。</p>
-      <button class="btn primary" id="startButton" onclick="startGame()">进入调查 →</button>
+      <button class="btn primary start-button" id="startButton" onclick="startGame()"><span class="start-emblem"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#play"></use></svg></span><span>开始游戏<small>START INVESTIGATION</small></span></button>
       <p class="start-note">单人卡牌游戏 · 每回合 3 次行动 · 无需登录</p>
     </div>
     <div class="case-file">
@@ -209,6 +209,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
   <header class="topbar">
     <div class="brand"><span class="brand-mark" aria-hidden="true">A</span><div>诡镇奇谭<small>ARKHAM HORROR / 聚会之夜</small></div></div>
     <div class="topstats">
+      <button type="button" class="btn icon-button" id="menuButton" aria-label="返回主菜单" title="返回主菜单" onclick="requestReturnMenu()"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#home"></use></svg></button>
       <span class="pill">回合 <b id="roundnum">1</b></span>
       <span class="pill">资源 <b id="topres">5</b></span>
       <span class="pill">线索 <b id="topclue">0</b></span>
@@ -364,9 +365,43 @@ const CHAOS_BAG = [
 
 /* ============ 状态 ============ */
 let S = null;
+let pendingNavigation = false;
+function uiIcon(name){
+  if(!['play','home','restart','close','sound','mute','back','next'].includes(name)) return '';
+  return `<svg class="ui-icon" aria-hidden="true" focusable="false"><use href="assets/icons/ui.svg#${name}"></use></svg>`;
+}
+
+function requestReturnMenu(){
+  if(!S || S.test || S.pendingMove || pendingNavigation) return;
+  pendingNavigation = true;
+  render();
+  openModal(`<h3>${uiIcon('home')} 返回主菜单？</h3>
+    <p class="menu-warning">当前调查进度不会保存。再次开始将开启一局新的调查。</p>
+    <div class="menu-confirm-actions"><button class="btn" onclick="cancelReturnMenu()">${uiIcon('play')} 继续调查</button>
+    <button class="btn primary" onclick="confirmReturnMenu()">${uiIcon('home')} 确定返回</button></div>`);
+}
+function cancelReturnMenu(){
+  if(!pendingNavigation) return;
+  pendingNavigation = false;
+  closeModal();
+  if(S) render();
+}
+function confirmReturnMenu(){
+  if(!pendingNavigation || !S || S.test || S.pendingMove) return;
+  pendingNavigation = false;
+  S = null;
+  closeModal();
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('game').style.display = 'none';
+  document.getElementById('startOverlay').style.display = 'flex';
+  if(typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('arkham:menu'));
+  document.getElementById('startButton').focus?.();
+}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
 function startGame(){
+  pendingNavigation = false;
+  document.getElementById('log').innerHTML = '';
   S = {
     phase:'investigation',
     round:1,
@@ -486,6 +521,7 @@ function renderPhaseBar(){
 }
 
 function renderTopStats(){
+  document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation);
   document.getElementById('roundnum').textContent = S.round;
   document.getElementById('topres').textContent = S.resources;
   document.getElementById('topclue').textContent = S.clues;
@@ -526,7 +562,7 @@ function renderInvestigator(){
 }
 
 function openInvestigatorModal(){
-  if(!S || S.test || S.gameOver) return;
+  if(!S || S.test || S.gameOver || pendingNavigation) return;
   const hpPct = Math.round(S.hp/INVESTIGATOR.maxHp*100);
   const sanPct = Math.round(S.sanity/INVESTIGATOR.maxSanity*100);
   document.getElementById('modalBox').innerHTML = `
@@ -558,7 +594,7 @@ function openInvestigatorModal(){
     <div style="margin-top:14px;font-size:11px;color:var(--dim);line-height:1.6">
       行动剩余：<b style="color:var(--text)">${S.actions}/3</b>　|　当前位置：<b style="color:var(--text)">${LOCATIONS[S.location].name}</b>
     </div>
-    <div class="center" style="margin-top:16px"><button class="btn primary" onclick="closeModal()">关闭</button></div>
+    <div class="center" style="margin-top:16px"><button class="btn primary" onclick="closeModal()">${uiIcon('close')}关闭</button></div>
   `;
   document.getElementById('modal').classList.add('open');
 }
@@ -713,10 +749,11 @@ function renderActAgenda(){
 }
 
 function renderActions(){
+  document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation);
   const el = document.getElementById('actions');
   const controls = document.getElementById('controls');
   const cnt = document.getElementById('actioncount');
-  if(S.gameOver){ el.innerHTML=''; controls.innerHTML='<button class="btn primary" onclick="location.reload()">重新开始</button>'; cnt.textContent=''; return; }
+  if(S.gameOver){ el.innerHTML=''; controls.innerHTML=`<button class="btn primary" onclick="location.reload()">${uiIcon('restart')}重新开始</button>`; cnt.textContent=''; return; }
   const actions = [];
   if(S.phase==='investigation'){
     const canTakeAction = canAct();
@@ -733,7 +770,7 @@ function renderActions(){
     if(S.actIdx===1 && S.location==='attic'){
       actions.push(btn(' 完成调查','finish',canTakeAction,'结束调查'));
     }
-    controls.innerHTML = `<button class="btn" onclick="endTurn()" ${S.actions===3||S.test||S.pendingMove?'disabled':''}>结束回合 </button>
+    controls.innerHTML = `<button class="btn" onclick="endTurn()" ${S.actions===3||S.test||S.pendingMove||pendingNavigation?'disabled':''}>${uiIcon('next')}结束回合 </button>
       <span style="color:var(--dim);font-size:11px">${S.actions===3?'（至少执行 1 个行动后才能结束回合）':''}</span>`;
   } else {
     cnt.textContent = '';
@@ -756,7 +793,7 @@ function hasLocalEnemy(){
 
 /* ============ 行动处理 ============ */
 function doAction(fn){
-  if(!S || S.gameOver || S.test || S.pendingMove) return;
+  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation) return;
   if(fn==='next') { if(S.phase!=='investigation') next(); return; }
   if(!canAct()) return;
   const fnMap = {draw, resource, move, investigate, fight, evade, finish, advanceAct};
@@ -764,7 +801,7 @@ function doAction(fn){
 }
 
 function canAct(){
-  return !!S && !S.gameOver && !S.test && !S.pendingMove && S.phase==='investigation' && S.actions>0;
+  return !!S && !S.gameOver && !S.test && !S.pendingMove && !pendingNavigation && S.phase==='investigation' && S.actions>0;
 }
 
 function beginAction(exempt=false){
@@ -820,7 +857,7 @@ function move(){
       const rev = S.revealed[id];
       return `<button class="btn move-btn" style="margin:5px;display:block;width:100%;text-align:left" onclick="doMove('${id}')"><span class="move-ico">${rev?(LOC_ICONS[id]||''):'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3a7 7 0 0 0-7 7c0 5 7 11 7 11s7-6 7-11a7 7 0 0 0-7-7z"/><circle cx="12" cy="10" r="2.4"/></svg>'}</span>${rev?l.name:'未揭示地点'} <span style="color:var(--dim);font-size:10px">${rev?'· 迷雾 '+l.shroud:''}</span></button>`;
     }).join('')}
-    <button class="btn danger" style="margin:5px;display:block;width:100%" onclick="closeModal()">取消</button>
+    <button class="btn danger" style="margin:5px;display:block;width:100%" onclick="closeModal()">${uiIcon('back')}取消</button>
   `);
   renderActions();
 }
@@ -1036,7 +1073,7 @@ function resolveTest(){
       最终技能值：<b>${total}</b> vs 难度 ${t.difficulty}<br><br>
       ${result?'<span class="result-good"> 检定成功</span>':'<span class="result-bad"> 检定失败</span>'}
     </div>
-    <div class="center mb"><button class="btn primary" onclick="finishTest(${result})">确定</button></div>
+    <div class="center mb"><button class="btn primary" onclick="finishTest(${result})">${uiIcon('next')}确定</button></div>
   `;
   S.testResult = result;
 }
@@ -1060,7 +1097,7 @@ function openModal(html){ document.getElementById('modalBox').innerHTML=html; do
 
 /* ============ 阶段流转 ============ */
 function endTurn(){
-  if(!S || S.gameOver || S.test || S.pendingMove || S.phase!=='investigation' || S.actions===3) return;
+  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || S.phase!=='investigation' || S.actions===3) return;
   S.actions = 0;
   advancePhase();
 }
@@ -1249,11 +1286,11 @@ function resolve(code, text){
   log(`<b>${win?' 达成结算 '+code+' —— 胜利':' 触发结算 '+code+' —— 失败'}</b>`,'gold');
   log(text,'narr');
   document.getElementById('actions').innerHTML='';
-  document.getElementById('controls').innerHTML = `<button class="btn primary" onclick="location.reload()">重新开始</button>`;
+  document.getElementById('controls').innerHTML = `<button class="btn primary" onclick="location.reload()">${uiIcon('restart')}重新开始</button>`;
   openModal(`
     <h3>${win?' 调查成功！':' 调查失败……'}</h3>
     <div class="center" style="font-size:13px;line-height:1.8">${text}</div>
-    <div class="center mb"><button class="btn primary" onclick="closeModal()">关闭</button></div>
+    <div class="center mb"><button class="btn primary" onclick="closeModal()">${uiIcon('close')}关闭</button></div>
   `);
 }
 </script>

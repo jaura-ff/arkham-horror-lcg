@@ -35,6 +35,33 @@ test('黑色电影场景信息随移动刷新，不改变移动规则',()=>{
   assert.match(g.document.getElementById('sceneClues').textContent,/线索 1/);
 });
 
+test('返回菜单需确认，取消不改变进度，确认后可重新开始',()=>{
+  const g=game();g.run(`resource();requestReturnMenu()`);
+  assert.equal(g.get('pendingNavigation'),true);assert.equal(g.get('canAct()'),false);
+  assert.match(g.document.getElementById('modalBox').innerHTML,/当前调查进度不会保存/);
+  g.run(`doAction('resource');cancelReturnMenu()`);
+  assert.equal(g.get('S.resources'),6);assert.equal(g.get('S.actions'),2);assert.equal(g.get('canAct()'),true);
+  g.run(`confirmReturnMenu()`);assert.equal(g.get('S.resources'),6);
+  g.run(`requestReturnMenu();confirmReturnMenu()`);assert.equal(g.get('S'),null);
+  assert.equal(g.document.getElementById('startOverlay').style.display,'flex');
+  assert.equal(g.document.getElementById('game').style.display,'none');
+  g.run(`startGame()`);assert.equal(g.get('S.resources'),5);assert.equal(g.get('S.actions'),3);
+});
+
+test('检定中和移动选择中不能覆盖弹窗返回菜单',()=>{
+  const g=game();g.run(`investigate();requestReturnMenu()`);
+  assert.equal(g.get('pendingNavigation'),false);assert.notEqual(g.get('S.test'),null);
+  g.finish();g.run(`move();requestReturnMenu()`);
+  assert.equal(g.get('pendingNavigation'),false);assert.equal(g.get('S.pendingMove'),true);
+});
+
+test('本地图标包包含全部常用图标，未知图标不能注入标记',()=>{
+  const g=game();const sprite=fs.readFileSync(path.join(__dirname,'..','assets/icons/ui.svg'),'utf8');
+  for(const id of ['play','home','restart','close','sound','mute','back','next'])assert.ok(sprite.includes(`id="${id}"`));
+  assert.equal(g.get(`uiIcon('<img onerror=alert(1)>')`),'');
+  assert.match(g.get(`uiIcon('home')`),/aria-hidden="true"/);
+});
+
 test('每张卡牌有独立插画映射，手牌保持语义按钮',()=>{
   const g=game();
   assert.equal(g.get('INVESTIGATOR.deck.every(c=>Array.isArray(CARD_ART[c.id])&&CARD_ART[c.id].length===2)'),true);

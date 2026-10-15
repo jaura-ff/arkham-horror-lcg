@@ -4,7 +4,15 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'..','tutorial.js'),'utf8');
-function setup({saved=null,storageFails=false}={}){
+
+test('阶段提示优先，提示完成后才自动打开新人指导',()=>{
+  const g=setup({transition:true});g.click('startButton');assert.equal(g.open(),false);assert.equal(g.nodes.get('game').inert,false);g.setPhasePending(false);g.events['arkham:phase-ready']();assert.equal(g.open(),true);g.click('tutorialSkip');g.events['arkham:phase-ready']();assert.equal(g.open(),false);
+});
+test('已看过不自动排队，手动教学可延后，菜单清理排队',()=>{
+  const g=setup({saved:'seen',transition:true});g.click('startButton');g.setPhasePending(false);g.events['arkham:phase-ready']();assert.equal(g.open(),false);
+  g.setPhasePending(true);g.click('guideButton');assert.equal(g.open(),false);g.setPhasePending(false);g.events['arkham:phase-ready']();assert.equal(g.open(),true);g.click('tutorialClose');g.setPhasePending(true);g.click('guideButton');g.events['arkham:menu']();g.setPhasePending(false);g.events['arkham:phase-ready']();assert.equal(g.open(),false);
+});
+function setup({saved=null,storageFails=false,transition=false}={}){
   const nodes=new Map(),events={},winEvents={},storage={value:saved};
   const state={actions:3,resources:5,hp:9,sanity:5,clues:0,location:'study'};
   const doc={body:{style:{overflow:''}},activeElement:null,getElementById:id=>nodes.get(id),querySelector:selector=>targets[selector]||null,addEventListener(name,fn){events[name]=fn}};
@@ -19,10 +27,11 @@ function setup({saved=null,storageFails=false}={}){
   const targets=Object.fromEntries(['.aa','#investigator','#scenePanel','#actions','#hand','.command-panel','#phasebar'].map(selector=>[selector,node(selector)]));
   const win={innerWidth:844,innerHeight:390,scrollX:0,scrollY:0,scrollTo(x,y){this.scrollX=x;this.scrollY=y},addEventListener(name,fn){winEvents[name]=fn}};
   const localStorage={getItem(){if(storageFails)throw Error('blocked');return storage.value},setItem(_,value){if(storageFails)throw Error('blocked');storage.value=value}};
-  vm.runInNewContext(source,{document:doc,window:win,localStorage});
+  const runtime={document:doc,window:win,localStorage,phaseTransitionActive:transition};
+  vm.runInNewContext(source,runtime);
   function click(id){const n=nodes.get(id);doc.activeElement=n;n.click()}
   function key(value,shiftKey=false){let prevented=false;nodes.get('tutorialPanel').listeners.keydown({key:value,shiftKey,preventDefault(){prevented=true}});return prevented}
-  return{nodes,targets,doc,win,winEvents,events,storage,state,click,key,open:()=>!nodes.get('tutorial').hidden};
+  return{nodes,targets,doc,win,winEvents,events,storage,state,click,key,setPhasePending:value=>{runtime.phaseTransitionActive=value},open:()=>!nodes.get('tutorial').hidden};
 }
 test('初次开始自动引导，七步完成不扣资源或行动',()=>{
   const g=setup(),before=JSON.stringify(g.state);g.click('startButton');
@@ -142,6 +151,6 @@ test('标题栏方向键移动，Home 复位，不截获正文及按钮点击',(
 test('教学入口与所有目标区域均存在，脚本随游戏本地加载',()=>{
   const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
   for(const id of ['tutorial','tutorialPanel','tutorialSpotlight','learnButton','guideButton','tutorialClose','tutorialSkip','tutorialPrev','tutorialNext','tutorialTitle','tutorialText','tutorialTips','tutorialProgress','guideStatus','investigator','scenePanel','actions','hand','phasebar'])assert.ok(html.includes(`id="${id}"`),id);
-  assert.ok(html.includes('src="tutorial.js"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
+  assert.ok(html.includes('src="tutorial.js?v=phase-1"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
   assert.ok(html.includes('id="tutorialDrag"'));assert.ok(html.includes('拖动调整位置'));
 });

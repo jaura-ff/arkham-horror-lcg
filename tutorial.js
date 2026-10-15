@@ -99,6 +99,7 @@
   }
   function open(force = false) {
     if (active || (!force && seen) || game.style.display === 'none') return;
+    if(typeof phaseTransitionActive!=='undefined' && phaseTransitionActive){queuedOpen=queuedOpen===true || force;return;}
     if (byId('modal').classList.contains('open')) {
       byId('guideStatus').textContent = '请先完成或关闭当前游戏弹窗，再打开新人指导。'; return;
     }
@@ -119,6 +120,8 @@
     else if (lastFocus && !lastFocus.closest?.('#startOverlay') && lastFocus.isConnected !== false) lastFocus.focus?.();
     else guide.focus();
   }
+  let queuedOpen=null;
+  document.addEventListener('arkham:phase-ready',()=>{if(queuedOpen!==null){const force=queuedOpen;queuedOpen=null;open(force);}});
   start.addEventListener('click',()=>open());
   learn.addEventListener('click',()=>{start.click();open(true);});
   guide.addEventListener('click',()=>open(true));
@@ -137,5 +140,5 @@
   });
   window.addEventListener('resize',()=>{endDrag();place();});
   window.addEventListener('scroll',place,true);
-  document.addEventListener('arkham:menu',()=>close(false));
+  document.addEventListener('arkham:menu',()=>{queuedOpen=null;close(false);});
 })();

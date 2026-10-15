@@ -6,18 +6,7 @@
   const search = byId('atlasSearch'), filter = byId('atlasFilter');
   if (!dialog || !list || !search || !filter) return;
   const types = {investigator:'调查员',asset:'资产',event:'事件',skill:'技能',weak:'弱点',enemy:'敌人',treachery:'诡计',location:'地点',act:'幕',agenda:'议程'};
-  const usage = {
-    p45:'调查阶段点击手牌，花 3 资源和 1 行动装备，占 1 只手槽。之后用战斗行动享受加值，成功伤害通常为 2；本作不计弹药。',
-    machete:'花 3 资源和 1 行动装备，占 1 只手槽。战斗检定 +1，但这张牌在本作不增加伤害。',
-    aid:'花 1 资源和 1 行动，恢复最多 2 点生命，不超过生命上限；结算后弃置。不治疗恐惧。',
-    resource:'花 0 资源和 1 行动，获得 3 资源后弃置。区别于「资源」基础行动只获得 1 资源。',
-    dodge:'两种用途二选一：花 1 资源和 1 行动打出，保存下次闪避 +2；或在敏捷检定抽指示物前投入，立即 +2 且不保存加值。投入不付打出费用。',
-    courage:'在战斗检定窗口、抽指示物之前选中投入，战斗 +2。不能在手牌区直接打出，也不额外消耗资源或行动。',
-    percep:'在智慧检定窗口、抽指示物之前投入，智慧 +2。这里只提供加值，没有实现实体同名牌可能具有的成功抽牌效果。',
-    guts:'在意志检定窗口、抽指示物之前投入，意志 +2。本作沿用「意外勇气」牌名，但不表示通配技能。',
-    manual:'在敏捷检定窗口、抽指示物之前投入，敏捷 +2。投入牌在本次检定结算时弃置。',
-    nightmare:'普通抽牌抽到时自动失去 1 理智并弃置，不能主动打出。起手抽到会放回牌组并补牌。'
-  };
+  const usage = CARD_USAGE;
   const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const cards = [];
   const add = (type,name,text,fields,use,art=null) => cards.push({type,name,text,fields,use,art});

@@ -179,7 +179,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
 </style>
 <link rel="stylesheet" href="noir.css">
-<link rel="stylesheet" href="atlas.css?v=token-art-1">
+<link rel="stylesheet" href="atlas.css?v=hand-confirm-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -264,6 +264,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
         <div class="bottom">
           <div class="panel hand-panel">
             <h2>手牌 <span class="cnt" id="handcount"></span></h2>
+            <p class="hand-interaction-hint" id="handInteractionHint">单击选中 · 双击／快速连点两次查看效果 · 弹窗确认后才出牌</p>
             <div class="hand" id="hand"></div>
           </div>
           <div class="panel equipment-panel">
@@ -288,6 +289,14 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="游戏操作"><div class="modal-box" id="modalBox"></div></div>
 <span id="guideStatus" class="guide-sr-only" role="status" aria-live="polite"></span>
+<dialog id="handCardDialog" class="card-atlas hand-card-dialog" aria-labelledby="handCardTitle" aria-describedby="handCardEffect">
+  <div class="atlas-shell">
+    <header class="atlas-heading"><div><span class="atlas-kicker" id="handCardType"></span><h2 id="handCardTitle">手牌说明</h2></div><button type="button" id="handCardClose" class="btn icon-button" aria-label="关闭卡牌说明" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
+    <div class="hand-card-layout"><div id="handCardArt" class="art hand-card-art" aria-hidden="true"></div><div><h3>卡牌效果</h3><p id="handCardEffect"></p><h3>如何使用</h3><p id="handCardUsage"></p><p id="handCardCost" class="atlas-notice"></p></div></div>
+    <p id="handCardWarning" class="hand-card-warning" role="status" aria-live="polite"></p>
+    <div class="hand-card-actions"><button type="button" id="handCardCancel" class="btn">取消，继续考虑</button><button type="button" id="handCardPlay" class="btn primary">出牌</button></div>
+  </div>
+</dialog>
 <dialog id="difficultyInfo" class="card-atlas difficulty-info" aria-labelledby="difficultyInfoTitle" aria-describedby="difficultyInfoSummary">
   <div class="atlas-shell">
     <header class="atlas-heading"><div><span class="atlas-kicker">ARKHAM / CHAOS BAG</span><h2 id="difficultyInfoTitle">混沌袋说明</h2></div><button id="difficultyInfoClose" type="button" class="btn icon-button" aria-label="关闭难度说明" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
@@ -422,6 +431,7 @@ function updateDifficultyPreview(){
 
 /* ============ 状态 ============ */
 let S = null;
+let selectedHandCard = null;
 let pendingNavigation = false;
 function uiIcon(name){
   if(!['play','home','restart','close','sound','mute','back','next'].includes(name)) return '';
@@ -458,6 +468,7 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 
 function startGame(){
   pendingNavigation = false;
+  selectedHandCard = null;
   const difficulty=difficultyKey(document.getElementById('difficultySelect')?.value);
   document.getElementById('log').innerHTML = '';
   S = {
@@ -631,9 +642,9 @@ function renderHand(){
   el.innerHTML = S.hand.map((c,i)=>{
     const typeLabel = {asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[c.type]||c.type;
     const iconStr = skillIcons(c);
-    const disabled = !canAct() || c.type==='skill' || c.type==='weak' || S.resources<c.cost;
+    const disabled = S.gameOver || !!S.test || S.pendingMove || pendingNavigation;
     const art = CARD_ART[c.id] || [0,0];
-    return `<button type="button" class="card ${c.type}" aria-label="${c.name}，${typeLabel}，费用 ${c.cost}。${c.text}" ${disabled?'disabled':''} onclick="onHandCard(${i})">
+    return `<button id="hand-card-${i}" type="button" class="card ${c.type} ${selectedHandCard===c?'is-selected':''}" aria-pressed="${selectedHandCard===c}" aria-haspopup="dialog" aria-describedby="handInteractionHint" aria-label="${c.name}，${typeLabel}，费用 ${c.cost}。${c.text} 双击查看效果并确认出牌。" ${disabled?'disabled':''} onclick="inspectHandCard(${i},event)">
       <span class="ccost">${c.cost>0?c.cost:'—'}</span>
       <div class="ctype">${typeLabel}</div>
       <div class="cname">${c.name}</div>
@@ -651,6 +662,18 @@ function skillIcons(c){
 
 // Each illustration is a cell in the locally bundled 4×3 texture atlas.
 const CARD_ART = {p45:[33.3333,0],machete:[66.6667,0],aid:[100,0],resource:[0,50],dodge:[33.3333,50],courage:[66.6667,50],percep:[100,50],guts:[0,100],manual:[33.3333,100],nightmare:[66.6667,100]};
+const CARD_USAGE = {
+  p45:'双击手牌并在弹窗确认，花 3 资源和 1 行动装备，占 1 只手槽。之后用战斗行动享受加值，成功伤害通常为 2；本作不计弹药。',
+  machete:'花 3 资源和 1 行动装备，占 1 只手槽。战斗检定 +1，但这张牌在本作不增加伤害。',
+  aid:'花 1 资源和 1 行动，恢复最多 2 点生命，不超过生命上限；结算后弃置。不治疗恐惧。',
+  resource:'花 0 资源和 1 行动，获得 3 资源后弃置。区别于「资源」基础行动只获得 1 资源。',
+  dodge:'两种用途二选一：花 1 资源和 1 行动打出，保存下次闪避 +2；或在敏捷检定抽指示物前投入，立即 +2 且不保存加值。投入不付打出费用。',
+  courage:'在战斗检定窗口、抽指示物之前选中投入，战斗 +2。不能在手牌区直接打出，也不额外消耗资源或行动。',
+  percep:'在智慧检定窗口、抽指示物之前投入，智慧 +2。这里只提供加值，没有实现实体同名牌可能具有的成功抽牌效果。',
+  guts:'在意志检定窗口、抽指示物之前投入，意志 +2。本作沿用「意外勇气」牌名，但不表示通配技能。',
+  manual:'在敏捷检定窗口、抽指示物之前投入，敏捷 +2。投入牌在本次检定结算时弃置。',
+  nightmare:'普通抽牌抽到时自动失去 1 理智并弃置，不能主动打出。起手抽到会放回牌组并补牌。'
+};
 
 function renderAssets(){
   const el = document.getElementById('assets');
@@ -1368,6 +1391,7 @@ function resolve(code, text){
 <script src="tutorial.js"></script>
 <script src="atlas.js"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
+<script src="hand-dialog.js?v=hand-confirm-1"></script>
 </body>
 </html>
 

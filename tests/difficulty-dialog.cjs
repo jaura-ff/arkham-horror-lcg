@@ -92,5 +92,5 @@ test('五种特殊符号对应独立插画，所有素材无外链及脚本',()=
 test('图形布局使用自适应网格，资源带版本避免复用旧文字样式',()=>{
   const css=fs.readFileSync(path.join(root,'atlas.css'),'utf8');
   assert.match(css,/grid-template-columns:repeat\(auto-fit,minmax\(100px,1fr\)\)/);assert.match(css,/\.difficulty-token img/);
-  assert.match(html,/href="atlas.css\?v=token-art-1"/);
+  assert.match(html,/href="atlas.css\?v=[a-z0-9-]+"/);
 });

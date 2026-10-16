@@ -1,4 +1,4 @@
-/* Original procedural sound design. No downloads, samples, voices or autoplay. */
+/* Procedural room ambience plus locally hosted CC0 Kenney one-shots. */
 (() => {
   'use strict';
   const toggle = document.getElementById('soundToggle');
@@ -12,6 +12,36 @@
   let enabled = true, volume = .18, entered = false, context = null;
   let master, compressor, noiseBuffer, ambienceTimer = null, revision = 0;
   const voices = new Set();
+  const clips={draw:'card-draw',card:'card-play',token:'chaos-token',hurt:'hurt',sanity:'sanity',phase:'phase',move:'door',page:'page'};
+  const buffers=new Map(),oneShots=new Map();
+  let sfxRevision=0;
+  function stopSfx(){
+    sfxRevision++;
+    for(const [source,gain] of oneShots){try{source.stop()}catch(_){}source.disconnect();gain.disconnect();}
+    oneShots.clear();
+  }
+  function bufferFor(name){
+    if(!buffers.has(name)){
+      const ctx=context;
+      const pending=fetch(`assets/audio/kenney/${clips[name]}.mp3`).then(response=>{
+        if(!response.ok)throw new Error('Audio file unavailable');return response.arrayBuffer();
+      }).then(data=>ctx.decodeAudioData(data)).catch(error=>{buffers.delete(name);throw error});
+      buffers.set(name,pending);
+    }
+    return buffers.get(name);
+  }
+  window.playGameSfx=async name=>{
+    if(!Object.hasOwn(clips,name) || !entered || !enabled || volume===0 || document.hidden || !context || context.state!=='running')return;
+    const ctx=context,ticket=revision,effectTicket=sfxRevision;
+    try{
+      const buffer=await bufferFor(name);
+      if(ctx!==context || ticket!==revision || effectTicket!==sfxRevision || !entered || !enabled || volume===0 || document.hidden || ctx.state!=='running')return;
+      if(oneShots.size>=4){const [old,gain]=oneShots.entries().next().value;old.stop();old.disconnect();gain.disconnect();oneShots.delete(old);}
+      const source=ctx.createBufferSource(),gain=ctx.createGain();source.buffer=buffer;gain.gain.value=name==='sanity'?.5:.8;
+      source.connect(gain).connect(master);oneShots.set(source,gain);
+      source.onended=()=>{source.disconnect();gain.disconnect();oneShots.delete(source)};source.start();
+    }catch(_){ /* Missing/blocked media must never interrupt gameplay. */ }
+  };
   try {
     const saved = JSON.parse(localStorage.getItem(key) || 'null');
     if (saved && typeof saved.enabled === 'boolean') enabled = saved.enabled;
@@ -24,10 +54,12 @@
   }
   function ui(state) {
     toggle.setAttribute('aria-pressed', String(enabled));
-    const label = state === 'error' ? '音效：点击重试' : `环境音：${enabled ? '开' : '关'}`;
+    const label = state === 'error' ? '音效：点击重试' : `音效：${enabled ? '开' : '关'}`;
     toggle.innerHTML = `<svg class="ui-icon" aria-hidden="true" focusable="false"><use href="assets/icons/ui.svg#${enabled && volume > 0 ? 'sound' : 'mute'}"></use></svg><span>${label}</span>`;
     toggle.dataset.audioState = state;
-    status.textContent = ({ready:'进入游戏后播放',playing:'环境音播放中',paused:'后台已暂停',muted:'环境音已关闭',silent:'音量为零',error:'浏览器未允许播放，请点击重试',unsupported:'浏览器不支持音效'})[state];
+    status.textContent = ({ready:'进入游戏后播放',playing:'环境音与操作音效已开启',paused:'后台已暂停',muted:'全部音效已关闭',silent:'音量为零',error:'浏览器未允许播放，请点击重试',unsupported:'浏览器不支持音效'})[state];
+    const prologue=document.getElementById('prologueSound');
+    if(prologue){prologue.textContent=label;prologue.disabled=state==='unsupported';prologue.setAttribute('aria-pressed',String(enabled));}
   }
   function clearAmbienceTimer() {
     if (ambienceTimer !== null) clearTimeout(ambienceTimer);
@@ -107,6 +139,7 @@
     if (!Audio) return;
     if (!entered) { ui(enabled ? 'ready' : 'muted'); return; }
     if (!enabled || document.hidden) {
+      stopSfx();
       fadeVolume();
       if (context && context.state !== 'closed') {
         try { await context.suspend(); } catch (_) {}
@@ -120,12 +153,14 @@
       if (ticket !== revision) return;
       if (context.state !== 'running') throw new Error('Audio suspended');
       fadeVolume(); ui(volume === 0 ? 'silent' : 'playing'); schedule();
+      if(typeof fetch==='function')Object.keys(clips).forEach(name=>{bufferFor(name).catch(()=>{});});
     } catch (_) {
       if (ticket !== revision) return;
       // A partially created graph must not survive a retry as a duplicate drone.
       const failed = context; context = null;
       if (failed) { try { await failed.close(); } catch (_) {} }
       voices.clear();
+      stopSfx();buffers.clear();
       ui('error');
     }
   }
@@ -140,6 +175,7 @@
     const next = Number(slider.value);
     if (!Number.isFinite(next)) return;
     volume = Math.min(1, Math.max(0, next / 100));
+    if(volume===0)stopSfx();
     save(); fadeVolume();
     if (context && context.state === 'running' && enabled && !document.hidden) {
       ui(volume === 0 ? 'silent' : 'playing'); schedule();
@@ -151,12 +187,13 @@
     entered = false;
     ++revision;
     clearAmbienceTimer();
+    stopSfx();
     if(context) context.suspend().catch(() => {});
     ui(enabled ? 'ready' : 'muted');
   });
   document.addEventListener('visibilitychange', () => { if (entered) apply(); });
   window.addEventListener('pagehide', () => {
-    ++revision; clearAmbienceTimer();
+    ++revision; clearAmbienceTimer();stopSfx();
     if (context) context.suspend().catch(() => {});
   });
   window.addEventListener('pageshow', () => { if (entered) apply(); });

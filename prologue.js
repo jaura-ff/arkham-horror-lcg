@@ -37,8 +37,8 @@
     page=0;forceTutorial=tutorial;difficulty=difficultyKey(byId('difficultySelect').value);
     savedOverflow=document.body.style.overflow;dialog.showModal();document.body.style.overflow='hidden';render();
   };
-  byId('prologueNext').addEventListener('click',()=>{if(!dialog.open)return;if(page===scenes.length-1)finish();else{page++;render();}});
-  byId('prologuePrevious').addEventListener('click',()=>{if(dialog.open&&page>0){page--;render();}});
+  byId('prologueNext').addEventListener('click',()=>{if(!dialog.open)return;if(page===scenes.length-1)finish();else{page++;render();gameSfx('page');}});
+  byId('prologuePrevious').addEventListener('click',()=>{if(dialog.open&&page>0){page--;render();gameSfx('page');}});
   byId('prologueSkip').addEventListener('click',finish);
   byId('prologueMenu').addEventListener('click',back);
   dialog.addEventListener('cancel',event=>{event.preventDefault();back();});

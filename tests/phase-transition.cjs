@@ -53,6 +53,6 @@ test('状态被替换或结束时，延迟回调不执行原阶段',()=>{
   const g=setup();g.tick(3000);g.run('advancePhase();S={...S,gameOver:true}');g.tick(3000);assert.equal(g.get('S.phase'),'investigation');assert.equal(g.get('phaseTransitionActive'),false);assert.equal(g.el('phaseAnnouncement').open,false);
 });
 test('提示完成事件只发一次，无动画、不改变页面布局',()=>{
-  const g=setup();let ready=0;g.events['arkham:phase-ready']=()=>ready++;g.tick(3000);g.tick(3000);assert.equal(ready,1);assert.match(html,/<dialog id="phaseAnnouncement"[^>]*aria-labelledby/);assert.match(html,/phase-transition.js\?v=guide-1/);assert.match(html,/停留 3 秒后自动继续/);
+  const g=setup();let ready=0;g.events['arkham:phase-ready']=()=>ready++;g.tick(3000);g.tick(3000);assert.equal(ready,1);assert.match(html,/<dialog id="phaseAnnouncement"[^>]*aria-labelledby/);assert.match(html,/phase-transition.js\?v=sample-sfx-1/);assert.match(html,/停留 3 秒后自动继续/);
   const css=fs.readFileSync(path.join(root,'phase-transition.css'),'utf8');assert.match(css,/100dvh/);assert.match(css,/overflow:auto/);assert.doesNotMatch(css,/animation:/);
 });

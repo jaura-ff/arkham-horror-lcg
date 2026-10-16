@@ -186,7 +186,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="loss-notices.css?v=loss-1">
 <link rel="stylesheet" href="play-guide.css?v=guide-1">
 <link rel="stylesheet" href="next-step.css?v=arrow-1">
-<link rel="stylesheet" href="prologue.css?v=story-1">
+<link rel="stylesheet" href="prologue.css?v=sample-sfx-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -227,7 +227,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <span class="pill">难度 <b id="currentDifficulty">标准</b></span>
       <span class="pill">资源 <b id="topres">5</b></span>
       <span class="pill">线索 <b id="topclue">0</b></span>
-      <div class="sound-controls" aria-label="环境音设置">
+      <div class="sound-controls" aria-label="环境音与操作音效设置">
         <button type="button" class="btn" id="soundToggle" aria-pressed="true" aria-describedby="soundStatus">环境音：开</button>
         <label for="soundVolume">音量</label><input id="soundVolume" type="range" min="0" max="100" value="18" aria-label="环境音音量">
         <span id="soundStatus" class="sound-status" role="status" aria-live="polite">进入游戏后播放</span>
@@ -299,7 +299,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="游戏操作"><div class="modal-box" id="modalBox"></div></div>
 <dialog id="prologueDialog" class="prologue-dialog" aria-labelledby="prologueTitle" aria-describedby="prologueText">
-  <div class="prologue-shell"><header class="prologue-header"><span>ARKHAM / 案件前序</span><button id="prologueMenu" type="button" class="btn">返回菜单</button></header>
+  <div class="prologue-shell"><header class="prologue-header"><span>ARKHAM / 案件前序</span><div class="prologue-header-actions"><button id="prologueSound" type="button" class="btn" aria-pressed="true" onclick="document.getElementById('soundToggle').click()">音效：开</button><button id="prologueMenu" type="button" class="btn">返回菜单</button></div></header>
     <div class="prologue-copy"><p id="prologueProgress" class="prologue-progress"></p><h2 id="prologueTitle" tabindex="-1"></h2><p id="prologueText"></p><p class="prologue-adaptation">本网页版剧情改编，非官方原文</p></div>
     <footer class="prologue-footer"><div class="prologue-nav"><button id="prologuePrevious" type="button" class="btn">上一幕</button><button id="prologueNext" type="button" class="btn primary">继续阅读</button></div><div class="prologue-meta"><span id="prologueDifficulty"></span><button id="prologueSkip" type="button" class="btn">跳过前序，直接调查</button></div></footer>
   </div>
@@ -566,12 +566,15 @@ function drawOpeningHand(){
 }
 
 /* ============ 工具 ============ */
+function gameSfx(name){try{if(typeof playGameSfx==='function')playGameSfx(name);}catch(_){}}
 function applyPlayerLoss(damage=0,horror=0,source=''){
   if(!S || S.gameOver)return;
   const hp=S.hp,sanity=S.sanity;
   S.hp=Math.max(0,S.hp-Math.max(0,damage));
   S.sanity=Math.max(0,S.sanity-Math.max(0,horror));
   const loss={hp:hp-S.hp,sanity:sanity-S.sanity,source};
+  if(loss.hp>0)gameSfx('hurt');
+  if(loss.sanity>0)gameSfx('sanity');
   if((loss.hp>0 || loss.sanity>0) && typeof showPlayerLoss==='function')showPlayerLoss(loss);
 }
 function drawCards(n){
@@ -593,6 +596,7 @@ function drawCards(n){
       checkDefeat();
     } else {
       S.hand.push(c);
+      gameSfx('draw');
     }
   }
 }
@@ -1050,6 +1054,7 @@ function doMove(id){
   closeModal();
   if(!beginAction()) return;
   S.location = id;
+  gameSfx('move');
   if(!S.revealed[id]){
     S.revealed[id]=true;
     log(`你进入了<b>${LOCATIONS[id].name}</b>：${LOCATIONS[id].desc}`,'narr');
@@ -1277,6 +1282,7 @@ function resolveTest(){
   const base = skillValue(t.skill);
   let total = base + t.bonus + S.committed.reduce((s,c)=>s+commitBonus(c),0);
   const token=resolveChaosTokens();
+  gameSfx('token');
   total=token.autofail?0:Math.max(0,total+token.mod);
   const result=!token.autofail && total>=t.difficulty;
   const tokenHtml=token.label;
@@ -1496,6 +1502,7 @@ function onHandCard(i){
   S.resources -= c.cost;
   S.hand = S.hand.filter(x=>x!==c);
   S.playedCards.push({card:{...c},round:S.round});
+  gameSfx('card');
   if(c.type==='asset'){
     S.assets.push({card:c, exhausted:false});
     log(`你装备了<b>${c.name}</b>（花费 ${c.cost} 资源）。`,'good');
@@ -1539,10 +1546,10 @@ function resolve(code, text){
   `);
 }
 </script>
-<script src="ambience.js?v=prologue-1"></script>
+<script src="ambience.js?v=sample-sfx-1"></script>
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=guide-1"></script>
-<script src="phase-transition.js?v=guide-1"></script>
+<script src="phase-transition.js?v=sample-sfx-1"></script>
 <script src="loss-notices.js?v=loss-1"></script>
 <script src="tutorial.js?v=prologue-1"></script>
 <script src="atlas.js"></script>
@@ -1550,7 +1557,7 @@ function resolve(code, text){
 <script src="hand-dialog.js?v=action-confirm-1"></script>
 <script src="discard.js?v=character-deck-1"></script>
 <script src="next-step.js?v=arrow-1"></script>
-<script src="prologue.js?v=story-1"></script>
+<script src="prologue.js?v=sample-sfx-1"></script>
 </body>
 </html>
 

@@ -1,5 +1,15 @@
 # Prologue audio provenance
 
+## First scene: Arkham at night
+
+Published file: assets/audio/prologue-intro-rain-v1.mp3 (31 seconds, 44.1 kHz stereo, 192 kbps MP3). SHA-256: a38c2ef3c4e9c3ca1e5613c8764b73b1b1200f81407a712b73521f796cf22752.
+
+Full first-scene story is narrated by the same Ragnar voice (Chinese, speed 0.8), Runway task 555c7f30-fe28-4cdc-b072-6d06403deb6e. Delivery cues: somber opening, long pause before the investigator introduction, tense/trembling last sentence. Original on-screen text is unchanged; “1926” is spoken as “一九二六”.
+
+Rain/bell foley: task 19608b9d-ebb9-45bb-8640-9b89d91bd574. Prompt describes sparse soft window raindrops, very faint disappearing footsteps and one distant low church bell with a natural decay; no continuous rain wash, hiss, drone, thunder or jump scare. A quiet opening excerpt and a low-volume nine-second cue beginning at 5.5 seconds avoid a persistent noisy bed. Narration gain is reduced by about 3 dB to match the second scene. No changes are made to the already approved second-scene asset.
+
+## Second scene: Underfloor sounds
+
 Published file: assets/audio/prologue-study-foley-v2.mp3. Duration 33.5 seconds, 44.1 kHz stereo, 192 kbps MP3. The final user-approved preview is copied without transcoding.
 
 Narration: Runway task 1be38680-7f95-470b-9276-520b2430153e, Ragnar voice, Chinese, speed 0.8. Approved third audition. Delivery cues: somber, scared, trembling, shaky breath and a whispered ending. Text: 台灯照着摊开的文件，旧木书架，在阴影里沉默。突然……地板下，传来一阵抓挠声。你停下笔……声音，却又消失了。可这栋房子里……本该……只有你，一个人。

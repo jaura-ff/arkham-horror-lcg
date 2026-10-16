@@ -19,6 +19,7 @@
     phaseTransitionActive=true;
     byId('phaseAnnouncementCountdown').textContent='3';
     byId('phaseAnnouncementTitle').textContent=labels[phase];
+    byId('phaseAnnouncementRule').textContent=typeof phaseGuideText==='function'?phaseGuideText(phase,true):'';
     byId('phaseAnnouncementRound').textContent=`第 ${S.round+(from==='mythos'&&phase==='investigation'?1:0)} 回合`;
     renderActions();dialog.showModal();byId('phaseAnnouncementTitle').focus();
     countdownTimers=[2,1].map((remaining,index)=>setTimeout(()=>{

@@ -15,7 +15,7 @@ function setup(){
   function element(id){const classes=new Set();return{id,innerHTML:'',textContent:'',style:{},dataset:{},children:[],hidden:id==='tutorial',open:false,listeners:{},classList:{add:c=>classes.add(c),remove:c=>classes.delete(c),contains:c=>classes.has(c)},appendChild(n){this.children.push(n)},addEventListener(type,fn){this.listeners[type]=fn},focus(){document.activeElement=this},showModal(){this.open=true},close(){this.open=false}};}
   const context=vm.createContext({document,Math:Object.create(Math),Event:class{constructor(type){this.type=type}},setTimeout(fn,delay){const id=++seq;timers.set(id,{fn,at:now+delay});return id},clearTimeout(id){timers.delete(id)}});context.window=context;
   const run=code=>vm.runInContext(code,context),get=code=>JSON.parse(run(`JSON.stringify(${code})`));
-  run(html.match(/<script>([\s\S]*?)<\/script>/)[1]);run(fs.readFileSync(path.join(root,'phase-transition.js'),'utf8'));run('startGame()');
+  run(html.match(/<script>([\s\S]*?)<\/script>/)[1]);run(fs.readFileSync(path.join(root,'play-guide.js'),'utf8'));run(fs.readFileSync(path.join(root,'phase-transition.js'),'utf8'));run('startGame()');
   function tick(ms){now+=ms;for(const[id,t]of [...timers])if(t.at<=now){timers.delete(id);t.fn();}}
   return{run,get,tick,timers,events,el:id=>document.getElementById(id)};
 }
@@ -53,6 +53,6 @@ test('状态被替换或结束时，延迟回调不执行原阶段',()=>{
   const g=setup();g.tick(3000);g.run('advancePhase();S={...S,gameOver:true}');g.tick(3000);assert.equal(g.get('S.phase'),'investigation');assert.equal(g.get('phaseTransitionActive'),false);assert.equal(g.el('phaseAnnouncement').open,false);
 });
 test('提示完成事件只发一次，无动画、不改变页面布局',()=>{
-  const g=setup();let ready=0;g.events['arkham:phase-ready']=()=>ready++;g.tick(3000);g.tick(3000);assert.equal(ready,1);assert.match(html,/<dialog id="phaseAnnouncement"[^>]*aria-labelledby/);assert.match(html,/phase-transition.js\?v=countdown-1/);assert.match(html,/停留 3 秒后自动继续/);
+  const g=setup();let ready=0;g.events['arkham:phase-ready']=()=>ready++;g.tick(3000);g.tick(3000);assert.equal(ready,1);assert.match(html,/<dialog id="phaseAnnouncement"[^>]*aria-labelledby/);assert.match(html,/phase-transition.js\?v=guide-1/);assert.match(html,/停留 3 秒后自动继续/);
   const css=fs.readFileSync(path.join(root,'phase-transition.css'),'utf8');assert.match(css,/100dvh/);assert.match(css,/overflow:auto/);assert.doesNotMatch(css,/animation:/);
 });

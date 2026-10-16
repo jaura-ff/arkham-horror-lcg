@@ -8,38 +8,59 @@
     {title:'熟悉的书房，陌生的声音',text:'台灯照着摊开的文件，旧木书架在阴影里沉默。突然，地板下传来一阵抓挠声。你停下笔，声音却又消失了。\n\n一股冷风穿过房间，书页无故翻动。门外的走廊比平时更暗，楼上传来压低的说话声——可这栋房子里，本该只有你一个人。'},
     {title:'从这里，开始调查',text:'你起身检查房间。桌边散落的纸张、门缝里透出的寒意，还有那再次响起的低语，都表明这不是普通的夜晚。\n\n先查清书房里发生了什么，再循着线索探索宅邸。危险可能就在下一扇门后；在体力与理智耗尽前，你必须找到这些异象的源头。'}
   ];
-  let page=0,forceTutorial=false,difficulty='standard',savedOverflow='';
+  const motionPreference=window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  let page=0,forceTutorial=false,difficulty='standard',savedOverflow='',paused=false;
+  function syncMotion(){
+    const reduced=!!motionPreference?.matches;
+    dialog.dataset.motion=paused||reduced||document.hidden||!dialog.open?'paused':'playing';
+    const button=byId('prologueMotion');
+    button.disabled=reduced;
+    button.textContent=reduced?'动画已简化':paused?'播放动画':'暂停动画';
+    button.setAttribute('aria-pressed',String(paused||reduced));
+  }
   function render(){
     const scene=scenes[page];
+    dialog.classList.remove('prologue-animate');
+    dialog.dataset.scene=String(page);
     byId('prologueProgress').textContent=`序章 ${page+1} / ${scenes.length}`;
     byId('prologueTitle').textContent=scene.title;byId('prologueText').textContent=scene.text;
     byId('prologueDifficulty').textContent=`本局难度：${DIFFICULTIES[difficulty].name}`;
     byId('prologuePrevious').disabled=page===0;
     byId('prologueNext').textContent=page===scenes.length-1?'开始调查':'继续阅读';
     dialog.scrollTop=0;byId('prologueTitle').focus();
+    // Restart this scene only, without timers or changes to the game state.
+    void dialog.offsetWidth;
+    dialog.classList.add('prologue-animate');syncMotion();
   }
   function finish(){
     if(!dialog.open)return;
     const tutorial=forceTutorial;
-    dialog.close();document.body.style.overflow=savedOverflow;
+    dialog.close();syncMotion();document.body.style.overflow=savedOverflow;
     byId('difficultySelect').value=difficulty;
     startGame();
     document.dispatchEvent(new CustomEvent('arkham:game-started',{detail:{tutorial}}));
   }
   function back(){
     if(!dialog.open)return;
-    dialog.close();document.body.style.overflow=savedOverflow;forceTutorial=false;
+    dialog.close();syncMotion();document.body.style.overflow=savedOverflow;forceTutorial=false;
     document.dispatchEvent(new Event('arkham:menu'));byId('startButton').focus();
   }
   window.openPrologue=(tutorial=false)=>{
     if(S)return;
     if(dialog.open){forceTutorial=forceTutorial||tutorial;return;}
-    page=0;forceTutorial=tutorial;difficulty=difficultyKey(byId('difficultySelect').value);
+    page=0;paused=false;forceTutorial=tutorial;difficulty=difficultyKey(byId('difficultySelect').value);
     savedOverflow=document.body.style.overflow;dialog.showModal();document.body.style.overflow='hidden';render();
   };
   byId('prologueNext').addEventListener('click',()=>{if(!dialog.open)return;if(page===scenes.length-1)finish();else{page++;render();gameSfx('page');}});
   byId('prologuePrevious').addEventListener('click',()=>{if(dialog.open&&page>0){page--;render();gameSfx('page');}});
   byId('prologueSkip').addEventListener('click',finish);
   byId('prologueMenu').addEventListener('click',back);
+  byId('prologueMotion').addEventListener('click',()=>{
+    if(!dialog.open||motionPreference?.matches)return;
+    paused=!paused;syncMotion();
+  });
+  motionPreference?.addEventListener('change',syncMotion);
+  document.addEventListener('visibilitychange',syncMotion);
+  dialog.addEventListener('close',syncMotion);
   dialog.addEventListener('cancel',event=>{event.preventDefault();back();});
 })();

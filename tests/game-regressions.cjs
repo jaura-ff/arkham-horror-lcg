@@ -6,6 +6,19 @@ const path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
+test('实际抽牌和出牌各触发一次短音效，资源行动不触发牌声',()=>{
+  const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);draw();S.hand=[{...INVESTIGATOR.deck[0]}];onHandCard(0);resource()`);assert.deepEqual(g.get('cues'),['draw','card']);
+});
+test('取消检定、取消移动与非法出牌不会播放操作音',()=>{
+  const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);requestAction('investigate');cancelTest();S.revealed.hallway=true;requestMapMove('hallway');closeModal();S.resources=0;S.hand=[{...INVESTIGATOR.deck[0]}];onHandCard(0)`);assert.deepEqual(g.get('cues'),[]);
+});
+test('抽取指示物和成功移动仅各播放一次，重复确认无效',()=>{
+  const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);investigate();resolveTest();resolveTest();finishTest(true);S.revealed.hallway=true;requestMapMove('hallway');confirmAction();confirmAction()`);assert.deepEqual(g.get('cues'),['token','move']);
+});
+test('实际生命理智损失触发对应音效，零伤害及失效音频不阻断游戏',()=>{
+  const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);applyPlayerLoss(2,1);applyPlayerLoss(0,0)`);assert.deepEqual(g.get('cues'),['hurt','sanity']);g.run(`playGameSfx=()=>{throw Error('audio blocked')};resource()`);assert.equal(g.get('S.resources'),6);assert.equal(g.get('S.actions'),2);
+});
+
 test('资产说明弹窗只读，关闭及重开不消耗行动或再次装备',()=>{
   const g=game();g.run(`S.assets=[{card:INVESTIGATOR.deck[0],exhausted:false}]`);const before=g.get('S');
   const dialog=g.document.getElementById('assetInfoDialog');let opens=0;dialog.showModal=()=>{dialog.open=true;opens++};

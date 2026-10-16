@@ -186,6 +186,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="loss-notices.css?v=loss-1">
 <link rel="stylesheet" href="play-guide.css?v=guide-1">
 <link rel="stylesheet" href="next-step.css?v=arrow-1">
+<link rel="stylesheet" href="prologue.css?v=story-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -198,7 +199,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <p>1926 年，阿卡姆。熟悉的宅邸开始变得陌生，门后的低语，正指向阁楼里被掩埋的秘密。</p>
       <p>扮演联邦探员罗兰·班克斯。收集线索、应对遭遇，在理智耗尽之前，完成这场调查。</p>
       <div class="difficulty-picker"><label for="difficultySelect">调查难度</label><select id="difficultySelect" aria-describedby="difficultyPreview difficultyScope"><option value="easy">简单 / Easy</option><option value="standard" selected>标准 / Standard</option><option value="hard">困难 / Hard</option><option value="expert">专家 / Expert</option></select><p id="difficultyPreview" role="status" aria-live="polite"></p><button id="difficultyInfoButton" type="button" class="btn" aria-haspopup="dialog" aria-controls="difficultyInfo">查看混沌袋</button><details><summary>混沌袋与规则来源</summary><p id="difficultyBag"></p><p>简单／标准使用参考卡正面；困难／专家使用背面。难度开局锁定，返回菜单后可为新一局重选。</p><a href="https://images-cdn.fantasyflightgames.com/filer_public/8d/30/8d308b73-92f1-4b1e-aa7f-ce39e8d79786/night_of_the_zealot_campaign_guide.pdf#page=1" target="_blank" rel="noopener noreferrer">官方《狂热之夜》战役设置</a></details><p id="difficultyScope">按原版《狂热之夜》混沌袋及《聚会》参考卡实现难度；场景、牌组和其他玩法仍为本网页简化版，并非完整官方战役。</p></div>
-      <button class="btn primary start-button" id="startButton" onclick="startGame()"><span class="start-emblem"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#play"></use></svg></span><span>开始游戏<small>START INVESTIGATION</small></span></button>
+      <button class="btn primary start-button" id="startButton" onclick="beginPrologue()"><span class="start-emblem"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#play"></use></svg></span><span>开始游戏<small>ENTER THE PROLOGUE</small></span></button>
       <button class="btn learn-button" id="learnButton" type="button">第一次玩？新人指导</button>
       <button class="btn atlas-entry" id="menuAtlasButton" type="button">卡牌图鉴 / 阅读卡牌</button>
       <p class="start-note">单人卡牌游戏 · 每回合 3 次行动 · 无需登录</p>
@@ -297,6 +298,12 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 </div>
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="游戏操作"><div class="modal-box" id="modalBox"></div></div>
+<dialog id="prologueDialog" class="prologue-dialog" aria-labelledby="prologueTitle" aria-describedby="prologueText">
+  <div class="prologue-shell"><header class="prologue-header"><span>ARKHAM / 案件前序</span><button id="prologueMenu" type="button" class="btn">返回菜单</button></header>
+    <div class="prologue-copy"><p id="prologueProgress" class="prologue-progress"></p><h2 id="prologueTitle" tabindex="-1"></h2><p id="prologueText"></p><p class="prologue-adaptation">本网页版剧情改编，非官方原文</p></div>
+    <footer class="prologue-footer"><div class="prologue-nav"><button id="prologuePrevious" type="button" class="btn">上一幕</button><button id="prologueNext" type="button" class="btn primary">继续阅读</button></div><div class="prologue-meta"><span id="prologueDifficulty"></span><button id="prologueSkip" type="button" class="btn">跳过前序，直接调查</button></div></footer>
+  </div>
+</dialog>
 <div id="lossNotice" class="loss-notice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden><strong id="lossNoticeAmount"></strong><span id="lossNoticeSource"></span></div>
 <div id="nextStepArrow" class="next-step-arrow" role="status" aria-live="polite" hidden><span id="nextStepLabel"></span><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#next"></use></svg></div>
 <dialog id="phaseAnnouncement" class="phase-announcement" aria-labelledby="phaseAnnouncementTitle" aria-describedby="phaseAnnouncementRule phaseAnnouncementHint">
@@ -497,6 +504,11 @@ function confirmReturnMenu(){
 }
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
+function beginPrologue(tutorial=false){
+  if(typeof openPrologue==='function'){openPrologue(tutorial);return;}
+  startGame();
+  if(typeof document.dispatchEvent==='function')document.dispatchEvent(new CustomEvent('arkham:game-started',{detail:{tutorial}}));
+}
 function startGame(){
   if(typeof resetLossNotices==='function')resetLossNotices();
   if(typeof resetPhaseAnnouncement==='function')resetPhaseAnnouncement();
@@ -1527,17 +1539,18 @@ function resolve(code, text){
   `);
 }
 </script>
-<script src="ambience.js"></script>
+<script src="ambience.js?v=prologue-1"></script>
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=guide-1"></script>
 <script src="phase-transition.js?v=guide-1"></script>
 <script src="loss-notices.js?v=loss-1"></script>
-<script src="tutorial.js?v=phase-1"></script>
+<script src="tutorial.js?v=prologue-1"></script>
 <script src="atlas.js"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
 <script src="hand-dialog.js?v=action-confirm-1"></script>
 <script src="discard.js?v=character-deck-1"></script>
 <script src="next-step.js?v=arrow-1"></script>
+<script src="prologue.js?v=story-1"></script>
 </body>
 </html>
 

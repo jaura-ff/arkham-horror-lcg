@@ -4,6 +4,9 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname,'..','ambience.js'),'utf8');
+test('前序后的实际开局事件可启动音频，返回菜单会停止',async()=>{
+  const g=setup();g.doc.listeners['arkham:game-started']();await g.flush();assert.equal(g.contexts.length,1);assert.equal(g.contexts[0].state,'running');g.doc.listeners['arkham:menu']();await g.flush();assert.equal(g.contexts[0].state,'suspended');assert.equal(g.timers.size,0);
+});
 function setup({saved=null,unsupported=false,rejectResume=false,brokenStorage=false}={}) {
   const contexts=[],timers=new Map(),nodes=new Map(); let nextTimer=0;
   function element(){return {value:'',dataset:{},textContent:'',listeners:{},setAttribute(k,v){this[k]=v},addEventListener(k,fn){this.listeners[k]=fn}}}

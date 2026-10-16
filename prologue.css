@@ -1,3 +1,32 @@
 .prologue-dialog{width:min(1100px,calc(100% - 24px));max-width:1100px;max-height:calc(100dvh - 24px);margin:auto;padding:0;border:1px solid #aa8950;background:linear-gradient(90deg,#18150ff5 8%,#18150fe8 49%,#18150f42),url('assets/images/noir-study.webp') 60% center/cover;color:#e0d0b0;overflow:auto;overscroll-behavior:contain;box-shadow:0 20px 80px #151311cc}
 .prologue-dialog::backdrop{background:#14110ff5}.prologue-shell{padding:28px 36px;min-height:540px;display:flex;flex-direction:column}.prologue-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.prologue-header-actions{display:flex;gap:8px;flex-wrap:wrap}.prologue-header>span{font-size:10px;letter-spacing:3px;color:#ba9b64}.prologue-copy{max-width:560px;margin:42px 0 32px}.prologue-progress{font-size:11px;letter-spacing:3px;color:#bba577}.prologue-copy h2{font:clamp(25px,4vw,38px)/1.5 Georgia,'SimSun',serif;color:#edce95;margin:12px 0 22px;letter-spacing:3px}.prologue-copy h2:focus{outline:none}#prologueText{white-space:pre-line;font-size:15px;line-height:2.1;overflow-wrap:anywhere}.prologue-adaptation{font-size:10px;color:#9e917a;margin-top:20px}.prologue-footer{margin-top:auto;max-width:560px}.prologue-nav,.prologue-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.prologue-meta{margin-top:16px;font-size:11px;color:#bdab89}.prologue-dialog .btn{min-height:44px}.prologue-dialog .btn:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 @media(max-width:600px),(orientation:landscape) and (max-height:440px){.prologue-shell{padding:16px 20px;min-height:0}.prologue-copy{margin:24px 0}.prologue-copy h2{font-size:25px;margin-bottom:14px}#prologueText{font-size:14px;line-height:1.9}.prologue-meta{margin-top:10px}.prologue-header>span{letter-spacing:1px}}
+.prologue-shell{position:relative;isolation:isolate;min-height:580px}
+.prologue-stage{position:absolute;inset:0;overflow:hidden;z-index:-1;pointer-events:none;contain:strict}
+.prologue-stage>div{position:absolute;inset:0}
+.prologue-camera{background:url('assets/images/noir-study.webp') 60% center/cover;transform:scale(1.04)}
+[data-scene="1"] .prologue-camera{background-position:72% center;transform:scale(1.1)}
+[data-scene="2"] .prologue-camera{background-image:url('assets/images/noir-rooms.webp');background-size:200% 100%;background-position:left center}
+.prologue-veil{background:linear-gradient(90deg,#18150ff5 0%,#18150fe8 42%,#18150f40 80%),linear-gradient(0deg,#18150fe8,transparent 45%,#18150f70)}
+.prologue-rain{inset:-35% !important;background:repeating-linear-gradient(103deg,transparent 0 45px,#cad4cf33 46px,transparent 47px 94px);opacity:0;mask-image:linear-gradient(90deg,transparent 36%,#fff 80%)}
+.prologue-lamp{background:radial-gradient(ellipse at 67% 45%,#d5ac5655,transparent 38%);opacity:0}
+.prologue-shadow{inset:12% 5% 0 65% !important;background:linear-gradient(90deg,transparent,#151311bb,transparent);opacity:0}
+.prologue-mist{inset:35% -25% -20% 35% !important;background:radial-gradient(ellipse,#9fae9a26,transparent 65%);opacity:0}
+/* Finite shots hold their last frame. Only transform and opacity animate. */
+.prologue-animate .prologue-camera{animation:prologue-camera 12s ease-out both}
+.prologue-animate[data-scene="0"] .prologue-rain{animation:prologue-rain 10s linear both}
+.prologue-animate[data-scene="1"] .prologue-lamp{animation:prologue-lamp 10s ease-in-out both}
+.prologue-animate[data-scene="1"] .prologue-shadow{animation:prologue-shadow 8s 1s ease-in-out both}
+.prologue-animate[data-scene="2"] .prologue-mist{animation:prologue-mist 12s ease-out both}
+.prologue-animate .prologue-copy{animation:prologue-copy .85s ease-out both}
+/* Copy stays visible even when paused immediately on entry. */
+@keyframes prologue-camera{from{transform:scale(1.04) translateX(-.5%)}to{transform:scale(1.12) translateX(1%)}}
+@keyframes prologue-rain{0%{opacity:0;transform:translateY(-5%)}10%,85%{opacity:.3}100%{opacity:0;transform:translateY(8%)}}
+@keyframes prologue-lamp{0%{opacity:.15}40%{opacity:.7}70%{opacity:.35}100%{opacity:.5}}
+@keyframes prologue-shadow{0%{opacity:0;transform:translateX(-25%) scaleX(.6)}45%{opacity:.65}100%{opacity:0;transform:translateX(50%) scaleX(1.2)}}
+@keyframes prologue-mist{0%{opacity:0;transform:translateX(-8%)}25%{opacity:.65}100%{opacity:.25;transform:translateX(8%)}}
+@keyframes prologue-copy{from{opacity:.72;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.prologue-dialog:not([open]) *, .prologue-dialog[data-motion="paused"] *{animation-play-state:paused !important}
+@media(prefers-reduced-motion:reduce){.prologue-dialog *{animation:none !important}.prologue-camera{transform:none !important}}
+@media(pointer:coarse){.prologue-animate .prologue-camera{animation:none;transform:none}}
+@media(max-width:600px),(orientation:landscape) and (max-height:440px){.prologue-shell{min-height:0}.prologue-veil{background:linear-gradient(90deg,#18150feb,#18150fc9)}.prologue-header-actions{gap:6px}}

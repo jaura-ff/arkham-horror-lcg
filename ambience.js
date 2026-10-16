@@ -1,17 +1,22 @@
-/* Procedural room ambience plus locally hosted CC0 Kenney one-shots. */
+/* Sparse tonal ambience, without noise/drone layers; CC0 one-shots stay intact. */
 (() => {
   'use strict';
   const toggle = document.getElementById('soundToggle');
   const slider = document.getElementById('soundVolume');
   const status = document.getElementById('soundStatus');
   const start = document.getElementById('startButton');
+  const ambientToggle=document.getElementById('ambientToggle');
   const Audio = window.AudioContext || window.webkitAudioContext;
   if (!toggle || !slider || !status || !start) return;
 
   const key = 'arkham-ambience-v1';
-  let enabled = true, volume = .18, entered = false, context = null;
-  let master, compressor, noiseBuffer, ambienceTimer = null, revision = 0;
-  const voices = new Set();
+  let enabled = true, ambientEnabled=true, volume = .18, entered = false, context = null;
+  let master, compressor, ambienceTimer = null, revision = 0;
+  const ambientVoices=new Map();
+  function stopAmbient(){
+    for(const [source,gain]of ambientVoices){try{source.stop()}catch(_){}source.disconnect();gain.disconnect();}
+    ambientVoices.clear();
+  }
   const clips={draw:'card-draw',card:'card-play',token:'chaos-token',hurt:'hurt',sanity:'sanity',phase:'phase',move:'door',page:'page'};
   const buffers=new Map(),oneShots=new Map();
   let sfxRevision=0;
@@ -45,30 +50,29 @@
   try {
     const saved = JSON.parse(localStorage.getItem(key) || 'null');
     if (saved && typeof saved.enabled === 'boolean') enabled = saved.enabled;
+    if(saved && typeof saved.ambientEnabled==='boolean')ambientEnabled=saved.ambientEnabled;
     if (saved && Number.isFinite(saved.volume)) volume = Math.min(1, Math.max(0, saved.volume));
   } catch (_) { /* Storage may be unavailable in private browsing. */ }
   slider.value = String(Math.round(volume * 100));
 
   function save() {
-    try { localStorage.setItem(key, JSON.stringify({ enabled, volume })); } catch (_) {}
+    try { localStorage.setItem(key, JSON.stringify({ enabled, volume, ambientEnabled })); } catch (_) {}
   }
   function ui(state) {
     toggle.setAttribute('aria-pressed', String(enabled));
     const label = state === 'error' ? '音效：点击重试' : `音效：${enabled ? '开' : '关'}`;
     toggle.innerHTML = `<svg class="ui-icon" aria-hidden="true" focusable="false"><use href="assets/icons/ui.svg#${enabled && volume > 0 ? 'sound' : 'mute'}"></use></svg><span>${label}</span>`;
     toggle.dataset.audioState = state;
-    status.textContent = ({ready:'进入游戏后播放',playing:'环境音与操作音效已开启',paused:'后台已暂停',muted:'全部音效已关闭',silent:'音量为零',error:'浏览器未允许播放，请点击重试',unsupported:'浏览器不支持音效'})[state];
+    status.textContent = ({ready:'进入游戏后播放',playing:ambientEnabled?'轻氛围与操作音效已开启':'仅播放操作音效',paused:'后台已暂停',muted:'全部音效已关闭',silent:'音量为零',error:'浏览器未允许播放，请点击重试',unsupported:'浏览器不支持音效'})[state];
     const prologue=document.getElementById('prologueSound');
     if(prologue){prologue.textContent=label;prologue.disabled=state==='unsupported';prologue.setAttribute('aria-pressed',String(enabled));}
+    for(const button of [ambientToggle,document.getElementById('prologueAmbient')]){
+      if(button){button.textContent=`氛围：${ambientEnabled?'开':'关'}`;button.disabled=state==='unsupported';button.setAttribute('aria-pressed',String(ambientEnabled));}
+    }
   }
   function clearAmbienceTimer() {
     if (ambienceTimer !== null) clearTimeout(ambienceTimer);
     ambienceTimer = null;
-  }
-  function addVoice(source) {
-    voices.add(source);
-    source.onended = () => { source.disconnect(); voices.delete(source); };
-    return source;
   }
   function build() {
     const ctx = new Audio();
@@ -83,50 +87,27 @@
     compressor.release.value = .4;
     master.connect(compressor).connect(ctx.destination);
 
-    // Eight seconds of softly filtered room air, smoothly looped at the seam.
-    noiseBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 8), ctx.sampleRate);
-    const data = noiseBuffer.getChannelData(0);
-    let brown = 0;
-    for (let i = 0; i < data.length; i++) {
-      brown = (brown + (Math.random() * 2 - 1) * .025) / 1.025;
-      const edge = Math.min(1, i / (ctx.sampleRate * .08), (data.length - 1 - i) / (ctx.sampleRate * .08));
-      data[i] = brown * 3 * edge;
-    }
-    const air = addVoice(ctx.createBufferSource());
-    air.buffer = noiseBuffer;
-    air.loop = true;
-    const lowpass = ctx.createBiquadFilter();
-    lowpass.type = 'lowpass'; lowpass.frequency.value = 430; lowpass.Q.value = .45;
-    const airGain = ctx.createGain(); airGain.gain.value = .32;
-    air.connect(lowpass).connect(airGain).connect(master); air.start();
-
-    // Quiet, slightly beating low strings; never a loud jump-scare sting.
-    [48, 48.35, 71.8].forEach((frequency, index) => {
-      const osc = addVoice(ctx.createOscillator());
-      osc.type = 'sine'; osc.frequency.value = frequency;
-      const gain = ctx.createGain(); gain.gain.value = index === 2 ? .045 : .075;
-      osc.connect(gain).connect(master); osc.start();
-    });
   }
-  function creak() {
-    if (!context || context.state !== 'running' || !enabled || document.hidden || volume === 0) return;
-    const t = context.currentTime;
-    const oscillator = addVoice(context.createOscillator());
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(170 + Math.random() * 80, t);
-    oscillator.frequency.exponentialRampToValueAtTime(90 + Math.random() * 25, t + 1.9);
-    const envelope = context.createGain();
-    envelope.gain.setValueAtTime(0, t);
-    envelope.gain.linearRampToValueAtTime(.065, t + .5);
-    envelope.gain.exponentialRampToValueAtTime(.0001, t + 2.5);
-    oscillator.connect(envelope).connect(master);
-    oscillator.onended = () => { oscillator.disconnect(); envelope.disconnect(); voices.delete(oscillator); };
-    oscillator.start(t); oscillator.stop(t + 2.6);
+  function softPad() {
+    if(!entered || !ambientEnabled || !context || context.state!=='running' || !enabled || document.hidden || volume===0 || ambientVoices.size)return;
+    const t=context.currentTime;
+    // Stable mid-low tones, no beating sub-bass, noise buffer or pitch sweeps.
+    [130.81,196].forEach((frequency,index)=>{
+      const source=context.createOscillator(),gain=context.createGain(),begin=t+index*.3;
+      source.type='sine';source.frequency.value=frequency;
+      gain.gain.setValueAtTime(0,begin);
+      gain.gain.linearRampToValueAtTime(index===0?.055:.025,begin+1.8);
+      gain.gain.exponentialRampToValueAtTime(.0001,begin+5.5);
+      gain.gain.linearRampToValueAtTime(0,begin+6);
+      source.connect(gain).connect(master);ambientVoices.set(source,gain);
+      source.onended=()=>{source.disconnect();gain.disconnect();ambientVoices.delete(source)};
+      source.start(begin);source.stop(begin+6.1);
+    });
   }
   function schedule() {
     clearAmbienceTimer();
-    if (!enabled || document.hidden || volume === 0 || !context || context.state !== 'running') return;
-    ambienceTimer = setTimeout(() => { ambienceTimer = null; creak(); schedule(); }, 14000 + Math.random() * 16000);
+    if (!enabled || !ambientEnabled || document.hidden || volume === 0 || !context || context.state !== 'running') return;
+    ambienceTimer = setTimeout(() => { ambienceTimer = null; softPad(); schedule(); }, 20000);
   }
   function fadeVolume() {
     if (!master || !context) return;
@@ -140,6 +121,7 @@
     if (!entered) { ui(enabled ? 'ready' : 'muted'); return; }
     if (!enabled || document.hidden) {
       stopSfx();
+      stopAmbient();
       fadeVolume();
       if (context && context.state !== 'closed') {
         try { await context.suspend(); } catch (_) {}
@@ -152,14 +134,14 @@
       await context.resume();
       if (ticket !== revision) return;
       if (context.state !== 'running') throw new Error('Audio suspended');
-      fadeVolume(); ui(volume === 0 ? 'silent' : 'playing'); schedule();
+      fadeVolume(); ui(volume === 0 ? 'silent' : 'playing'); softPad();schedule();
       if(typeof fetch==='function')Object.keys(clips).forEach(name=>{bufferFor(name).catch(()=>{});});
     } catch (_) {
       if (ticket !== revision) return;
       // A partially created graph must not survive a retry as a duplicate drone.
       const failed = context; context = null;
       if (failed) { try { await failed.close(); } catch (_) {} }
-      voices.clear();
+      stopAmbient();
       stopSfx();buffers.clear();
       ui('error');
     }
@@ -171,11 +153,16 @@
     enabled = toggle.dataset.audioState === 'error' ? true : !enabled;
     save(); apply();
   });
+  ambientToggle?.addEventListener('click',()=>{
+    ambientEnabled=!ambientEnabled;save();stopAmbient();clearAmbienceTimer();
+    if(ambientEnabled){softPad();schedule();}
+    ui(toggle.dataset.audioState||'ready');
+  });
   slider.addEventListener('input', () => {
     const next = Number(slider.value);
     if (!Number.isFinite(next)) return;
     volume = Math.min(1, Math.max(0, next / 100));
-    if(volume===0)stopSfx();
+    if(volume===0){stopSfx();stopAmbient();}
     save(); fadeVolume();
     if (context && context.state === 'running' && enabled && !document.hidden) {
       ui(volume === 0 ? 'silent' : 'playing'); schedule();
@@ -188,12 +175,13 @@
     ++revision;
     clearAmbienceTimer();
     stopSfx();
+    stopAmbient();
     if(context) context.suspend().catch(() => {});
     ui(enabled ? 'ready' : 'muted');
   });
   document.addEventListener('visibilitychange', () => { if (entered) apply(); });
   window.addEventListener('pagehide', () => {
-    ++revision; clearAmbienceTimer();stopSfx();
+    ++revision; clearAmbienceTimer();stopSfx();stopAmbient();
     if (context) context.suspend().catch(() => {});
   });
   window.addEventListener('pageshow', () => { if (entered) apply(); });

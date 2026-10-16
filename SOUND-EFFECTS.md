@@ -20,8 +20,14 @@ Official CC0 sources checked October 16, 2026:
 - https://kenney.nl/assets/interface-sounds
 - https://kenney.nl/assets/rpg-audio
 
-Creator: Kenney / Kenney Vleugels. CC0 permits adaptation and redistribution; attribution is optional but retained here. Full downloaded ZIPs and OGG working copies are local preparation artifacts, not deployed files. The suggested Freesound recordings requiring login were not used. The pre-existing procedural horror ambience remains the environmental bed; this change does not claim to install the suggested basement or heartbeat recordings.
+Creator: Kenney / Kenney Vleugels. CC0 permits adaptation and redistribution; attribution is optional but retained here. Full downloaded ZIPs and OGG working copies are local preparation artifacts, not deployed files. The suggested Freesound recordings requiring login were not used; this does not claim to install the suggested basement or heartbeat recordings.
+
+## Quieter environment redesign
+
+Following feedback that the continuous environment sounded like noise, the brown-noise buffer, continuous 48/48.35/71.8Hz beating sub-bass and random creak/pitch sweeps were removed entirely. The replacement is a sparse original tonal pad: two stable sine tones at 130.81/196Hz, each ramping gently from/to zero and ending within 6.4 seconds. A pair plays at most once per 20 seconds, leaving over 13 seconds of silence between pads. No random-number calls, noise generators or endless ambient sources remain.
+
+An independent 氛围 toggle in the game header and prologue stops only ambient voices/timer, leaving operation samples audible. Its ambientEnabled preference is saved alongside the old master enabled/volume preferences without discarding them. Muting, zero volume, backgrounding and leaving for the menu stop both kinds of sound. Resuming does not stack ambient layers. The existing 音效 toggle remains the master control.
 
 Playback shares the existing Web Audio context, master volume, limiter and saved mute settings. The global control now says 音效; a synchronized control is available while reading the prologue. Files preload/decode once after user entry, cache in memory and play as short one-shots with at most four simultaneous voices. Muting, zero volume, backgrounding, leaving for the menu and pagehide stop active samples. Version/context checks suppress late playback from an obsolete load. Invalid/failed files or unavailable Web Audio safely fall back to silent gameplay. There is no autoplay before interaction, extra gameplay delay or change to rules/random draws.
 
-Verification: 208 Node checks across twelve files, including local-file/licence checks, cache/load/playback control/failure tests and exact gameplay cue tests. FFmpeg decoded every deployed MP3 successfully and ffprobe verified duration/size. Browser playback/visual verification remains unauthorized and was not performed; no claim of in-browser listening QA.
+Verification: 213 Node checks across twelve files, including five quieter-ambience tests, local-file/licence checks, cache/load/playback control/failure tests and exact gameplay cue tests. FFmpeg decoded every deployed MP3 successfully and ffprobe verified duration/size. Browser playback/visual verification remains unauthorized and was not performed; no claim of in-browser listening QA.

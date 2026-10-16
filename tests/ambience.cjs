@@ -13,18 +13,18 @@ test('前序后的实际开局事件可启动音频，返回菜单会停止',asy
   const g=setup();g.doc.listeners['arkham:game-started']();await g.flush();assert.equal(g.contexts.length,1);assert.equal(g.contexts[0].state,'running');g.doc.listeners['arkham:menu']();await g.flush();assert.equal(g.contexts[0].state,'suspended');assert.equal(g.timers.size,0);
 });
 function setup({saved=null,unsupported=false,rejectResume=false,brokenStorage=false,samples=false,failFetch=false,failDecode=false,slowFetch=false}={}) {
-  const contexts=[],timers=new Map(),nodes=new Map(); let nextTimer=0;
+  const contexts=[],timers=new Map(),nodes=new Map(),oscillators=[],gains=[]; let nextTimer=0;
   const fetches=[],played=[],pendingFetches=[];let decodes=0;
   function element(){return {value:'',dataset:{},textContent:'',listeners:{},setAttribute(k,v){this[k]=v},addEventListener(k,fn){this.listeners[k]=fn}}}
-  for(const id of ['startButton','soundToggle','soundVolume','soundStatus'])nodes.set(id,element());
+  for(const id of ['startButton','soundToggle','soundVolume','soundStatus','ambientToggle','prologueAmbient'])nodes.set(id,element());
   const doc={hidden:false,listeners:{},getElementById:id=>nodes.get(id),addEventListener(k,fn){this.listeners[k]=fn}};
-  function param(){return {value:0,cancelScheduledValues(){},setTargetAtTime(v){this.value=v},setValueAtTime(v){this.value=v},linearRampToValueAtTime(v){this.value=v},exponentialRampToValueAtTime(v){this.value=v}}}
-  function audioNode(){return {gain:param(),frequency:param(),Q:param(),threshold:param(),knee:param(),ratio:param(),attack:param(),release:param(),connect(){return this},disconnect(){},start(){if(this.buffer?.sample)played.push(this)},stop(){this.stopped=true}}}
+  function param(){return {value:0,events:[],cancelScheduledValues(){},setTargetAtTime(v){this.value=v},setValueAtTime(v,t){this.value=v;this.events.push([v,t])},linearRampToValueAtTime(v,t){this.value=v;this.events.push([v,t])},exponentialRampToValueAtTime(v,t){this.value=v;this.events.push([v,t])}}}
+  function audioNode(){return {gain:param(),frequency:param(),Q:param(),threshold:param(),knee:param(),ratio:param(),attack:param(),release:param(),connect(){return this},disconnect(){},start(at){this.startedAt=at;if(this.buffer?.sample)played.push(this)},stop(at){if(at===undefined)this.stopped=true;else this.stopAt=at}}}
   class AudioContext {
     constructor(){this.state='suspended';this.currentTime=0;this.sampleRate=24;this.destination={};contexts.push(this)}
-    createGain(){return audioNode()} createDynamicsCompressor(){return audioNode()}
+    createGain(){const gain=audioNode();gains.push(gain);return gain} createDynamicsCompressor(){return audioNode()}
     createBuffer(_,n){return {getChannelData(){return new Float32Array(n)}}}
-    createBufferSource(){return audioNode()} createBiquadFilter(){return audioNode()} createOscillator(){return audioNode()}
+    createBufferSource(){return audioNode()} createBiquadFilter(){return audioNode()} createOscillator(){const osc=audioNode();oscillators.push(osc);return osc}
     async decodeAudioData(){decodes++;if(failDecode)throw Error('bad audio');return{sample:true}}
     async resume(){if(rejectResume)throw Error('blocked');this.state='running'}
     async suspend(){this.state='suspended'} async close(){this.state='closed'}
@@ -37,8 +37,26 @@ function setup({saved=null,unsupported=false,rejectResume=false,brokenStorage=fa
   vm.runInNewContext(source,runtime);
   const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve()};
   const fire=async(id,event='click')=>{nodes.get(id).listeners[event]();await flush()};
-  return {nodes,contexts,timers,doc,win,flush,fire,fetches,played,pendingFetches,decodes:()=>decodes,saved:()=>JSON.parse(saved)};
+  return {nodes,contexts,timers,doc,win,flush,fire,fetches,played,pendingFetches,oscillators,gains,decodes:()=>decodes,saved:()=>JSON.parse(saved)};
 }
+
+test('移除持续噪声和超低频，氛围只保留有限时长的轻音垫',async()=>{
+  const g=setup();await g.fire('startButton');assert.equal(g.oscillators.length,2);assert.deepEqual(g.oscillators.map(o=>o.frequency.value),[130.81,196]);assert.ok(g.oscillators.every(o=>o.type==='sine'&&o.stopAt<=6.5));
+  assert.doesNotMatch(source,/Math\.random|noiseBuffer|\.loop\s*=\s*true|function creak/);
+  for(const gain of g.gains.filter(n=>n.gain.events.length)){assert.ok(gain.gain.events.every(([value])=>value<=.055));assert.equal(gain.gain.events.at(-1)[0],0);}
+});
+test('每20秒最多一组音垫，有结束和留白，重复进入不叠加',async()=>{
+  const g=setup();await g.fire('startButton');await g.fire('startButton');assert.equal(g.oscillators.length,2);g.oscillators.slice().forEach(o=>o.onended());g.contexts[0].currentTime=20;const[id,callback]=g.timers.entries().next().value;g.timers.delete(id);callback();assert.equal(g.oscillators.length,4);assert.ok(g.oscillators.slice(2).every(o=>o.startedAt>=20));assert.equal(g.timers.size,1);
+});
+test('只关氛围会停止音垫，保留操作音并保存偏好',async()=>{
+  const g=setup({samples:true});await g.fire('startButton');await g.win.playGameSfx('card');await g.fire('ambientToggle');assert.ok(g.oscillators.every(o=>o.stopped));assert.equal(g.timers.size,0);assert.notEqual(g.played[0].stopped,true);await g.win.playGameSfx('card');assert.equal(g.played.length,2);assert.equal(g.saved().ambientEnabled,false);assert.equal(g.nodes.get('ambientToggle')['aria-pressed'],'false');assert.equal(g.nodes.get('prologueAmbient').textContent,'氛围：关');assert.equal(g.nodes.get('soundStatus').textContent,'仅播放操作音效');
+});
+test('关闭氛围偏好跨局恢复，不影响旧版音量静音设置',async()=>{
+  const g=setup({saved:'{"enabled":true,"volume":0.3,"ambientEnabled":false}',samples:true});await g.fire('startButton');assert.equal(g.oscillators.length,0);assert.equal(g.timers.size,0);await g.win.playGameSfx('token');assert.equal(g.played.length,1);await g.fire('ambientToggle');assert.equal(g.oscillators.length,2);assert.equal(g.timers.size,1);assert.equal(g.nodes.get('soundVolume').value,'30');
+});
+test('静音、音量零和后台停止氛围声，不在后台持续生成',async()=>{
+  const g=setup();await g.fire('startButton');await g.fire('soundToggle');assert.ok(g.oscillators.every(o=>o.stopped));await g.fire('soundToggle');g.nodes.get('soundVolume').value='0';await g.fire('soundVolume','input');assert.ok(g.oscillators.every(o=>o.stopped));g.nodes.get('soundVolume').value='20';await g.fire('soundVolume','input');g.doc.hidden=true;g.doc.listeners.visibilitychange();await g.flush();assert.equal(g.timers.size,0);assert.ok(g.oscillators.every(o=>o.stopped));
+});
 
 test('CC0短音效在用户进入后预加载，本地缓存不重复下载和解码',async()=>{
   const g=setup({samples:true});assert.equal(g.fetches.length,0);await g.fire('startButton');assert.equal(g.fetches.length,8);assert.ok(g.fetches.every(p=>p.startsWith('assets/audio/kenney/')&&p.endsWith('.mp3')));

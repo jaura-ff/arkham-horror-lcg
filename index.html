@@ -228,6 +228,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <span class="pill">资源 <b id="topres">5</b></span>
       <span class="pill">线索 <b id="topclue">0</b></span>
       <div class="sound-controls" aria-label="环境音与操作音效设置">
+        <button type="button" class="btn" id="ambientToggle" aria-pressed="true" title="仅开关背景氛围，不影响操作音效">氛围：开</button>
         <button type="button" class="btn" id="soundToggle" aria-pressed="true" aria-describedby="soundStatus">环境音：开</button>
         <label for="soundVolume">音量</label><input id="soundVolume" type="range" min="0" max="100" value="18" aria-label="环境音音量">
         <span id="soundStatus" class="sound-status" role="status" aria-live="polite">进入游戏后播放</span>
@@ -299,7 +300,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="游戏操作"><div class="modal-box" id="modalBox"></div></div>
 <dialog id="prologueDialog" class="prologue-dialog" aria-labelledby="prologueTitle" aria-describedby="prologueText">
-  <div class="prologue-shell"><header class="prologue-header"><span>ARKHAM / 案件前序</span><div class="prologue-header-actions"><button id="prologueSound" type="button" class="btn" aria-pressed="true" onclick="document.getElementById('soundToggle').click()">音效：开</button><button id="prologueMenu" type="button" class="btn">返回菜单</button></div></header>
+  <div class="prologue-shell"><header class="prologue-header"><span>ARKHAM / 案件前序</span><div class="prologue-header-actions"><button id="prologueAmbient" type="button" class="btn" aria-pressed="true" onclick="document.getElementById('ambientToggle').click()">氛围：开</button><button id="prologueSound" type="button" class="btn" aria-pressed="true" onclick="document.getElementById('soundToggle').click()">音效：开</button><button id="prologueMenu" type="button" class="btn">返回菜单</button></div></header>
     <div class="prologue-copy"><p id="prologueProgress" class="prologue-progress"></p><h2 id="prologueTitle" tabindex="-1"></h2><p id="prologueText"></p><p class="prologue-adaptation">本网页版剧情改编，非官方原文</p></div>
     <footer class="prologue-footer"><div class="prologue-nav"><button id="prologuePrevious" type="button" class="btn">上一幕</button><button id="prologueNext" type="button" class="btn primary">继续阅读</button></div><div class="prologue-meta"><span id="prologueDifficulty"></span><button id="prologueSkip" type="button" class="btn">跳过前序，直接调查</button></div></footer>
   </div>
@@ -1546,7 +1547,7 @@ function resolve(code, text){
   `);
 }
 </script>
-<script src="ambience.js?v=sample-sfx-1"></script>
+<script src="ambience.js?v=soft-pad-1"></script>
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=guide-1"></script>
 <script src="phase-transition.js?v=sample-sfx-1"></script>

@@ -146,6 +146,7 @@
     }
   });
   start.addEventListener('click', () => { entered = true; apply(); });
+  document.addEventListener('arkham:game-started', () => { entered = true; apply(); });
   document.addEventListener('arkham:menu', () => {
     entered = false;
     ++revision;

@@ -4,6 +4,12 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'..','tutorial.js'),'utf8');
+test('实际开局事件在阶段提示后启动教学，并保留强制重看请求',()=>{
+  const g=setup({saved:'seen',transition:true});g.nodes.get('game').style.display='block';g.events['arkham:game-started']({detail:{tutorial:true}});assert.equal(g.open(),false);g.setPhasePending(false);g.events['arkham:phase-ready']();assert.equal(g.open(),true);
+});
+test('普通前序结束后仍遵守已看过不自动出现的教学偏好',()=>{
+  const g=setup({saved:'seen'});g.nodes.get('game').style.display='block';g.events['arkham:game-started']({detail:{tutorial:false}});assert.equal(g.open(),false);
+});
 
 test('阶段提示优先，提示完成后才自动打开新人指导',()=>{
   const g=setup({transition:true});g.click('startButton');assert.equal(g.open(),false);assert.equal(g.nodes.get('game').inert,false);g.setPhasePending(false);g.events['arkham:phase-ready']();assert.equal(g.open(),true);g.click('tutorialSkip');g.events['arkham:phase-ready']();assert.equal(g.open(),false);
@@ -151,6 +157,6 @@ test('标题栏方向键移动，Home 复位，不截获正文及按钮点击',(
 test('教学入口与所有目标区域均存在，脚本随游戏本地加载',()=>{
   const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
   for(const id of ['tutorial','tutorialPanel','tutorialSpotlight','learnButton','guideButton','tutorialClose','tutorialSkip','tutorialPrev','tutorialNext','tutorialTitle','tutorialText','tutorialTips','tutorialProgress','guideStatus','investigator','scenePanel','actions','hand','phasebar'])assert.ok(html.includes(`id="${id}"`),id);
-  assert.ok(html.includes('src="tutorial.js?v=phase-1"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
+  assert.ok(html.includes('src="tutorial.js?v=prologue-1"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
   assert.ok(html.includes('id="tutorialDrag"'));assert.ok(html.includes('拖动调整位置'));
 });

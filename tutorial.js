@@ -122,8 +122,9 @@
   }
   let queuedOpen=null;
   document.addEventListener('arkham:phase-ready',()=>{if(queuedOpen!==null){const force=queuedOpen;queuedOpen=null;open(force);}});
+  document.addEventListener('arkham:game-started',event=>open(event.detail?.tutorial===true));
   start.addEventListener('click',()=>open());
-  learn.addEventListener('click',()=>{start.click();open(true);});
+  learn.addEventListener('click',()=>{if(typeof beginPrologue==='function'){beginPrologue(true);return;}start.click();open(true);});
   guide.addEventListener('click',()=>open(true));
   previous.addEventListener('click',()=>{if(active && index>0){index--;render();}});
   next.addEventListener('click',()=>{if(!active)return;if(index===steps.length-1)close();else{index++;render();}});

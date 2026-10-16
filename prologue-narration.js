@@ -44,7 +44,7 @@
     scene(title,text,audio){
       stop();source=audio||'';
       if(!supported){ui('当前浏览器不支持配音，仍可完整阅读前序。');return;}
-      if(!source){ui('本幕为文字与动画 · 配音在「书房异响」一幕');return;}
+      if(!source){ui('本幕为文字与动画 · 前两幕可播放配音');return;}
       try{
         const media=new window.Audio(source);active=media;media.preload='auto';media.volume=1;
         media.onended=()=>{if(active!==media)return;revision++;state='ended';ui('本幕配音已结束，可以继续下一幕。');};
@@ -60,7 +60,7 @@
     enabled=!enabled;
     try{localStorage.setItem(key,JSON.stringify(enabled));}catch(_){}
     if(!enabled)pauseAudio('旁白与配套环境声已关闭，不影响其他操作音效。');
-    else if(source)play();else ui('本幕为文字与动画 · 配音在「书房异响」一幕');
+    else if(source)play();else ui('本幕为文字与动画 · 前两幕可播放配音');
   });
   pause.addEventListener('click',()=>{
     if(!dialog.open||!enabled||!active)return;

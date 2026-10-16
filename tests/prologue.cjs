@@ -56,44 +56,52 @@ test('减少动态效果优先，系统设置变化立即生效，不改变游�
 });
 
 test('动画层仅装饰、无无限循环，不遮挡交互且缓存版本更新',()=>{
- const css=fs.readFileSync(path.join(root,'prologue.css'),'utf8');assert.match(html,/class="prologue-stage" aria-hidden="true"/);assert.match(html,/prologue\.css\?v=narration-1/);assert.match(html,/prologue\.js\?v=recorded-foley-2/);assert.match(css,/pointer-events:none/);assert.doesNotMatch(css,/infinite/);assert.match(css,/pointer:coarse/);assert.match(css,/noir-rooms.webp/);
+ const css=fs.readFileSync(path.join(root,'prologue.css'),'utf8');assert.match(html,/class="prologue-stage" aria-hidden="true"/);assert.match(html,/prologue\.css\?v=narration-1/);assert.match(html,/prologue\.js\?v=intro-voice-1/);assert.match(css,/pointer-events:none/);assert.doesNotMatch(css,/infinite/);assert.match(css,/pointer:coarse/);assert.match(css,/noir-rooms.webp/);
 });
 
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
-test('只在已配音的第二幕播放本地录音，未配音幕保持文字动画',async()=>{
- const g=setup(false,{audio:true});g.run('beginPrologue()');assert.equal(g.media.length,0);assert.match(g.el('prologueVoiceStatus').textContent,/文字与动画/);g.click('prologueNext');await flush();assert.equal(g.media.length,1);assert.equal(g.media[0].src,'assets/audio/prologue-study-foley-v2.mp3');assert.match(g.el('prologueVoiceStatus').textContent,/正在播放/);assert.equal(g.get('S'),null);assert.match(g.el('prologueText').textContent,/只有你，一个人/);g.click('prologueNext');assert.ok(g.media[0].pauses>0);assert.match(g.el('prologueVoiceStatus').textContent,/文字与动画/);
+test('第一幕配音加载期间跳过也会立即停止，迟到结果不复活',async()=>{
+ const g=setup(false,{audio:true,defer:true});g.run('beginPrologue()');const intro=g.media[0];g.click('prologueSkip');intro.resolve();await flush();assert.ok(intro.pauses>0);assert.equal(intro.src,'');assert.equal(g.get('startCalls'),1);assert.doesNotMatch(g.el('prologueVoiceStatus').textContent,/正在播放/);
+});
+test('第一幕发布音频存在且校验固定，第二幕确认版本保持不变',()=>{
+ const digest=file=>require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex');
+ assert.equal(digest('assets/audio/prologue-intro-rain-v1.mp3'),'a38c2ef3c4e9c3ca1e5613c8764b73b1b1200f81407a712b73521f796cf22752');
+ assert.equal(digest('assets/audio/prologue-study-foley-v2.mp3'),'41a5ce9acedc02b46972828ecbb32a5708ba65a9b885006833914d8ce452aacc');
+});
+test('前两幕各播放对应的本地配音，第三幕保持文字动画',async()=>{
+ const g=setup(false,{audio:true});g.run('beginPrologue()');assert.equal(g.media.length,1);assert.equal(g.media[0].src,'assets/audio/prologue-intro-rain-v1.mp3');const intro=g.media[0];g.click('prologueNext');await flush();assert.equal(g.media.length,2);assert.ok(intro.pauses>0);assert.equal(intro.src,'');assert.equal(g.media.at(-1).src,'assets/audio/prologue-study-foley-v2.mp3');assert.match(g.el('prologueVoiceStatus').textContent,/正在播放/);assert.equal(g.get('S'),null);assert.match(g.el('prologueText').textContent,/只有你，一个人/);g.click('prologueNext');assert.ok(g.media.at(-1).pauses>0);assert.match(g.el('prologueVoiceStatus').textContent,/文字与动画/);
 });
 test('暂停保留播放时间，继续不重头，重播回到开头',async()=>{
- const g=setup(false,{audio:true});g.run('beginPrologue()');g.click('prologueNext');await flush();const a=g.media[0];a.currentTime=28;g.click('prologueVoicePause');assert.match(g.el('prologueVoiceStatus').textContent,/已暂停/);assert.equal(g.el('prologueDialog').dataset.motion,'playing');g.click('prologueVoicePause');await flush();assert.equal(a.currentTime,28);g.click('prologueVoiceReplay');await flush();assert.equal(a.currentTime,0);assert.equal(a.plays,3);
+ const g=setup(false,{audio:true});g.run('beginPrologue()');g.click('prologueNext');await flush();const a=g.media.at(-1);a.currentTime=28;g.click('prologueVoicePause');assert.match(g.el('prologueVoiceStatus').textContent,/已暂停/);assert.equal(g.el('prologueDialog').dataset.motion,'playing');g.click('prologueVoicePause');await flush();assert.equal(a.currentTime,28);g.click('prologueVoiceReplay');await flush();assert.equal(a.currentTime,0);assert.equal(a.plays,3);
 });
 test('后台暂停不自动恢复，返回后继续同一位置',async()=>{
- const g=setup(false,{audio:true});g.run('beginPrologue()');g.click('prologueNext');await flush();const a=g.media[0];a.currentTime=12;g.doc.hidden=true;g.doc.listeners.visibilitychange();g.doc.hidden=false;g.doc.listeners.visibilitychange();assert.equal(a.plays,1);assert.match(g.el('prologueVoiceStatus').textContent,/后台/);g.click('prologueVoicePause');await flush();assert.equal(a.currentTime,12);assert.equal(a.plays,2);
+ const g=setup(false,{audio:true});g.run('beginPrologue()');g.click('prologueNext');await flush();const a=g.media.at(-1);a.currentTime=12;g.doc.hidden=true;g.doc.listeners.visibilitychange();g.doc.hidden=false;g.doc.listeners.visibilitychange();assert.equal(a.plays,1);assert.match(g.el('prologueVoiceStatus').textContent,/后台/);g.click('prologueVoicePause');await flush();assert.equal(a.currentTime,12);assert.equal(a.plays,2);
 });
 test('跳过、菜单、Escape、正常开局清理配音与事件，迟到播放结果不能复活',async()=>{
  for(const action of ['prologueSkip','prologueMenu','escape','finish']){
-  const g=setup(false,{audio:true,defer:true});g.run('beginPrologue()');g.click('prologueNext');const a=g.media[0],ended=a.onended,error=a.onerror;
+  const g=setup(false,{audio:true,defer:true});g.run('beginPrologue()');g.click('prologueNext');const a=g.media.at(-1),ended=a.onended,error=a.onerror;
   if(action==='finish'){g.click('prologueNext');g.click('prologueNext')}else if(action==='escape')g.el('prologueDialog').listeners.cancel({preventDefault(){}});else g.click(action);
   a.resolve();await flush();ended();error();assert.equal(g.el('prologueDialog').open,false);assert.ok(a.pauses>0);assert.equal(a.src,'');assert.equal(a.plays,1);assert.equal(a.onended,null);
  }
 });
 test('旁白开关持久保存，关闭时进入第二幕不播放，开启才播放',async()=>{
- const g=setup(false,{audio:true,saved:false});g.run('beginPrologue()');g.click('prologueNext');await flush();assert.equal(g.media[0].plays,0);g.click('prologueNarration');await flush();assert.equal(g.storage.get('arkham-narration-v1'),'true');assert.equal(g.media[0].plays,1);g.click('prologueNarration');assert.equal(g.storage.get('arkham-narration-v1'),'false');assert.equal(g.el('prologueVoiceReplay').disabled,true);
+ const g=setup(false,{audio:true,saved:false});g.run('beginPrologue()');g.click('prologueNext');await flush();assert.equal(g.media.at(-1).plays,0);g.click('prologueNarration');await flush();assert.equal(g.storage.get('arkham-narration-v1'),'true');assert.equal(g.media.at(-1).plays,1);g.click('prologueNarration');assert.equal(g.storage.get('arkham-narration-v1'),'false');assert.equal(g.el('prologueVoiceReplay').disabled,true);
 });
 test('浏览器拦截自动播放时可手动重播，不影响开始游戏',async()=>{
  const options={audio:true,blocked:true},g=setup(false,options);g.run('beginPrologue()');g.click('prologueNext');await flush();assert.match(g.el('prologueVoiceStatus').textContent,/重播本幕/);options.blocked=false;g.click('prologueVoiceReplay');await flush();assert.match(g.el('prologueVoiceStatus').textContent,/正在播放/);g.click('prologueSkip');assert.equal(g.get('startCalls'),1);
 });
 test('音频加载错误、不支持音频均保留文字和跳过',async()=>{
- for(const audio of [true,false]){const g=setup(false,{audio});g.run('beginPrologue()');g.click('prologueNext');await flush();if(audio)g.media[0].onerror();assert.match(g.el('prologueVoiceStatus').textContent,/失败|不支持/);g.click('prologueSkip');assert.equal(g.get('startCalls'),1);}
+ for(const audio of [true,false]){const g=setup(false,{audio});g.run('beginPrologue()');g.click('prologueNext');await flush();if(audio)g.media.at(-1).onerror();assert.match(g.el('prologueVoiceStatus').textContent,/失败|不支持/);g.click('prologueSkip');assert.equal(g.get('startCalls'),1);}
 });
 test('播放结束不自动翻幕，可重播同一音频',async()=>{
- const g=setup(false,{audio:true});g.run('beginPrologue()');g.click('prologueNext');await flush();g.media[0].onended();assert.match(g.el('prologueVoiceStatus').textContent,/已结束/);assert.equal(g.el('prologueDialog').dataset.scene,'1');assert.equal(g.get('S'),null);g.click('prologueVoiceReplay');await flush();assert.equal(g.media[0].currentTime,0);
+ const g=setup(false,{audio:true});g.run('beginPrologue()');g.click('prologueNext');await flush();g.media.at(-1).onended();assert.match(g.el('prologueVoiceStatus').textContent,/已结束/);assert.equal(g.el('prologueDialog').dataset.scene,'1');assert.equal(g.get('S'),null);g.click('prologueVoiceReplay');await flush();assert.equal(g.media.at(-1).currentTime,0);
 });
 test('加载时暂停，迟到的play Promise不会覆盖暂停状态',async()=>{
- const g=setup(false,{audio:true,defer:true});g.run('beginPrologue()');g.click('prologueNext');g.click('prologueVoicePause');g.media[0].resolve();await flush();assert.match(g.el('prologueVoiceStatus').textContent,/已暂停/);
+ const g=setup(false,{audio:true,defer:true});g.run('beginPrologue()');g.click('prologueNext');g.click('prologueVoicePause');g.media.at(-1).resolve();await flush();assert.match(g.el('prologueVoiceStatus').textContent,/已暂停/);
 });
 test('上一幕再回来创建全新播放器，不复活旧幕音频',async()=>{
- const g=setup(false,{audio:true});g.run('beginPrologue()');g.click('prologueNext');await flush();const old=g.media[0],end=old.onended;g.click('prologuePrevious');g.click('prologueNext');await flush();end();assert.equal(g.media.length,2);assert.equal(old.src,'');assert.match(g.el('prologueVoiceStatus').textContent,/正在播放/);
+ const g=setup(false,{audio:true});g.run('beginPrologue()');g.click('prologueNext');await flush();const old=g.media.at(-1),end=old.onended;g.click('prologuePrevious');g.click('prologueNext');await flush();end();assert.equal(g.media.length,4);assert.equal(old.src,'');assert.match(g.el('prologueVoiceStatus').textContent,/正在播放/);
 });
 test('固定配音文件与确认的试听逐字节相同，且不再调用系统TTS',()=>{
- const audio=fs.readFileSync(path.join(root,'assets/audio/prologue-study-foley-v2.mp3'));assert.equal(require('node:crypto').createHash('sha256').update(audio).digest('hex'),'41a5ce9acedc02b46972828ecbb32a5708ba65a9b885006833914d8ce452aacc');const source=fs.readFileSync(path.join(root,'prologue-narration.js'),'utf8');assert.doesNotMatch(source,/speechSynthesis|SpeechSynthesisUtterance/);assert.match(html,/prologue-narration\.js\?v=recorded-foley-2/);
+ const audio=fs.readFileSync(path.join(root,'assets/audio/prologue-study-foley-v2.mp3'));assert.equal(require('node:crypto').createHash('sha256').update(audio).digest('hex'),'41a5ce9acedc02b46972828ecbb32a5708ba65a9b885006833914d8ce452aacc');const source=fs.readFileSync(path.join(root,'prologue-narration.js'),'utf8');assert.doesNotMatch(source,/speechSynthesis|SpeechSynthesisUtterance/);assert.match(html,/prologue-narration\.js\?v=intro-voice-1/);
 });

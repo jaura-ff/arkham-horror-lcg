@@ -30,3 +30,5 @@
 @media(prefers-reduced-motion:reduce){.prologue-dialog *{animation:none !important}.prologue-camera{transform:none !important}}
 @media(pointer:coarse){.prologue-animate .prologue-camera{animation:none;transform:none}}
 @media(max-width:600px),(orientation:landscape) and (max-height:440px){.prologue-shell{min-height:0}.prologue-veil{background:linear-gradient(90deg,#18150feb,#18150fc9)}.prologue-header-actions{gap:6px}}
+.prologue-voice{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.prologue-voice-status{font-size:11px;line-height:1.8;color:#bdab89;margin:0 0 16px;min-height:2em;overflow-wrap:anywhere}

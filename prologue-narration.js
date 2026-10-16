@@ -1,99 +1,77 @@
-/* Optional device Chinese narration. No recording, microphone or API key. */
+/* Approved prerecorded narration + timed foley; never fall back to robotic TTS. */
 (() => {
   'use strict';
   const byId=id=>document.getElementById(id),dialog=byId('prologueDialog');
   const toggle=byId('prologueNarration'),pause=byId('prologueVoicePause'),replay=byId('prologueVoiceReplay'),status=byId('prologueVoiceStatus');
   if(!dialog||!toggle||!pause||!replay||!status)return;
-  const synth=window.speechSynthesis,Utterance=window.SpeechSynthesisUtterance;
-  const supported=!!(synth&&Utterance),key='arkham-narration-v1';
-  let enabled=true,state='idle',sentences=[],index=0,revision=0,active=null,waiting=false;
+  const supported=typeof window.Audio==='function',key='arkham-narration-v1';
+  let enabled=true,state='idle',active=null,source='',revision=0;
   try{const saved=JSON.parse(localStorage.getItem(key)||'null');if(typeof saved==='boolean')enabled=saved;}catch(_){}
   function ui(message){
     toggle.textContent=supported?`旁白：${enabled?'开':'关'}`:'旁白：不可用';
     toggle.disabled=!supported;toggle.setAttribute('aria-pressed',String(enabled&&supported));
-    pause.textContent=state==='speaking'?'暂停旁白':'继续旁白';
-    pause.disabled=!supported||!enabled||!['speaking','paused'].includes(state);
-    replay.disabled=!supported||!enabled;
+    pause.textContent=['loading','playing'].includes(state)?'暂停旁白':'继续旁白';
+    pause.disabled=!supported||!enabled||!active||!['loading','playing','paused'].includes(state);
+    replay.disabled=!supported||!enabled||!source;
     status.textContent=message;
   }
-  function cancel(){
-    revision++;waiting=false;
-    const owned=active;active=null;
-    // Invalidate callbacks before cancel: some engines synchronously emit errors.
-    if(owned)try{synth.cancel();}catch(_){}
+  function stop(){
+    revision++;
+    const old=active;active=null;state='idle';
+    if(old){old.onended=null;old.onerror=null;try{old.pause();old.removeAttribute('src');old.load();}catch(_){}}
+    ui('旁白已停止。');
   }
-  function voice(){
-    const voices=synth.getVoices();
-    const chinese=voices.filter(v=>/^zh(?:-|_)/i.test(v.lang));
-    return chinese.find(v=>/^zh[-_]CN$/i.test(v.lang)&&v.localService)||chinese.find(v=>/^zh[-_]CN$/i.test(v.lang))||chinese.find(v=>!/^zh[-_]HK$/i.test(v.lang));
-  }
-  function speak(){
-    if(!supported||!enabled||!dialog.open||document.hidden)return;
-    if(index>=sentences.length){state='ended';ui('本幕旁白已结束，可以继续下一幕。');return;}
-    const ticket=revision;
+  function play(restart=false){
+    if(!supported||!enabled||!source||!active||!dialog.open||document.hidden)return;
+    const media=active,ticket=++revision;
     try{
-      const selected=voice();
-      if(!selected){
-        state='waiting';waiting=true;
-        ui('未检测到中文语音。可点「重播本幕」重试，或继续阅读文字。');return;
-      }
-      waiting=false;
-      const utterance=new Utterance(sentences[index]);active=utterance;
-      utterance.voice=selected;utterance.lang=selected.lang;utterance.rate=.92;utterance.pitch=.9;utterance.volume=.85;
-      state='speaking';ui('正在朗读本幕 · 设备中文语音');
-      utterance.onend=()=>{
-        if(ticket!==revision||active!==utterance)return;
-        active=null;index++;speak();
-      };
-      utterance.onerror=()=>{
-        if(ticket!==revision||active!==utterance)return;
-        active=null;state='error';waiting=false;
-        ui('旁白暂未播放，请点「重播本幕」重试；不影响继续游戏。');
-      };
-      synth.speak(utterance);
-    }catch(_){
-      cancel();state='error';ui('旁白暂不可用，可重试或继续阅读文字。');
-    }
+      if(state==='error')media.load();
+      if(restart)media.currentTime=0;
+      state='loading';ui('正在加载配音与环境声…');
+      Promise.resolve(media.play()).then(()=>{
+        if(ticket!==revision||active!==media)return;
+        state='playing';ui('正在播放 · 悬疑旁白与环境声');
+      }).catch(()=>{
+        if(ticket!==revision||active!==media)return;
+        state='error';media.pause();ui('请点「重播本幕」播放配音；仍可继续阅读或跳过。');
+      });
+    }catch(_){state='error';ui('配音暂不可用，请点「重播本幕」重试。');}
   }
-  function stop(){cancel();state='idle';ui(enabled?'旁白已停止。':'旁白已关闭。');}
+  function pauseAudio(message){
+    revision++;if(active)active.pause();state='paused';ui(message);
+  }
   window.prologueNarrator={
-    scene(title,text){
-      cancel();index=0;
-      // Short utterances avoid long-speech cutoffs; resume repeats only this sentence.
-      sentences=(`${title}。${text}`).match(/[^。！？；\n]+[。！？；]?/g)||[];
-      state='idle';
-      if(!supported){ui('当前浏览器不支持旁白，仍可完整阅读前序。');return;}
-      if(!enabled){ui('旁白已关闭，可随时开启。');return;}
-      if(document.hidden){state='paused';ui('页面在后台，旁白已暂停。');return;}
-      speak();
+    scene(title,text,audio){
+      stop();source=audio||'';
+      if(!supported){ui('当前浏览器不支持配音，仍可完整阅读前序。');return;}
+      if(!source){ui('本幕为文字与动画 · 配音在「书房异响」一幕');return;}
+      try{
+        const media=new window.Audio(source);active=media;media.preload='auto';media.volume=1;
+        media.onended=()=>{if(active!==media)return;revision++;state='ended';ui('本幕配音已结束，可以继续下一幕。');};
+        media.onerror=()=>{if(active!==media)return;revision++;media.pause();state='error';ui('配音加载失败，可点「重播本幕」重试或继续阅读。');};
+      }catch(_){state='error';ui('无法加载配音，仍可完整阅读前序。');return;}
+      if(!enabled){ui('旁白与配套环境声已关闭，可随时开启。');return;}
+      if(document.hidden){state='paused';ui('页面在后台，配音已暂停。');return;}
+      play();
     },stop
   };
   toggle.addEventListener('click',()=>{
     if(!supported||!dialog.open)return;
     enabled=!enabled;
     try{localStorage.setItem(key,JSON.stringify(enabled));}catch(_){}
-    cancel();index=0;state='idle';
-    if(enabled)speak();else ui('旁白已关闭，不影响动画和操作音效。');
+    if(!enabled)pauseAudio('旁白与配套环境声已关闭，不影响其他操作音效。');
+    else if(source)play();else ui('本幕为文字与动画 · 配音在「书房异响」一幕');
   });
   pause.addEventListener('click',()=>{
-    if(!dialog.open||!enabled)return;
-    if(state==='speaking'){
-      cancel();state='paused';ui('旁白已暂停，继续时从当前句开头朗读。');
-    }else if(state==='paused')speak();
+    if(!dialog.open||!enabled||!active)return;
+    if(['loading','playing'].includes(state))pauseAudio('配音已暂停，继续时从当前位置播放。');
+    else if(state==='paused')play();
   });
-  replay.addEventListener('click',()=>{
-    if(!dialog.open||!enabled)return;
-    cancel();index=0;speak();
-  });
-  if(supported)synth.addEventListener?.('voiceschanged',()=>{
-    if(waiting&&dialog.open&&enabled&&!document.hidden)speak();
-  });
+  replay.addEventListener('click',()=>play(true));
   document.addEventListener('visibilitychange',()=>{
-    if(document.hidden&&dialog.open&&['speaking','waiting'].includes(state)){
-      cancel();state='paused';ui('页面切到后台，旁白已暂停；返回后点「继续旁白」。');
-    }
+    if(document.hidden&&dialog.open&&active&&['loading','playing'].includes(state))pauseAudio('页面切到后台，配音已暂停；返回后点「继续旁白」。');
   });
   dialog.addEventListener('close',stop);
   window.addEventListener?.('pagehide',stop);
-  ui(supported?'进入前序后朗读 · 旁白独立开关':'当前浏览器不支持旁白，仍可完整阅读前序。');
+  ui('固定配音与环境声 · 不使用系统朗读');
 })();

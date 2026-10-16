@@ -31,10 +31,12 @@
     // Restart this scene only, without timers or changes to the game state.
     void dialog.offsetWidth;
     dialog.classList.add('prologue-animate');syncMotion();
+    window.prologueNarrator?.scene(scene.title,scene.text);
   }
   function finish(){
     if(!dialog.open)return;
     const tutorial=forceTutorial;
+    window.prologueNarrator?.stop();
     dialog.close();syncMotion();document.body.style.overflow=savedOverflow;
     byId('difficultySelect').value=difficulty;
     startGame();
@@ -42,6 +44,7 @@
   }
   function back(){
     if(!dialog.open)return;
+    window.prologueNarrator?.stop();
     dialog.close();syncMotion();document.body.style.overflow=savedOverflow;forceTutorial=false;
     document.dispatchEvent(new Event('arkham:menu'));byId('startButton').focus();
   }

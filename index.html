@@ -185,6 +185,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="phase-transition.css?v=countdown-1">
 <link rel="stylesheet" href="loss-notices.css?v=loss-1">
 <link rel="stylesheet" href="play-guide.css?v=guide-1">
+<link rel="stylesheet" href="next-step.css?v=arrow-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -235,7 +236,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
   <div id="wrap">
     <div class="phasebar" id="phasebar"></div>
-    <details id="playGuide" class="play-guide" open><summary>游玩指引 <span id="playGuideLabel"></span><small>点击收起／展开</small></summary><p id="playGuideText" aria-live="polite"></p><a class="play-guide-source" href="https://images-cdn.fantasyflightgames.com/filer_public/88/53/88538d11-5274-4b4a-ac8c-e8d758f71132/ahc01_learn_to_play_web.pdf#page=9" target="_blank" rel="noopener noreferrer">阶段规则参考：官方入门规则第 9 页；行动建议按本网页简化玩法</a></details>
+    <details id="playGuide" class="play-guide" open><summary>游玩指引 <span id="playGuideLabel"></span><small>点击收起／展开</small></summary><p id="playGuideText" aria-live="polite"></p><button type="button" id="nextStepToggle" class="btn next-step-toggle" aria-pressed="true">下一步箭头：开</button><a class="play-guide-source" href="https://images-cdn.fantasyflightgames.com/filer_public/88/53/88538d11-5274-4b4a-ac8c-e8d758f71132/ahc01_learn_to_play_web.pdf#page=9" target="_blank" rel="noopener noreferrer">阶段规则参考：官方入门规则第 9 页；行动建议按本网页简化玩法</a></details>
 
     <div class="main">
       <!-- 左栏 -->
@@ -297,6 +298,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="游戏操作"><div class="modal-box" id="modalBox"></div></div>
 <div id="lossNotice" class="loss-notice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden><strong id="lossNoticeAmount"></strong><span id="lossNoticeSource"></span></div>
+<div id="nextStepArrow" class="next-step-arrow" role="status" aria-live="polite" hidden><span id="nextStepLabel"></span><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#next"></use></svg></div>
 <dialog id="phaseAnnouncement" class="phase-announcement" aria-labelledby="phaseAnnouncementTitle" aria-describedby="phaseAnnouncementRule phaseAnnouncementHint">
   <div class="phase-announcement-shell"><p class="phase-announcement-kicker">ARKHAM / NEXT PHASE</p><p id="phaseAnnouncementRound" class="phase-announcement-round"></p><p class="phase-announcement-label">即将进入</p><h2 id="phaseAnnouncementTitle" tabindex="-1"></h2><p id="phaseAnnouncementRule"></p><p id="phaseAnnouncementCountdown" class="phase-announcement-countdown" aria-live="polite" aria-atomic="true">3</p><p id="phaseAnnouncementHint">停留 3 秒后自动继续</p></div>
 </dialog>
@@ -888,7 +890,7 @@ function renderActions(){
     if(S.actIdx===1 && S.location==='attic'){
       actions.push(btn(' 完成调查','finish',canTakeAction,'结束调查'));
     }
-    controls.innerHTML = `<button class="btn" onclick="requestAction('endTurn')" ${S.actions===3||S.test||S.pendingMove||pendingNavigation||pendingAction||phaseTransitionActive?'disabled':''}>${uiIcon('next')}结束回合 </button>
+    controls.innerHTML = `<button id="endTurnButton" class="btn" onclick="requestAction('endTurn')" ${S.actions===3||S.test||S.pendingMove||pendingNavigation||pendingAction||phaseTransitionActive?'disabled':''}>${uiIcon('next')}结束回合 </button>
       <span style="color:var(--dim);font-size:11px">${S.actions===3?'（至少执行 1 个行动后才能结束回合）':''}</span>`;
   } else {
     cnt.textContent = '';
@@ -920,7 +922,7 @@ function showActionConfirmation(label,description,run,risk=''){
     ${risk?`<p class="action-confirm-warning">${risk}</p>`:''}
     <p class="action-confirm-note">返回不消耗行动、资源或卡牌；继续后正式执行。</p>
     <div class="action-confirm-buttons"><button class="btn" onclick="closeModal()">${uiIcon('back')}返回</button>
-    <button class="btn primary" onclick="confirmAction()">${uiIcon('next')}继续</button></div>`);
+    <button id="actionContinueButton" class="btn primary" onclick="confirmAction()">${uiIcon('next')}继续</button></div>`);
   renderActions();
   document.querySelector?.('#modalBox .action-confirm-buttons .btn')?.focus?.();
 }
@@ -1181,7 +1183,7 @@ function openTestModal(){
       <p class="action-confirm-note">${t.actionExempt!==null?'继续消耗 1 次行动并抽取指示物；返回不消耗行动或投入牌。':'这是已触发的强制检定，不能取消。'}${t.actionExempt===false?' '+actionRisk():''}</p>
       <div class="action-confirm-buttons">
         <button class="btn" onclick="cancelTest()" ${t.actionExempt===null?'disabled title="已触发的检定不能取消"':''}>${uiIcon('back')}返回</button>
-        <button class="btn primary" onclick="resolveTest()">${uiIcon('next')}继续 · 抽取混沌指示物</button>
+        <button id="testDrawButton" class="btn primary" onclick="resolveTest()">${uiIcon('next')}继续 · 抽取混沌指示物</button>
       </div>
     </div>
   `;
@@ -1287,7 +1289,7 @@ function resolveTest(){
     </div>
     ${t.searchGhoul?`<div class="ghoul-choice"><label for="ghoulSearchChoice">检定结束后寻找并抽取一名食尸鬼</label>${choices.length?`<select id="ghoulSearchChoice">${choices.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>`:'<p>遭遇牌组及弃牌堆中没有可选择的食尸鬼。</p>'}</div>`:''}
     <p class="action-confirm-note">指示物已抽取，不能返回重抽。</p>
-    <div class="action-confirm-buttons"><button class="btn" disabled title="已抽取指示物，不能撤销">${uiIcon('back')}返回</button><button class="btn primary" onclick="finishTest(${result})">${uiIcon('next')}继续 · 结算结果</button></div>
+    <div class="action-confirm-buttons"><button class="btn" disabled title="已抽取指示物，不能撤销">${uiIcon('back')}返回</button><button id="testResolveButton" class="btn primary" onclick="finishTest(${result})">${uiIcon('next')}继续 · 结算结果</button></div>
   `;
   S.testResult = result;
   if(typeof updatePlayGuide==='function')updatePlayGuide();
@@ -1535,6 +1537,7 @@ function resolve(code, text){
 <script src="difficulty-dialog.js?v=token-art-1"></script>
 <script src="hand-dialog.js?v=action-confirm-1"></script>
 <script src="discard.js?v=character-deck-1"></script>
+<script src="next-step.js?v=arrow-1"></script>
 </body>
 </html>
 

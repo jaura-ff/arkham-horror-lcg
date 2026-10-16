@@ -183,6 +183,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=asset-icons-1">
 <link rel="stylesheet" href="phase-transition.css?v=countdown-1">
+<link rel="stylesheet" href="loss-notices.css?v=loss-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -293,6 +294,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 </div>
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="游戏操作"><div class="modal-box" id="modalBox"></div></div>
+<div id="lossNotice" class="loss-notice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden><strong id="lossNoticeAmount"></strong><span id="lossNoticeSource"></span></div>
 <dialog id="phaseAnnouncement" class="phase-announcement" aria-labelledby="phaseAnnouncementTitle" aria-describedby="phaseAnnouncementHint">
   <div class="phase-announcement-shell"><p class="phase-announcement-kicker">ARKHAM / NEXT PHASE</p><p id="phaseAnnouncementRound" class="phase-announcement-round"></p><p class="phase-announcement-label">即将进入</p><h2 id="phaseAnnouncementTitle" tabindex="-1"></h2><p id="phaseAnnouncementCountdown" class="phase-announcement-countdown" aria-live="polite" aria-atomic="true">3</p><p id="phaseAnnouncementHint">停留 3 秒后自动继续</p></div>
 </dialog>
@@ -480,6 +482,7 @@ function cancelReturnMenu(){
 function confirmReturnMenu(){
   if(!pendingNavigation || !S || S.test || S.pendingMove) return;
   pendingNavigation = false;
+  if(typeof resetLossNotices==='function')resetLossNotices();
   S = null;
   closeModal();
   document.getElementById('log').innerHTML = '';
@@ -491,6 +494,7 @@ function confirmReturnMenu(){
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
 function startGame(){
+  if(typeof resetLossNotices==='function')resetLossNotices();
   if(typeof resetPhaseAnnouncement==='function')resetPhaseAnnouncement();
   phaseTransitionActive = false;
   pendingNavigation = false;
@@ -546,13 +550,21 @@ function drawOpeningHand(){
 }
 
 /* ============ 工具 ============ */
+function applyPlayerLoss(damage=0,horror=0,source=''){
+  if(!S || S.gameOver)return;
+  const hp=S.hp,sanity=S.sanity;
+  S.hp=Math.max(0,S.hp-Math.max(0,damage));
+  S.sanity=Math.max(0,S.sanity-Math.max(0,horror));
+  const loss={hp:hp-S.hp,sanity:sanity-S.sanity,source};
+  if((loss.hp>0 || loss.sanity>0) && typeof showPlayerLoss==='function')showPlayerLoss(loss);
+}
 function drawCards(n){
   for(let i=0;i<n;i++){
     if(S.gameOver) return;
     if(S.deck.length===0){
       if(S.discard.length===0){ log('牌组已空，无牌可抽！','bad'); break; }
       S.deck = shuffle(S.discard); S.discard=[];
-      S.sanity = Math.max(0, S.sanity-1);
+      applyPlayerLoss(0,1,'牌组耗尽：洗回弃牌堆');
       log('牌组耗尽，洗回弃牌堆，承受 1 点恐惧。','bad');
       checkDefeat();
       if(S.gameOver) return;
@@ -560,7 +572,7 @@ function drawCards(n){
     const c = S.deck.pop();
     if(c.type==='weak'){
       log('<b>缠身梦魇</b>！承受 1 点恐惧。','bad');
-      S.sanity = Math.max(0, S.sanity-1);
+      applyPlayerLoss(0,1,c.name);
       S.discard.push(c);
       checkDefeat();
     } else {
@@ -978,8 +990,7 @@ function attackOfOpportunity(){
 function takeEnemyHit(e, reason){
   if(S.gameOver) return;
   log(`${e.card.name} 对罗兰发动${reason||'攻击'}：造成 ${e.card.dmg} 伤害 + ${e.card.horror} 恐惧。`,'bad');
-  S.hp = Math.max(0, S.hp - e.card.dmg);
-  S.sanity = Math.max(0, S.sanity - e.card.horror);
+  applyPlayerLoss(e.card.dmg,e.card.horror,`${e.card.name} · ${reason||'攻击'}`);
   render();
   checkDefeat();
 }
@@ -1259,7 +1270,7 @@ function resolveTest(){
   });
   const damage=token.damage,horror=token.horror+(!result?token.failHorror:0);
   if(damage||horror){
-    S.hp=Math.max(0,S.hp-damage);S.sanity=Math.max(0,S.sanity-horror);
+    applyPlayerLoss(damage,horror,'混沌符号效果');
     log(`混沌符号效果：承受 ${damage} 伤害、${horror} 恐惧。`,'bad');
     checkDefeat();render();if(S.gameOver)return;
   }
@@ -1419,7 +1430,7 @@ function drawEncounter(){
       log(`遭遇：<b>${c.name}</b> —— 进行意志(2)检定。`,'bad');
       startTest('will', 2, '抵抗恐惧低语', (success)=>{
         if(!success){
-          S.sanity = Math.max(0, S.sanity-1);
+          applyPlayerLoss(0,1,c.name);
           log('你被低语侵蚀，承受 1 点恐惧。','bad');
           checkDefeat();
         } else {
@@ -1513,6 +1524,7 @@ function resolve(code, text){
 <script src="ambience.js"></script>
 <script>updateDifficultyPreview();</script>
 <script src="phase-transition.js?v=countdown-1"></script>
+<script src="loss-notices.js?v=loss-1"></script>
 <script src="tutorial.js?v=phase-1"></script>
 <script src="atlas.js"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>

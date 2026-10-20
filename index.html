@@ -194,6 +194,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="play-guide.css?v=guide-1">
 <link rel="stylesheet" href="next-step.css?v=arrow-1">
 <link rel="stylesheet" href="prologue.css?v=narration-1">
+<link rel="stylesheet" href="tutorial.css?v=illustrated-five-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -247,7 +248,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <dialog id="homeTutorialDialog" class="home-dialog" aria-labelledby="homeTutorialDialogTitle">
   <div class="home-dialog-shell">
     <header class="home-dialog-header"><h2 id="homeTutorialDialogTitle">新手教学</h2><button type="button" class="btn icon-button" data-home-close aria-label="关闭新手教学">×</button></header>
-    <p>从调查目标、每回合行动，到卡牌与检定，跟着七步指引边玩边学。</p><p class="home-dialog-note">点击开始教学后进入故事前序，再进入带指引的新一局。普通开始游戏不会自动开启教学。</p>
+    <p>5 步图解，快速了解调查、行动、手牌、敌人与回合。</p><p class="home-dialog-note">点击开始教学后进入故事前序，再进入带指引的新一局。普通开始游戏不会自动开启教学。</p>
     <footer class="home-dialog-footer"><button type="button" class="btn" data-home-close>返回</button><button class="btn primary learn-button" id="learnButton" type="button">开始教学</button></footer>
   </div>
 </dialog>
@@ -405,7 +406,8 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
   <div id="tutorialSpotlight" class="tutorial-spotlight" aria-hidden="true"></div>
   <section id="tutorialPanel" class="tutorial-panel" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle" aria-describedby="tutorialText">
     <div class="tutorial-heading"><button id="tutorialDrag" type="button" class="tutorial-drag" aria-label="移动新人指导，方向键移动，Home 键恢复默认位置"><span id="tutorialProgress" aria-live="polite"></span><small>拖动调整位置</small></button><button id="tutorialClose" type="button" class="btn icon-button" aria-label="关闭新人指导"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></div>
-    <h2 id="tutorialTitle"></h2><p id="tutorialText"></p><ul id="tutorialTips"></ul>
+    <div id="tutorialVisual" class="tutorial-visual" aria-hidden="true"></div>
+    <h2 id="tutorialTitle"></h2><p id="tutorialText" aria-live="polite"></p><ul id="tutorialTips"></ul>
     <div class="tutorial-nav"><button id="tutorialSkip" type="button" class="btn">跳过引导</button><div><button id="tutorialPrev" type="button" class="btn">上一步</button><button id="tutorialNext" type="button" class="btn primary">下一步</button></div></div>
     <p class="tutorial-note">仅介绍玩法，不消耗行动或资源。</p>
   </section>
@@ -1606,7 +1608,7 @@ function resolve(code, text){
 <script src="play-guide.js?v=guide-1"></script>
 <script src="phase-transition.js?v=skip-countdown-2"></script>
 <script src="loss-notices.js?v=loss-1"></script>
-<script src="tutorial.js?v=home-dialog-entry-3"></script>
+<script src="tutorial.js?v=illustrated-five-1"></script>
 <script src="atlas.js?v=confirm-close-2"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
 <script src="hand-dialog.js?v=action-confirm-1"></script>

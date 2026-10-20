@@ -36,14 +36,14 @@ function setup({saved=null,storageFails=false,transition=false}={}){
   const state={actions:3,resources:5,hp:9,sanity:5,clues:0,location:'study'};
   const doc={body:{style:{overflow:''}},activeElement:null,getElementById:id=>nodes.get(id),querySelector:selector=>targets[selector]||null,addEventListener(name,fn){events[name]=fn}};
   function node(id){const classes=new Set();return{id,style:{},hidden:false,inert:false,disabled:false,isConnected:true,scrollTop:0,textContent:'',innerHTML:'',listeners:{},classList:{contains:x=>classes.has(x),add:x=>classes.add(x),remove:x=>classes.delete(x)},addEventListener(name,fn){this.listeners[name]=fn},getBoundingClientRect(){return{left:20,top:30,right:320,bottom:230,width:300,height:200}},scrollIntoView(){},focus(){doc.activeElement=this},closest(selector){return selector==='#startOverlay'&&['startButton','learnButton'].includes(id)?{}:null},click(){if(this.disabled)return;if(id==='startButton')nodes.get('game').style.display='block';this.listeners.click?.()}}}
-  const ids=['game','tutorial','tutorialPanel','startButton','learnButton','guideButton','tutorialPrev','tutorialNext','tutorialSpotlight','modal','guideStatus','tutorialProgress','tutorialTitle','tutorialText','tutorialTips','tutorialSkip','tutorialClose'];
+  const ids=['game','tutorial','tutorialPanel','startButton','learnButton','guideButton','tutorialPrev','tutorialNext','tutorialSpotlight','modal','guideStatus','tutorialProgress','tutorialTitle','tutorialText','tutorialTips','tutorialVisual','tutorialSkip','tutorialClose'];
   ids.push('tutorialDrag');
   ids.forEach(id=>nodes.set(id,node(id)));nodes.get('game').style.display='none';nodes.get('tutorial').hidden=true;
   const handle=nodes.get('tutorialDrag');
   handle.setPointerCapture=id=>{handle.captured=id};
   handle.hasPointerCapture=id=>handle.captured===id;
   handle.releasePointerCapture=()=>{handle.captured=null};
-  const targets=Object.fromEntries(['.aa','#investigator','#scenePanel','#actions','#hand','.command-panel','#phasebar'].map(selector=>[selector,node(selector)]));
+  const targets=Object.fromEntries(['#scenePanel','#actions','#hand','.command-panel','#phasebar'].map(selector=>[selector,node(selector)]));
   const win={innerWidth:844,innerHeight:390,scrollX:0,scrollY:0,scrollTo(x,y){this.scrollX=x;this.scrollY=y},addEventListener(name,fn){winEvents[name]=fn}};
   const localStorage={getItem(){if(storageFails)throw Error('blocked');return storage.value},setItem(_,value){if(storageFails)throw Error('blocked');storage.value=value}};
   const runtime={document:doc,window:win,localStorage,phaseTransitionActive:transition};
@@ -52,12 +52,12 @@ function setup({saved=null,storageFails=false,transition=false}={}){
   function key(value,shiftKey=false){let prevented=false;nodes.get('tutorialPanel').listeners.keydown({key:value,shiftKey,preventDefault(){prevented=true}});return prevented}
   return{nodes,targets,doc,win,winEvents,events,storage,state,click,key,setPhasePending:value=>{runtime.phaseTransitionActive=value},open:()=>!nodes.get('tutorial').hidden};
 }
-test('主动选择新人指导，七步完成不扣资源或行动',()=>{
+test('主动选择新人指导，五步完成不扣资源或行动',()=>{
   const g=setup(),before=JSON.stringify(g.state);g.click('learnButton');
   assert.equal(g.open(),true);assert.equal(g.nodes.get('game').inert,true);
-  assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 7');
+  assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 5');
   assert.equal(g.nodes.get('tutorialPrev').disabled,true);
-  for(let i=0;i<6;i++)g.click('tutorialNext');
+  for(let i=0;i<4;i++)g.click('tutorialNext');
   assert.equal(g.nodes.get('tutorialNext').textContent,'开始调查');g.click('tutorialNext');
   assert.equal(g.open(),false);assert.equal(g.nodes.get('game').inert,false);assert.equal(g.doc.body.style.overflow,'');
   assert.equal(g.storage.value,'seen');assert.equal(JSON.stringify(g.state),before);
@@ -65,7 +65,7 @@ test('主动选择新人指导，七步完成不扣资源或行动',()=>{
 });
 test('跳过后不再自动出现，顶栏可随时重看',()=>{
   const g=setup();g.click('learnButton');g.click('tutorialSkip');g.click('startButton');assert.equal(g.open(),false);
-  g.click('guideButton');assert.equal(g.open(),true);assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 7');
+  g.click('guideButton');assert.equal(g.open(),true);assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 5');
 });
 test('菜单新人指导可启动并打开已看过的教学',()=>{
   const g=setup({saved:'seen'});g.click('learnButton');assert.equal(g.open(),true);assert.equal(g.nodes.get('game').style.display,'block');
@@ -76,7 +76,7 @@ test('弹窗进行中不覆盖检定或打开教学',()=>{
 });
 test('上一步边界和 Escape 退出均安全',()=>{
   const g=setup();g.click('learnButton');g.click('tutorialNext');g.click('tutorialPrev');g.click('tutorialPrev');
-  assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 7');assert.equal(g.key('Escape'),true);assert.equal(g.open(),false);
+  assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 5');assert.equal(g.key('Escape'),true);assert.equal(g.open(),false);
 });
 test('Tab 焦点限制在教学内，关闭后恢复焦点',()=>{
   const g=setup({saved:'seen'});g.click('startButton');g.click('guideButton');g.nodes.get('tutorialNext').focus();
@@ -98,11 +98,11 @@ test('默认位置居中偏右，不随高亮目标左右跳动',()=>{
     target.getBoundingClientRect=()=>({left,top:40,right:left+300,bottom:240,width:300,height:200});
   }
   g.click('learnButton');
-  for(let step=0;step<7;step++){
+  for(let step=0;step<5;step++){
     const panel=g.nodes.get('tutorialPanel');
     assert.equal(parseFloat(panel.style.left),(1440-380)*0.66);assert.equal(panel.style.top,'350px');
     assert.equal(g.nodes.get('tutorialSpotlight').style.left,step%2?'1045px':'15px');
-    if(step<6)g.click('tutorialNext');
+    if(step<4)g.click('tutorialNext');
   }
   g.winEvents.scroll();assert.equal(parseFloat(g.nodes.get('tutorialPanel').style.left),(1440-380)*0.66);
 });
@@ -164,12 +164,32 @@ test('标题栏方向键移动，Home 复位，不截获正文及按钮点击',(
   key('ArrowLeft');assert.equal(parseFloat(panel.style.left),parseFloat(before.left)-16);
   key('ArrowDown',true);assert.equal(parseFloat(panel.style.top),parseFloat(before.top)+40);
   key('Home');assert.deepEqual(panel.style,before);assert.equal(panel.listeners.pointerdown,undefined);
-  g.click('tutorialNext');assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 2 / 7');
+  g.click('tutorialNext');assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 2 / 5');
+});
+
+test('五步均配本地图示，正文保持简短且每步只有一条提醒',()=>{
+  const g=setup();g.click('learnButton');const visuals=[];
+  for(let i=0;i<5;i++){
+    const text=g.nodes.get('tutorialText').textContent;
+    const tips=g.nodes.get('tutorialTips').innerHTML;
+    const visual=g.nodes.get('tutorialVisual').innerHTML;
+    assert.ok(text.length<=50,text);assert.equal((tips.match(/<li>/g)||[]).length,1);
+    assert.ok(visual.length>0);assert.doesNotMatch(visual,/https?:/);visuals.push(visual);
+    for(const [,asset] of visual.matchAll(/src="([^"]+)"/g))assert.ok(fs.existsSync(path.join(__dirname,'..',asset)),asset);
+    if(i<4)g.click('tutorialNext');
+  }
+  assert.equal(new Set(visuals).size,5);assert.equal(g.nodes.get('tutorialNext').textContent,'开始调查');
+  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+  assert.ok(html.includes('id="tutorialVisual" class="tutorial-visual" aria-hidden="true"'));
+  assert.ok(html.includes('tutorial.css?v=illustrated-five-1'));assert.ok(!html.includes('七步'));
+  assert.ok(fs.existsSync(path.join(__dirname,'..','assets/images/noir-atlas.webp')));
+  const css=fs.readFileSync(path.join(__dirname,'..','tutorial.css'),'utf8');
+  assert.match(css,/@media\(orientation:landscape\) and \(max-height:440px\)/);
 });
 
 test('教学入口与所有目标区域均存在，脚本随游戏本地加载',()=>{
   const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
   for(const id of ['tutorial','tutorialPanel','tutorialSpotlight','learnButton','guideButton','tutorialClose','tutorialSkip','tutorialPrev','tutorialNext','tutorialTitle','tutorialText','tutorialTips','tutorialProgress','guideStatus','investigator','scenePanel','actions','hand','phasebar'])assert.ok(html.includes(`id="${id}"`),id);
-  assert.ok(html.includes('src="tutorial.js?v=home-dialog-entry-3"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
+  assert.ok(html.includes('src="tutorial.js?v=illustrated-five-1"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
   assert.ok(html.includes('id="tutorialDrag"'));assert.ok(html.includes('拖动调整位置'));
 });

@@ -9,14 +9,14 @@
   const handle = byId('tutorialDrag');
   if (!game || !overlay || !panel || !start || !learn || !guide || !previous || !next || !spotlight) return;
   const key = 'arkham-tutorial-v1';
+  // Local game artwork plus simple diagrams; no downloads or tutorial-only assets.
+  const art = (x,y,label) => `<span class="tutorial-art art" style="--art-x:${x}%;--art-y:${y}%"></span><b>${label}</b>`;
   const steps = [
-    { target: '.aa', title: '先看这一局的目标', text: '你要调查这座异常的宅邸，在生命或理智耗尽、议程走到终局之前找到真相。', tips: ['先收集 3 个线索，再用「推进幕」花费 3 线索和 1 次行动。', '推进幕后前往阁楼，执行「完成调查」达成胜利。议程旁的末日数字代表逼近的危险。'] },
-    { target: '#investigator', title: '人物牌就是你的状态面板', text: '生命、理智和四项属性都在这里。底部统一显示资源、线索、剩余行动和当前位置。', tips: ['资源用于打出卡牌；线索用于推进目标。它们不是同一种东西。', '每个调查阶段有 3 次行动。生命或理智降到 0，就会失败。'] },
-    { target: '#scenePanel', title: '去哪里，调查什么？', text: '场景里标出了地点的「遮蔽」和剩余线索。调查成功，会从这里获得 1 个线索。', tips: ['移动只能前往相邻地点。用「移动」按钮探索未揭示的地点；已揭示且相邻的地点也可直接点地图移动。', '调查会用智慧对抗遮蔽，并抽取混沌指示物。加上指示物修正后达到难度才算成功。'] },
-    { target: '#actions', title: '每回合只有 3 次行动', text: '抽牌、拿资源、移动、调查、战斗、闪避，以及打出资产或事件，通常各消耗 1 次行动。', tips: ['「资源」行动获得 1 资源；「抽牌」行动抽 1 张牌。同一种行动可以重复做。', '建议先查看手牌需要多少资源，再决定是装备武器、调查，还是补给。没有敌人时，战斗和闪避不可用。'] },
-    { target: '#hand', title: '手牌怎么用？', text: '资产打出后留在装备区；事件打出后结算效果。技能牌不能直接打出，要在匹配属性的检定窗口中投入。', tips: ['卡牌上方的数字是资源费用。打出资产或事件除了付资源，还需要 1 次行动。手槽最多放 2 件手部资产。', '检定中可选中技能牌，再抽取混沌指示物，最后点击「确定」结算。起手会避开弱点，之后抽到弱点会受恐惧。'] },
-    { target: '.command-panel', title: '遇到敌人，不要只顾调查', text: '战斗和闪避也需要检定。成功战斗通常造成 1 点伤害；成功闪避会使敌人力竭并脱离交缠。', tips: ['与就绪敌人交缠时，做战斗、闪避以外的普通行动，会先受到借机攻击。移动也不例外。', '这局的 .45 自动手枪能提高战斗检定，并让成功攻击额外造成 1 点伤害。没有足够资源或手槽就不能装备。'] },
-    { target: '#phasebar', title: '结束回合之后做什么？', text: '点「结束回合」后，按「继续」依次经过敌人、维持、神话阶段，再回到调查阶段。第一回合从调查开始。', tips: ['敌人可能攻击；维持会抽牌、获得资源并恢复敌人；神话会推进末日并抽遭遇。', '新一轮调查阶段恢复 3 次行动。有检定弹窗时先完成检定。准备好了就开始调查；顶栏「?」可以随时重看。'] }
+    { target: '#scenePanel', title: '找线索，揭开真相', text: '调查收集 3 个线索 → 推进幕 → 前往阁楼完成调查。', tips: ['移动只能去相邻地点；生命或理智归零会失败。'], visual: '<img class="tutorial-room" src="assets/images/noir-study.webp" alt="" width="344" height="104"><div class="tutorial-route"><b>调查</b><span>→</span><b>3 线索</b><span>→</span><b>阁楼</b></div>' },
+    { target: '#actions', title: '每回合，3 次行动', text: '调查、移动、抽牌、拿资源、出牌等，通常各花 1 次行动。', tips: ['先看剩余行动，再决定下一步。'], visual: '<div class="tutorial-action-row"><span><i>1</i>调查</span><span><i>2</i>移动</span><span><i>3</i>补给</span></div><small class="tutorial-caption">举例：你也可以重复同一种行动</small>' },
+    { target: '#hand', title: '先看卡，再出牌', text: '双击手牌看效果，再确认出牌；技能牌在检定时投入。', tips: ['资产留在场上；事件结算后弃置。'], visual: `<div class="tutorial-card-pair"><div>${art(33.3333,0,'资产 · 装备武器')}</div><span>／</span><div>${art(100,50,'技能 · 帮助检定')}</div></div>` },
+    { target: '.command-panel', title: '遇到敌人，先处理', text: '选择战斗造成伤害，或闪避让敌人力竭并脱离交缠。', tips: ['交缠中的就绪敌人，会对多数其他行动借机攻击。'], visual: `<div class="tutorial-card-pair"><div>${art(66.6667,0,'战斗 · 击败敌人')}</div><span>／</span><div>${art(33.3333,50,'闪避 · 暂时脱身')}</div></div>` },
+    { target: '#phasebar', title: '行动结束，继续下一轮', text: '点「结束回合」，再按「继续」走完后续阶段。', tips: ['新的调查阶段恢复 3 行动；顶栏「?」可重看。'], visual: '<div class="tutorial-phase-flow"><span><i>Ⅰ</i>敌人<small>攻击</small></span><b>→</b><span><i>Ⅱ</i>维持<small>补给</small></span><b>→</b><span><i>Ⅲ</i>神话<small>遭遇</small></span></div>' }
   ];
   let active = false, index = 0, lastFocus = null;
   let savedOverflow = '', savedInert = false, savedScroll = [0, 0], target = null;
@@ -86,6 +86,7 @@
     const step = steps[index];
     byId('tutorialProgress').textContent = `新人指导 ${index+1} / ${steps.length}`;
     byId('tutorialTitle').textContent = step.title;
+    byId('tutorialVisual').innerHTML = step.visual;
     byId('tutorialText').textContent = step.text;
     byId('tutorialTips').innerHTML = step.tips.map(tip=>`<li>${tip}</li>`).join('');
     previous.disabled = index === 0;

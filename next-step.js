@@ -5,6 +5,30 @@
   if(!arrow || !label || !toggle)return;
   let enabled=true,scheduled=false;
   const highlight=byId('nextStepTarget');
+  const cueDuration=4800,iconSize=52;
+  let cueKey=null,cueExpired=false,hideTimer=null;
+  function hideCue(){
+    arrow.hidden=true;arrow.classList.remove('is-cue-active');
+    if(highlight){highlight.hidden=true;highlight.classList.remove('is-cue-active');}
+  }
+  function resetCue(){
+    if(hideTimer!==null)clearTimeout(hideTimer);
+    hideTimer=null;cueKey=null;cueExpired=false;hideCue();
+  }
+  function beginCue(key){
+    resetCue();cueKey=key;
+    // Flush the removed class only on a new step, so its finite animation restarts.
+    void arrow.offsetWidth;
+    arrow.classList.add('is-cue-active');highlight?.classList.add('is-cue-active');
+    hideTimer=setTimeout(()=>{
+      if(cueKey!==key)return;
+      hideTimer=null;cueExpired=true;hideCue();
+    },cueDuration);
+  }
+  function stepKey(choice){
+    return JSON.stringify([choice[0],choice[1],S.round,S.phase,S.location,S.actions,S.clues,S.actIdx,S.resources,
+      (S.enemies||[]).map(e=>[e.card?.id,e.location,e.hp,e.engaged,e.exhausted])]);
+  }
   const action=(name,text)=>[`#actions [data-action="${name}"]`,text];
   function destination(){
     const locations=typeof LOCATIONS==='undefined'?{}:LOCATIONS;
@@ -57,9 +81,12 @@
   function update(){
     scheduled=false;
     const choice=choose(),target=choice && document.querySelector(choice[0]);
-    if(!target || target.disabled || target.isConnected===false){arrow.hidden=true;if(highlight)highlight.hidden=true;return;}
+    if(!target || target.disabled || target.isConnected===false){resetCue();return;}
     const rect=target.getBoundingClientRect();
-    if(rect.width<=0 || rect.height<=0){arrow.hidden=true;if(highlight)highlight.hidden=true;return;}
+    if(rect.width<=0 || rect.height<=0){resetCue();return;}
+    const key=stepKey(choice);
+    if(key!==cueKey)beginCue(key);
+    if(cueExpired){hideCue();return;}
     const width=window.innerWidth,height=window.innerHeight;
     let text=choice[1],direction='down';
     if(rect.bottom<=0){text=`向上查看：${choice[1]}`;direction='up';}
@@ -80,7 +107,7 @@
     const left=Math.max(8,Math.min(width-box.width-8,x));
     arrow.style.left=left+'px';
     arrow.style.top=Math.max(8,Math.min(height-box.height-8,y))+'px';
-    arrow.style.setProperty('--tip-offset',Math.max(0,Math.min(box.width-26,rect.left+rect.width/2-left-13))+'px');
+    arrow.style.setProperty('--tip-offset',Math.max(0,Math.min(box.width-iconSize,rect.left+rect.width/2-left-iconSize/2))+'px');
     if(highlight){
       highlight.hidden=rect.bottom<=0||rect.top>=height||rect.right<=0||rect.left>=width;
       Object.assign(highlight.style,{left:Math.max(1,rect.left-3)+'px',top:Math.max(1,rect.top-3)+'px',width:Math.max(0,Math.min(width-1,rect.right+3)-Math.max(1,rect.left-3))+'px',height:Math.max(0,Math.min(height-1,rect.bottom+3)-Math.max(1,rect.top-3))+'px'});
@@ -88,7 +115,7 @@
   }
   function schedule(){if(!scheduled){scheduled=true;requestAnimationFrame(update);}}
   toggle.addEventListener('click',()=>{
-    enabled=!enabled;toggle.setAttribute('aria-pressed',String(enabled));toggle.textContent=`智能指导：${enabled?'开':'关'}`;schedule();
+    enabled=!enabled;resetCue();toggle.setAttribute('aria-pressed',String(enabled));toggle.textContent=`智能指导：${enabled?'开':'关'}`;schedule();
   });
   // Do not observe the arrow itself: changing its label/position must not loop.
   const observer=new MutationObserver(schedule);
@@ -100,7 +127,8 @@
   window.visualViewport?.addEventListener('resize',schedule);
   window.visualViewport?.addEventListener('scroll',schedule);
   document.addEventListener('arkham:phase-ready',schedule);
-  document.addEventListener('arkham:game-started',schedule);
-  document.addEventListener('arkham:menu',schedule);
+  document.addEventListener('arkham:game-started',()=>{resetCue();schedule();});
+  document.addEventListener('arkham:menu',()=>{resetCue();schedule();});
+  window.addEventListener('pagehide',resetCue);
   schedule();
 })();

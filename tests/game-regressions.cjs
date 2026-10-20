@@ -644,3 +644,42 @@ test('三线索推进幕后移动至阁楼可达成胜利结算',()=>{
   assert.match(g.document.getElementById('modalBox').innerHTML,/调查成功/);
 });
 
+function testLesson(g){return g.document.getElementById('modalBox').innerHTML.match(/<section class="test-learning"[\s\S]*?<\/section>/)?.[0]||'';}
+test('首关调查说明用基础智慧对比遮蔽，抽取前达标不等于已成功',()=>{
+ const g=game();g.run("requestAction('investigate')");const lesson=testLesson(g);
+ assert.match(lesson,/用人物牌上的「智慧」对比地点的「遮蔽值」 2/);
+ assert.match(lesson,/data-part="base">基础智慧<b>3<\/b>/);assert.match(lesson,/data-part="before">抽取前合计<b>3<\/b>/);
+ assert.match(lesson,/平手也算；自动失败除外/);assert.match(g.document.getElementById('modalBox').innerHTML,/抽取前足够，尚未结算/);assert.equal(g.get('S.actions'),3);
+});
+test('四种属性的说明来自实际人物值，遭遇难度不会误称地点遮蔽',()=>{
+ for(const [skill,name,value]of [['will','意志',3],['int','智慧',3],['combat','战斗',4],['agility','敏捷',2]]){
+  const g=game();g.run(`startTest('${skill}',4,'遭遇检定',()=>{})`);const lesson=testLesson(g);
+  assert.ok(lesson.includes(`基础${name}<b>${value}</b>`));assert.match(lesson,/对比当前效果要求的难度 4/);assert.doesNotMatch(lesson,/地点的「遮蔽值」/);
+ }
+});
+test('投入和取消投入实时更新卡牌加成，不提前消耗卡牌或行动',()=>{
+ const g=game();g.run("S.hand=[{...INVESTIGATOR.deck.find(c=>c.id==='percep')}];requestAction('investigate');toggleCommit(0)");
+ assert.match(testLesson(g),/data-part="committed">投入卡牌<b>2<\/b>/);assert.match(testLesson(g),/data-part="before">抽取前合计<b>5<\/b>/);
+ g.run('toggleCommit(0)');assert.match(testLesson(g),/data-part="committed">投入卡牌<b>0<\/b>/);assert.equal(g.get('S.hand.length'),1);assert.equal(g.get('S.actions'),3);
+});
+test('装备战斗加成和闪避效果分别展示，后者消耗后结果仍显示本次真实加成',()=>{
+ const g=game();g.enemy();g.run("S.assets=[{card:{...INVESTIGATOR.deck.find(c=>c.id==='p45')},exhausted:false}];requestAction('fight')");assert.match(testLesson(g),/对比敌人的「战斗值」 2/);assert.match(testLesson(g),/data-part="bonus">装备／效果<b>1<\/b>/);assert.match(testLesson(g),/data-part="before">抽取前合计<b>5<\/b>/);
+ const h=game();h.enemy();h.run("S.evadeBonus=2;requestAction('evade');resolveTest()");assert.equal(h.get('S.evadeBonus'),0);assert.match(testLesson(h),/对比敌人的「闪避值」 2/);assert.match(testLesson(h),/data-part="bonus">装备／效果<b>2<\/b>/);assert.match(testLesson(h),/4（抽取前） \+ 0（混沌修正） = 4/);
+});
+test('抽取后展示完整算式和比较，平手成功且投入已弃置仍保留加成解释',()=>{
+ const g=game();g.run("S.hand=[{...INVESTIGATOR.deck.find(c=>c.id==='percep')}];S.chaos=[{label:'-3',mod:-3}];requestAction('investigate');toggleCommit(0);resolveTest()");
+ assert.match(testLesson(g),/5（抽取前） − 3（混沌修正） = 2/);assert.match(testLesson(g),/最终 2 ≥ 难度 2：成功/);assert.match(testLesson(g),/投入卡牌<b>2<\/b>/);assert.equal(g.get('S.testResult'),true);assert.equal(g.get('S.hand.length'),0);assert.equal(g.get('S.discard.length'),1);
+});
+test('自动失败不使用普通比较解释，负值归零后难度0可正常成功',()=>{
+ const g=game();g.run("S.chaos=[{label:'自动失败',autofail:true}];startTest('int',0,'调查',()=>{});resolveTest()");assert.match(testLesson(g),/不比较数值，本次直接失败/);assert.doesNotMatch(testLesson(g),/最终 0 ≥ 难度 0：成功/);assert.equal(g.get('S.testResult'),false);
+ const h=game();h.run("S.chaos=[{label:'-8',mod:-8}];startTest('int',0,'调查',()=>{});resolveTest()");assert.match(testLesson(h),/= -5，最低按 0 计算/);assert.match(testLesson(h),/最终 0 ≥ 难度 0：成功/);assert.equal(h.get('S.testResult'),true);
+});
+test('符号指示物展示实际结算修正，包含上古印记和困难连抽',()=>{
+ const g=game();g.run("S.chaos=[{label:'上古印记',elder:true}];startTest('int',5,'调查',()=>{});resolveTest()");assert.match(testLesson(g),/3（抽取前） \+ 2（混沌修正） = 5/);
+ const h=game();h.run("S.difficulty='hard';S.chaos=[{label:'异教徒',symbol:'cultist'},{label:'-2',mod:-2}];Math.random=()=>0;startTest('int',2,'调查',()=>{});resolveTest()");assert.match(testLesson(h),/3（抽取前） − 2（混沌修正） = 1/);assert.match(testLesson(h),/最终 1 ＜ 难度 2：失败/);
+});
+test('检定讲解只读，不改变随机和游戏状态，样式只作用于弹窗内说明',()=>{
+ const g=game();g.run("requestAction('investigate');Math.random=()=>{throw Error('must not draw')}");const before=g.get('S');g.run("testLearningInfo(S.test);testLearningInfo(S.test,{mod:-1,autofail:false})");assert.deepEqual(g.get('S'),before);
+ assert.match(html,/test-learning.css\?v=values-1/);const css=fs.readFileSync(path.join(__dirname,'..','test-learning.css'),'utf8');assert.match(css,/flex-wrap:wrap/);assert.match(css,/orientation:landscape/);assert.doesNotMatch(css,/#game|#wrap|body\s*\{|\.main\s*\{/);
+});
+

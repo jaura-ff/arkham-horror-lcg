@@ -185,7 +185,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
 </style>
 <link rel="stylesheet" href="noir.css">
-<link rel="stylesheet" href="home.css?v=grouped-menu-1">
+<link rel="stylesheet" href="home.css?v=four-dialogs-2">
 <link rel="stylesheet" href="atlas.css?v=action-confirm-1">
 <link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=asset-icons-1">
@@ -206,32 +206,12 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <p class="home-tagline">门后的低语，正在等你靠近。</p>
       <button class="btn primary start-button" id="startButton" onclick="beginPrologue()"><span class="start-emblem"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#play"></use></svg></span><span>开始游戏<small>ENTER THE PROLOGUE</small></span></button>
       <p class="home-current">单人调查 <span aria-hidden="true">/</span> <span id="homeDifficultyName">标准难度</span></p>
-      <div class="home-options">
-        <details id="homeSettings" class="home-group" name="home-panels">
-          <summary><span>游戏设置</span><small>难度 · 声音</small></summary>
-          <div class="home-group-body">
-            <div class="difficulty-picker home-difficulty"><label for="difficultySelect">调查难度</label><select id="difficultySelect" aria-describedby="difficultyPreview difficultyScope"><option value="easy">简单 / Easy</option><option value="standard" selected>标准 / Standard</option><option value="hard">困难 / Hard</option><option value="expert">专家 / Expert</option></select><p id="difficultyPreview" role="status" aria-live="polite"></p><button id="difficultyInfoButton" type="button" class="btn" aria-haspopup="dialog" aria-controls="difficultyInfo">查看混沌袋</button><details><summary>混沌袋与规则来源</summary><p id="difficultyBag"></p><p>简单／标准使用参考卡正面；困难／专家使用背面。难度开局锁定，返回菜单后可为新一局重选。</p><a href="https://images-cdn.fantasyflightgames.com/filer_public/8d/30/8d308b73-92f1-4b1e-aa7f-ce39e8d79786/night_of_the_zealot_campaign_guide.pdf#page=1" target="_blank" rel="noopener noreferrer">官方《狂热之夜》战役设置</a></details><p id="difficultyScope">按原版《狂热之夜》混沌袋及《聚会》参考卡实现难度；场景、牌组和其他玩法仍为本网页简化版，并非完整官方战役。</p></div>
-            <section class="home-audio" aria-labelledby="homeAudioTitle">
-              <h2 id="homeAudioTitle">声音</h2>
-              <div class="home-audio-buttons">
-                <button id="menuSoundToggle" class="btn" type="button" aria-pressed="true" onclick="document.getElementById('soundToggle').click()">音效：开</button>
-                <button id="menuAmbientToggle" class="btn" type="button" aria-pressed="true" onclick="document.getElementById('ambientToggle').click()">氛围：开</button>
-              </div>
-              <label for="menuSoundVolume">音效音量</label><input id="menuSoundVolume" type="range" min="0" max="100" value="18" oninput="document.getElementById('soundVolume').value=this.value;document.getElementById('soundVolume').dispatchEvent(new Event('input',{bubbles:true}))">
-              <p>旁白可在前序中单独暂停或关闭。</p>
-            </section>
-          </div>
-        </details>
-        <details id="homeHelp" class="home-group" name="home-panels">
-          <summary><span>游玩指南</span><small>教学 · 卡牌</small></summary>
-          <div class="home-group-body home-guide">
-            <p>扮演罗兰·班克斯，收集线索、应对遭遇，在理智耗尽之前找到真相。</p>
-            <button class="btn learn-button" id="learnButton" type="button">新人指导 · 边玩边学</button>
-            <button class="btn atlas-entry" id="menuAtlasButton" type="button">卡牌图鉴 · 效果与用法</button>
-            <p class="home-guide-note">每回合 3 次行动。初次游玩可选简单难度；普通开始不会自动开启教学。</p>
-          </div>
-        </details>
-      </div>
+      <nav class="home-options" aria-label="首页功能">
+        <button id="menuDifficultyButton" type="button" class="home-tile" aria-haspopup="dialog" aria-controls="homeDifficultyDialog"><span>难度设置</span><small>挑战与混沌袋</small></button>
+        <button id="menuSettingsButton" type="button" class="home-tile" aria-haspopup="dialog" aria-controls="homeSettingsDialog"><span>游戏设置</span><small>声音与音量</small></button>
+        <button id="menuTutorialButton" type="button" class="home-tile" aria-haspopup="dialog" aria-controls="homeTutorialDialog"><span>新手教学</span><small>边玩边学</small></button>
+        <button id="menuAtlasButton" type="button" class="home-tile" aria-haspopup="dialog" aria-controls="cardAtlas"><span>图鉴</span><small>卡牌与使用说明</small></button>
+      </nav>
       <p class="start-note">无需登录 · 点击开始后进入故事前序</p>
     </main>
     <aside class="home-case" aria-hidden="true">
@@ -241,6 +221,36 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     </aside>
   </div>
 </div>
+
+<dialog id="homeDifficultyDialog" class="home-dialog" aria-labelledby="homeDifficultyDialogTitle">
+  <div class="home-dialog-shell">
+    <header class="home-dialog-header"><h2 id="homeDifficultyDialogTitle">难度设置</h2><button type="button" class="btn icon-button" data-home-close aria-label="关闭难度设置">×</button></header>
+    <div class="difficulty-picker home-difficulty"><label for="difficultySelect">调查难度</label><select id="difficultySelect" aria-describedby="difficultyPreview difficultyScope"><option value="easy">简单 / Easy</option><option value="standard" selected>标准 / Standard</option><option value="hard">困难 / Hard</option><option value="expert">专家 / Expert</option></select><p id="difficultyPreview" role="status" aria-live="polite"></p><button id="difficultyInfoButton" type="button" class="btn" aria-haspopup="dialog" aria-controls="difficultyInfo">查看混沌袋</button><details><summary>混沌袋与规则来源</summary><p id="difficultyBag"></p><p>简单／标准使用参考卡正面；困难／专家使用背面。难度开局锁定，返回菜单后可为新一局重选。</p><a href="https://images-cdn.fantasyflightgames.com/filer_public/8d/30/8d308b73-92f1-4b1e-aa7f-ce39e8d79786/night_of_the_zealot_campaign_guide.pdf#page=1" target="_blank" rel="noopener noreferrer">官方《狂热之夜》战役设置</a></details><p id="difficultyScope">按原版《狂热之夜》混沌袋及《聚会》参考卡实现难度；场景、牌组和其他玩法仍为本网页简化版，并非完整官方战役。</p></div>
+    <footer class="home-dialog-footer"><button type="button" class="btn primary" data-home-close>确定</button></footer>
+  </div>
+</dialog>
+<dialog id="homeSettingsDialog" class="home-dialog" aria-labelledby="homeSettingsDialogTitle">
+  <div class="home-dialog-shell">
+    <header class="home-dialog-header"><h2 id="homeSettingsDialogTitle">游戏设置</h2><button type="button" class="btn icon-button" data-home-close aria-label="关闭游戏设置">×</button></header>
+    <section class="home-audio" aria-labelledby="homeAudioTitle">
+              <h2 id="homeAudioTitle">声音</h2>
+              <div class="home-audio-buttons">
+                <button id="menuSoundToggle" class="btn" type="button" aria-pressed="true" onclick="document.getElementById('soundToggle').click()">音效：开</button>
+                <button id="menuAmbientToggle" class="btn" type="button" aria-pressed="true" onclick="document.getElementById('ambientToggle').click()">氛围：开</button>
+              </div>
+              <label for="menuSoundVolume">音效音量</label><input id="menuSoundVolume" type="range" min="0" max="100" value="18" oninput="document.getElementById('soundVolume').value=this.value;document.getElementById('soundVolume').dispatchEvent(new Event('input',{bubbles:true}))">
+              <p>旁白可在前序中单独暂停或关闭。</p>
+            </section><p class="home-dialog-note">声音设置即时生效并保存，确定后返回首页。</p>
+    <footer class="home-dialog-footer"><button type="button" class="btn primary" data-home-close>确定</button></footer>
+  </div>
+</dialog>
+<dialog id="homeTutorialDialog" class="home-dialog" aria-labelledby="homeTutorialDialogTitle">
+  <div class="home-dialog-shell">
+    <header class="home-dialog-header"><h2 id="homeTutorialDialogTitle">新手教学</h2><button type="button" class="btn icon-button" data-home-close aria-label="关闭新手教学">×</button></header>
+    <p>从调查目标、每回合行动，到卡牌与检定，跟着七步指引边玩边学。</p><p class="home-dialog-note">点击开始教学后进入故事前序，再进入带指引的新一局。普通开始游戏不会自动开启教学。</p>
+    <footer class="home-dialog-footer"><button type="button" class="btn" data-home-close>返回</button><button class="btn primary learn-button" id="learnButton" type="button">开始教学</button></footer>
+  </div>
+</dialog>
 
 <div id="game" style="display:none">
   <header class="topbar">
@@ -387,6 +397,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     <div class="atlas-tools"><label>搜索卡牌<input id="atlasSearch" type="search" placeholder="名称、效果或用法" autocomplete="off"></label><label>卡牌分类<select id="atlasFilter"><option value="all">全部类型</option><option value="investigator">调查员</option><option value="asset">资产</option><option value="event">事件</option><option value="skill">技能</option><option value="weak">弱点</option><option value="enemy">敌人</option><option value="treachery">诡计</option><option value="location">地点</option><option value="act">幕</option><option value="agenda">议程</option></select></label></div>
     <p id="atlasCount" class="atlas-count" role="status" aria-live="polite"></p>
     <div id="atlasCards" class="atlas-cards"></div>
+    <footer class="home-dialog-footer"><button id="atlasConfirm" type="button" class="btn primary">确定</button></footer>
     <p class="atlas-source">图鉴只供查阅，不会打出卡牌、抽牌或消耗行动。按 Esc 或右上角关闭后继续原来的游戏。</p>
   </div>
 </dialog>
@@ -1595,14 +1606,15 @@ function resolve(code, text){
 <script src="play-guide.js?v=guide-1"></script>
 <script src="phase-transition.js?v=skip-countdown-2"></script>
 <script src="loss-notices.js?v=loss-1"></script>
-<script src="tutorial.js?v=explicit-entry-2"></script>
-<script src="atlas.js"></script>
+<script src="tutorial.js?v=home-dialog-entry-3"></script>
+<script src="atlas.js?v=confirm-close-2"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
 <script src="hand-dialog.js?v=action-confirm-1"></script>
 <script src="discard.js?v=character-deck-1"></script>
 <script src="next-step.js?v=arrow-1"></script>
 <script src="prologue-narration.js?v=three-scenes-2"></script>
 <script src="prologue.js?v=three-scenes-2"></script>
+<script src="home-dialogs.js?v=four-dialogs-2"></script>
 </body>
 </html>
 

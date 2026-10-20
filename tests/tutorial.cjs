@@ -170,6 +170,6 @@ test('标题栏方向键移动，Home 复位，不截获正文及按钮点击',(
 test('教学入口与所有目标区域均存在，脚本随游戏本地加载',()=>{
   const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
   for(const id of ['tutorial','tutorialPanel','tutorialSpotlight','learnButton','guideButton','tutorialClose','tutorialSkip','tutorialPrev','tutorialNext','tutorialTitle','tutorialText','tutorialTips','tutorialProgress','guideStatus','investigator','scenePanel','actions','hand','phasebar'])assert.ok(html.includes(`id="${id}"`),id);
-  assert.ok(html.includes('src="tutorial.js?v=explicit-entry-2"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
+  assert.ok(html.includes('src="tutorial.js?v=home-dialog-entry-3"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
   assert.ok(html.includes('id="tutorialDrag"'));assert.ok(html.includes('拖动调整位置'));
 });

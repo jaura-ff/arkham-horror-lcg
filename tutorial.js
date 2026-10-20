@@ -123,7 +123,7 @@
   document.addEventListener('arkham:phase-ready',()=>{if(queuedOpen!==null){const force=queuedOpen;queuedOpen=null;open(force);}});
   // Only an explicit Learn entry requests onboarding; normal starts never do.
   document.addEventListener('arkham:game-started',event=>{queuedOpen=null;if(event.detail?.tutorial===true)open(true);});
-  learn.addEventListener('click',()=>{if(typeof beginPrologue==='function'){beginPrologue(true);return;}start.click();open(true);});
+  learn.addEventListener('click',()=>{window.closeHomeDialogs?.();if(typeof beginPrologue==='function'){beginPrologue(true);return;}start.click();open(true);});
   guide.addEventListener('click',()=>open(true));
   previous.addEventListener('click',()=>{if(active && index>0){index--;render();}});
   next.addEventListener('click',()=>{if(!active)return;if(index===steps.length-1)close();else{index++;render();}});

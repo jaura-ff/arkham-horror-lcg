@@ -54,6 +54,7 @@
   byId('menuAtlasButton').addEventListener('click',open);
   byId('atlasButton').addEventListener('click',open);
   byId('atlasClose').addEventListener('click',()=>dialog.close());
+  byId('atlasConfirm')?.addEventListener('click',()=>dialog.close());
   dialog.addEventListener('close',()=>{document.body.style.overflow=savedOverflow;if(lastFocus?.isConnected!==false)lastFocus?.focus();});
   search.addEventListener('input',render);filter.addEventListener('change',render);
 })();

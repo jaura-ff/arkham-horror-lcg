@@ -13,11 +13,11 @@ test('取消检定、取消移动与非法出牌不会播放操作音',()=>{
   const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);requestAction('investigate');cancelTest();S.revealed.hallway=true;requestMapMove('hallway');closeModal();S.resources=0;S.hand=[{...INVESTIGATOR.deck[0]}];onHandCard(0)`);assert.deepEqual(g.get('cues'),[]);
 });
 test('抽取指示物和成功移动仅各播放一次，重复确认无效',()=>{
-  const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);investigate();resolveTest();resolveTest();finishTest(true);S.revealed.hallway=true;requestMapMove('hallway');confirmAction();confirmAction()`);assert.deepEqual(g.get('cues'),['token','clue','move']);
+  const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);investigate();resolveTest();resolveTest();finishTest(true);S.revealed.hallway=true;requestMapMove('hallway');confirmAction();confirmAction()`);assert.deepEqual(g.get('cues'),['token','testSuccess','clue','move']);
 });
 test('攻击失败专属提示只在实际结算响一次，取消和成功不误报',()=>{
- const g=game();g.enemy();g.run(`let cues=[];playGameSfx=name=>cues.push(name);requestAction('fight');cancelTest()`);assert.deepEqual(g.get('cues'),[]);g.run(`S.chaos=[{label:'失败',autofail:true}];requestAction('fight');resolveTest();finishTest(false);finishTest(false)`);assert.deepEqual(g.get('cues'),['token','attackMiss']);
- const h=game();h.enemy();h.run(`let cues=[];playGameSfx=name=>cues.push(name);fight();resolveTest();finishTest(true)`);assert.deepEqual(h.get('cues'),['token']);
+ const g=game();g.enemy();g.run(`let cues=[];playGameSfx=name=>cues.push(name);requestAction('fight');cancelTest()`);assert.deepEqual(g.get('cues'),[]);g.run(`S.chaos=[{label:'失败',autofail:true}];requestAction('fight');resolveTest();finishTest(false);finishTest(false)`);assert.deepEqual(g.get('cues'),['token','testFailure','attackMiss']);
+ const h=game();h.enemy();h.run(`let cues=[];playGameSfx=name=>cues.push(name);fight();resolveTest();finishTest(true)`);assert.deepEqual(h.get('cues'),['token','testSuccess']);
 });
 
 test('遭遇怪物和混沌搜索生成怪物各有一次提示，空牌堆不误报',()=>{
@@ -38,7 +38,17 @@ test('新地点和已探索地点移动均提示，确认取消不响',()=>{
 });
 
 test('调查只有实际获得线索才响，失败及空地点成功不响线索提示',()=>{
- for(const empty of [false,true])for(const success of [false,true]){const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);S.locClues.study=${empty?0:2};S.chaos=[${success?"{label:'0',mod:0}":"{label:'失败',autofail:true}"}];requestAction('investigate');${empty?'confirmAction();':''}resolveTest();finishTest(S.testResult);finishTest(true)`);assert.deepEqual(g.get('cues'),success&&!empty?['token','clue']:['token']);}
+ for(const empty of [false,true])for(const success of [false,true]){const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);S.locClues.study=${empty?0:2};S.chaos=[${success?"{label:'0',mod:0}":"{label:'失败',autofail:true}"}];requestAction('investigate');${empty?'confirmAction();':''}resolveTest();finishTest(S.testResult);finishTest(true)`);assert.deepEqual(g.get('cues'),['token',success?'testSuccess':'testFailure',...(success&&!empty?['clue']:[])]);}
+});
+
+test('四属性与遭遇检定成功失败均有对应音效和视觉反馈，重复抽取不重播',()=>{
+ for(const skill of ['will','int','combat','agility'])for(const success of [true,false]){
+  const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);S.chaos=[${success?"{label:'0',mod:0}":"{label:'自动失败',autofail:true}"}];startTest('${skill}',0,'结果反馈测试',()=>{});resolveTest();resolveTest()`);assert.deepEqual(g.get('cues'),['token',success?'testSuccess':'testFailure']);const markup=g.document.getElementById('modalBox').innerHTML;assert.match(markup,success?/test-feedback test-success/:/test-feedback test-failure/);assert.match(markup,/role="status" aria-live="polite"/);g.run('finishTest(S.testResult);finishTest(true)');assert.equal(g.get('cues.length'),2);
+ }
+});
+
+test('取消与致命借机攻击不误播结果，减少动态效果时关闭结果动画',()=>{
+ const g=game();g.enemy();g.run(`let cues=[];playGameSfx=name=>cues.push(name);requestAction('investigate');cancelTest();S.hp=1;requestAction('investigate');resolveTest()`);assert.deepEqual(g.get('cues'),['hurt','sanity']);assert.equal(g.get('S.gameOver'),true);assert.match(html,/@media\(prefers-reduced-motion:reduce\)\{\.test-feedback.test-success,\.test-feedback.test-failure\{animation:none\}\}/);
 });
 
 test('实际生命理智损失触发对应音效，零伤害及失效音频不阻断游戏',()=>{

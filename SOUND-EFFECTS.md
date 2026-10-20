@@ -1,5 +1,13 @@
 # Locally hosted CC0 sound effects
 
+## Universal test-result feedback (2026-10-20)
+
+Every resolved skill test now plays exactly one `testSuccess` or `testFailure` cue when its actual chaos-token result is determined, covering all four skills, optional actions and forced encounter tests. Cancelled previews and fatal opportunity attacks before a draw have no result cue; duplicate draw/result clicks do not replay it. Existing clue discovery, attack miss, loss and monster cues remain separate effects at their real resolution points. The game logic and success threshold are unchanged.
+
+`assets/audio/kenney/test-success.mp3` derives from Interface Sounds / `confirmation_002.ogg`; `test-failure.mp3` derives from `error_001.ogg`, with lowered pitch. Both are 0.75-second mono 44.1 kHz/96 kbps CC0 derivatives, filtered with short fades, I=-24/TP=-6 and per-cue gain .7. They use existing saved sound controls, caching and cleanup. Fifteen selected cues preload after player entry. No newly generated media or external runtime calls were added.
+
+The existing result dialog now shows a larger gold success / dark-red failure badge, with clear result text and a polite live region. A single short transform/opacity entrance adds feedback, disabled for reduced-motion preferences. No flashing, extra dialog, automatic closure or delay is introduced, and Back cannot undo a drawn token. No perceptual listening/browser visual QA is claimed.
+
 ## Creature-specific generated cues (2026-10-20)
 
 The user approved two distinct short creature sounds before generation and requested their integration. These new assets are generated production media, **not Kenney CC0 recordings**. They live outside the kenney/ directory; existing CC0 attribution remains unchanged.

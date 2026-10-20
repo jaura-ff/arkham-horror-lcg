@@ -4,6 +4,8 @@ All visible action entries use Back / Continue before execution. Draw, resource,
 
 Investigation, fight and evade open the commitment preview directly. A staged test spends no action, commits no card and triggers no opportunity attack until Continue · Draw chaos token. Back discards the preview and selections only. Evade bonuses survive cancellation. Costs and opportunity attacks run exactly once before drawing; a fatal opportunity attack aborts the draw and commitment discard.
 
+Investigation remains available at locations with zero clues. These first show a small Back / Continue warning that success cannot discover a clue and proceeding will still cost one action (and may provoke an opportunity attack). Back leaves all state untouched. Continue opens the usual cancellable commitment preview; the action is spent only when the player draws the chaos token. A successful empty-location investigation leaves both location and investigator clue counts unchanged, never creates clues or makes counts negative. Existing phase/action/modal locks still apply.
+
 After a token is drawn, Back is disabled and Continue resolves the result. Already-triggered encounter tests cannot be cancelled, and do not spend another action. No snapshots are restored and no randomness or hidden information can be undone.
 
 Confirmation locks prevent concurrent UI actions; continuing clears its pending callback before executing, preventing duplicate clicks from paying twice. New games clear pending callbacks. Existing direct engine calls retain their execution behavior for non-UI callers.

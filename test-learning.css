@@ -1,0 +1,11 @@
+/* Explain the current calculation inside its existing modal, never on the board. */
+.test-learning{margin:0 0 14px;padding:11px 12px;border-left:2px solid #b7955b;background:#2b2419;color:#e2d2b3;font-size:12px;line-height:1.7;text-align:left}
+.test-learning h4{margin:0 0 5px;font-size:12px;font-weight:500;letter-spacing:1px;color:var(--gold)}
+.test-learning p{margin:0;overflow-wrap:anywhere}
+.test-learning-formula{display:flex;flex-wrap:wrap;align-items:center;gap:4px 7px;margin:9px 0;font-size:10px}
+.test-learning-formula>span{display:flex;flex-direction:column;align-items:center;min-width:65px;padding:4px 6px;border:1px solid #695335;background:#211c14;color:var(--dim)}
+.test-learning-formula b{font:19px/1.3 Georgia,serif;color:var(--gold)}
+.test-learning-formula i{font-style:normal;font-size:15px;color:var(--gold)}
+.test-learning .test-learning-note{font-size:11px;color:var(--dim)}
+.test-learning .test-learning-outcome{padding-top:5px;border-top:1px solid #695335;font-size:12px;color:var(--text)}
+@media(orientation:landscape) and (max-height:440px){.test-learning{margin-bottom:10px;padding:7px 10px;font-size:11px;line-height:1.6}.test-learning-formula{margin:6px 0;gap:3px 6px}.test-learning-formula>span{padding:2px 5px}.test-learning-formula b{font-size:17px}}

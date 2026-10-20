@@ -196,6 +196,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="prologue.css?v=narration-1">
 <link rel="stylesheet" href="tutorial.css?v=standalone-outro-1">
 <link rel="stylesheet" href="board.css?v=icon-proportions-3">
+<link rel="stylesheet" href="test-learning.css?v=values-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -1232,6 +1233,23 @@ function startTest(skill, difficulty, label, onDone, bonus=0,actionExempt=null,o
   renderActions();
 }
 
+function testLearningInfo(t,token=null){
+  const skill=SKILL[t.skill],base=skillValue(t.skill);
+  const committed=S.committed.reduce((sum,card)=>sum+commitBonus(card),0);
+  const before=base+t.bonus+committed;
+  const difficultySource=t.label.startsWith('调查')?'地点的「遮蔽值」':t.label.startsWith('战斗')?'敌人的「战斗值」':t.label.startsWith('闪避')?'敌人的「闪避值」':'当前效果要求的难度';
+  let outcome='<p class="test-learning-note">再抽混沌指示物，把修正加进去。最终值 ≥ 难度就成功，平手也算；自动失败除外。</p>';
+  if(token){
+    if(token.autofail)outcome='<p class="test-learning-outcome">抽到「自动失败」：不比较数值，本次直接失败；最终技能值显示为 0。</p>';
+    else {
+      const raw=before+token.mod,final=Math.max(0,raw),passed=final>=t.difficulty;
+      outcome=`<p class="test-learning-outcome">${before}（抽取前） ${token.mod>=0?'+':'−'} ${Math.abs(token.mod)}（混沌修正） = ${raw}${raw<0?'，最低按 0 计算':''}。<br>最终 ${final} ${passed?'≥':'＜'} 难度 ${t.difficulty}：${passed?'成功':'失败'}。</p>`;
+    }
+  }
+  return `<section class="test-learning" aria-label="检定数值讲解"><h4>本次用什么检定？</h4><p>用人物牌上的「${skill}」对比${difficultySource} ${t.difficulty}。</p>
+    <div class="test-learning-formula" aria-label="抽取前数值组成"><span data-part="base">基础${skill}<b>${base}</b></span><i>+</i><span data-part="bonus">装备／效果<b>${t.bonus}</b></span><i>+</i><span data-part="committed">投入卡牌<b>${committed}</b></span><i>=</i><span data-part="before">抽取前合计<b>${before}</b></span></div>${outcome}</section>`;
+}
+
 function openTestModal(){
   const t = S.test;
   const sk = SKILL[t.skill];
@@ -1244,8 +1262,9 @@ function openTestModal(){
       <div class="testinfo">
         ${SKILL_ICON[t.skill]} 属性：<b>${sk}</b>（基础 ${base}）<br>
         难度：<b>${t.difficulty}</b>　当前合计：<b>${total}</b>
-        ${total>=t.difficulty?' <span class="result-good">(已达标)</span>':' <span class="result-bad">(未达标)</span>'}
+        ${total>=t.difficulty?' <span class="result-good">(抽取前足够，尚未结算)</span>':' <span class="result-bad">(抽取前不足)</span>'}
       </div>
+      ${testLearningInfo(t)}
       <div style="font-size:11px;color:var(--dim)">投入卡牌（可选，点击选中/取消）：</div>
       <div class="commits">
         ${committable.length===0?'<div style="color:var(--dim);font-size:11px">没有可投入的牌</div>':committable.map((c)=>{
@@ -1343,6 +1362,7 @@ function resolveTest(){
   const base = skillValue(t.skill);
   let total = base + t.bonus + S.committed.reduce((s,c)=>s+commitBonus(c),0);
   const token=resolveChaosTokens();
+  const learningInfo=testLearningInfo(t,token);
   gameSfx('token');
   total=token.autofail?0:Math.max(0,total+token.mod);
   const result=!token.autofail && total>=t.difficulty;
@@ -1362,6 +1382,7 @@ function resolveTest(){
   const choices=t.searchGhoul?availableGhouls().filter((c,i,a)=>a.findIndex(x=>x.id===c.id)===i):[];
   document.getElementById('modalBox').innerHTML = `
     <h3>检定结果</h3>
+    ${learningInfo}
     <div class="chaos">${tokenHtml}</div>
     <div class="center" style="font-size:15px">
       最终技能值：<b>${total}</b> vs 难度 ${t.difficulty}<br><br>

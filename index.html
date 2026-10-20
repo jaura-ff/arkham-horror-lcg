@@ -195,7 +195,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="next-step.css?v=arrow-1">
 <link rel="stylesheet" href="prologue.css?v=narration-1">
 <link rel="stylesheet" href="tutorial.css?v=standalone-outro-1">
-<link rel="stylesheet" href="board.css?v=original-columns-2">
+<link rel="stylesheet" href="board.css?v=icon-proportions-3">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -319,7 +319,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
             <h2>手牌 <span class="cnt" id="handcount"></span></h2>
             <p class="hand-interaction-hint" id="handInteractionHint">单击选中 · 双击／快速连点两次查看效果 · 弹窗确认后才出牌</p>
             <div class="hand" id="hand"></div>
-            <div class="board-hand-nav" aria-label="切换手牌"><button id="handPrevious" type="button" class="btn" aria-label="上一组手牌">‹</button><button id="handNext" type="button" class="btn" aria-label="下一组手牌">›</button></div>
+            <div class="board-hand-nav" aria-label="切换手牌"><button id="handPrevious" type="button" class="btn" aria-label="上一组手牌"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#back"></use></svg></button><button id="handNext" type="button" class="btn" aria-label="下一组手牌"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#next"></use></svg></button></div>
             <button id="discardPileButton" type="button" class="btn discard-pile-button" aria-haspopup="dialog" aria-controls="discardDialog"><span class="pile-stack" aria-hidden="true"><i></i><i></i><i></i></span><span><strong>弃牌区 / 出牌记录</strong><small id="discardPileSummary">弃牌 0 张 · 已打出 0 次</small></span><span aria-hidden="true">查看 ›</span></button>
           </div>
         </div>

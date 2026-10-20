@@ -44,7 +44,7 @@ test('教学或游戏弹窗打开时不叠加记录弹窗，菜单关闭已开�
 test('一屏布局覆盖旧高度，所有主区域都有固定网格位置，不靠截断整个页面',()=>{
  for(const region of ['#investigator','.command-panel','.goal-panel','.scene-panel','.enemy-panel','.equipment-panel','.hand-panel','.log-panel'])assert.ok(css.includes(region+'{'),region);
  assert.match(css,/grid-template-rows:170px minmax\(0,1fr\) 140px/);assert.match(css,/\.game-fit #game \.scene-panel\{[^}]*min-height:0/);assert.match(css,/\.game-fit #game \.hand\{min-height:0;height:100%/);assert.match(css,/overflow-x:auto;overflow-y:hidden/);assert.match(css,/#playGuide\[open\]\{position:absolute/);
- assert.match(html,/board.css\?v=original-columns-2/);assert.match(html,/board.js\?v=original-columns-2/);
+ assert.match(html,/board.css\?v=icon-proportions-3/);assert.match(html,/board.js\?v=original-columns-2/);
  for(const id of ['boardLogButton','boardLogDialog','boardLogClose','boardLogContent','handPrevious','handNext'])assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
  assert.match(html,/aria-label="上一组手牌"/);assert.match(html,/aria-label="下一组手牌"/);assert.doesNotMatch(source,/\bS\s*[.=]|requestAction\(|startGame\(|beginPrologue\(/);
 });
@@ -70,4 +70,34 @@ test('阶段栏预留完整双语行高，不再把文字压进26像素窄条',(
  assert.match(css,/\.phase \.en\{font-size:9px;line-height:12px/);
  assert.ok(17+12+2+6*2<=50); // Both text lines, gap and vertical padding fit.
  assert.match(css,/#playGuide\[open\]\{position:absolute;top:62px/);
+});
+
+test('人物、卡图、怪物和地图人物标记保持方形，含大屏覆盖规则',()=>{
+ for(const [selector,sizes] of [['.portrait',[72,84]],['.card-art',[64,88]],['.asset-icon-art',[36]],['.e-ico',[32]],['.map-player-marker',[42]]]){
+  const rules=[...css.matchAll(new RegExp(selector.replace('.', '\\.')+'\\{([^}]+)\\}','g'))];
+  assert.ok(rules.length,sizes.join(','));
+  for(const rule of rules){const w=rule[1].match(/(?:^|;)width:(\d+)px/),h=rule[1].match(/(?:^|;)height:(\d+)px/);if(w&&h){assert.equal(Number(w[1]),Number(h[1]),selector);assert.ok(sizes.includes(Number(w[1])),selector);}}
+ }
+ assert.match(css,/grid-template-columns:72px minmax\(0,1fr\);grid-template-rows:36px 36px/);
+ assert.match(css,/grid-template-columns:84px minmax\(0,1fr\);grid-template-rows:40px 44px/);
+ assert.doesNotMatch(css,/\.card-art\{[^}]*aspect-ratio:auto/);
+ assert.doesNotMatch(css,/\.portrait\{[^}]*aspect-ratio:auto/);
+});
+
+test('场景信息恢复合理尺寸，手牌预览不再露出被裁切的正文',()=>{
+ assert.match(css,/#sceneTitle\{[^}]*font-size:30px/);
+ assert.match(css,/#sceneDescription\{font-size:12px/);
+ assert.match(css,/\.scene-readout\{display:block;max-width:360px/);
+ assert.match(css,/\.map-node\{width:clamp\(110px,22%,160px\)/);
+ assert.doesNotMatch(css,/\.cbody\{[^}]*display:block/);
+ assert.match(html,/aria-label="\$\{c.name\}[^\n]*\$\{c.text\}/);
+});
+
+test('阶段数字保持正向，按钮与手牌箭头使用同一组方形图标',()=>{
+ assert.match(css,/\.phase \.step\{[^}]*transform:none/);
+ assert.match(css,/\.phase \.step::before\{[^}]*transform:rotate\(45deg\)/);
+ assert.match(css,/\.ui-icon\{width:20px;height:20px;aspect-ratio:1/);
+ assert.match(css,/\.topstats>\.icon-button\{width:40px;height:40px;min-height:40px/);
+ const nav=html.split('class="board-hand-nav"')[1].split('</div>')[0];
+ assert.match(nav,/assets\/icons\/ui.svg#back/);assert.match(nav,/assets\/icons\/ui.svg#next/);
 });

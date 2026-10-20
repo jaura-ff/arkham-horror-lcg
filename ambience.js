@@ -17,7 +17,8 @@
     for(const [source,gain]of ambientVoices){try{source.stop()}catch(_){}source.disconnect();gain.disconnect();}
     ambientVoices.clear();
   }
-  const clips={draw:'card-draw',card:'card-play',token:'chaos-token',hurt:'hurt',sanity:'sanity',phase:'phase',move:'door',page:'page'};
+  const clips={draw:'card-draw',card:'card-play',token:'chaos-token',hurt:'hurt',sanity:'sanity-alert',phase:'phase',move:'door',page:'page',attackMiss:'attack-miss',monster:'monster-appear',clue:'clue-found'};
+  const cueGains={sanity:.85,attackMiss:.75,monster:.7,clue:.8};
   const buffers=new Map(),oneShots=new Map();
   let sfxRevision=0;
   function stopSfx(){
@@ -42,7 +43,7 @@
       const buffer=await bufferFor(name);
       if(ctx!==context || ticket!==revision || effectTicket!==sfxRevision || !entered || !enabled || volume===0 || document.hidden || ctx.state!=='running')return;
       if(oneShots.size>=4){const [old,gain]=oneShots.entries().next().value;old.stop();old.disconnect();gain.disconnect();oneShots.delete(old);}
-      const source=ctx.createBufferSource(),gain=ctx.createGain();source.buffer=buffer;gain.gain.value=name==='sanity'?.5:.8;
+      const source=ctx.createBufferSource(),gain=ctx.createGain();source.buffer=buffer;gain.gain.value=Object.hasOwn(cueGains,name)?cueGains[name]:.8;
       source.connect(gain).connect(master);oneShots.set(source,gain);
       source.onended=()=>{source.disconnect();gain.disconnect();oneShots.delete(source)};source.start();
     }catch(_){ /* Missing/blocked media must never interrupt gameplay. */ }

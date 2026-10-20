@@ -1,5 +1,18 @@
 # Locally hosted CC0 sound effects
 
+## Expanded interaction feedback (2026-10-20)
+
+Four short derivatives of the already retained Kenney CC0 source packs add distinct feedback. No newly generated voice, runtime service or download is used. Original license texts remain in this directory. The player preloads eleven selected cues only after entry; all cues share the existing sound toggle/volume, four-voice cap and background/menu cleanup. First/second/third-scene narration and premixed environment assets are unchanged.
+
+| File | Original source | Trigger / processing |
+| --- | --- | --- |
+| sanity-alert.mp3 | Interface Sounds / error_003.ogg | Actual sanity loss only; lowered playback pitch, short echo, 1.15 s, I=-21/TP=-6; per-cue gain .85 replaces .5. Existing quantity notice remains. |
+| attack-miss.mp3 | RPG Audio / cloth3.ogg | Attack failure at result resolution only; filtered fabric swish, 0.65 s, I=-23/TP=-6. |
+| monster-appear.mp3 | RPG Audio / creak2.ogg | Actual enemy creation, both encounter draws and chaos-token ghoul search; lowered creak with short echo, 1.5 s, I=-22/TP=-6. |
+| clue-found.mp3 | Interface Sounds / confirmation_001.ogg | Actual successful clue discovery only, not failed/empty-location tests; softened confirmation, 0.85 s, I=-24/TP=-6. |
+
+Existing door.mp3 continues to signal successful entry to any adjacent location, including newly revealed rooms. Cancelling movement has no cue. Cancelled previews, duplicate result confirmations, empty encounter decks and unsuccessful clue discovery never produce the new event cues. Processing used local FFmpeg; automated decode/trigger/control checks are not a claim of perceptual listening QA.
+
 Eight Kenney recordings are deployed as mono 44.1kHz/96kbps MP3 files, normalized with FFmpeg loudnorm (I=-23, TP=-6, LRA=7). Combined size: 56,145 bytes. Original downloaded package license texts are preserved alongside them. No third-party runtime URLs or logins are required by the game.
 
 | Deployed file | Original pack/file | Trigger |

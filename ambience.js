@@ -18,8 +18,8 @@
     ambientVoices.clear();
   }
   const clips=Object.fromEntries(Object.entries({draw:'card-draw',card:'card-play',token:'chaos-token',hurt:'hurt',sanity:'sanity-alert',phase:'phase',move:'door',page:'page',attackMiss:'attack-miss',monster:'monster-appear',clue:'clue-found'}).map(([name,file])=>[name,`assets/audio/kenney/${file}.mp3`]));
-  Object.assign(clips,{ghoul:'assets/audio/ghoul-servant-v1.mp3',ghoulHunter:'assets/audio/ghoul-hunter-v1.mp3'});
-  const cueGains={sanity:.85,attackMiss:.75,monster:.7,clue:.8,ghoul:.65,ghoulHunter:.65};
+  Object.assign(clips,{ghoul:'assets/audio/ghoul-servant-v1.mp3',ghoulHunter:'assets/audio/ghoul-hunter-v1.mp3',testSuccess:'assets/audio/kenney/test-success.mp3',testFailure:'assets/audio/kenney/test-failure.mp3'});
+  const cueGains={sanity:.85,attackMiss:.75,monster:.7,clue:.8,ghoul:.65,ghoulHunter:.65,testSuccess:.7,testFailure:.7};
   const buffers=new Map(),oneShots=new Map();
   let sfxRevision=0;
   function stopSfx(){

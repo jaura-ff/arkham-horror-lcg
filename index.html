@@ -151,6 +151,12 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 .commit-card.sel{border-color:var(--gold);background:#2a403d}
 .chaos{font-size:32px;font-weight:650;text-align:center;margin:22px 0;min-height:56px;color:var(--gold)}
 .result-good{color:var(--gold);font-weight:600}.result-bad{color:var(--blood);font-weight:600}
+.test-feedback{margin:18px auto 8px;padding:16px 18px;border:1px solid;max-width:320px;font-size:22px;font-weight:600;letter-spacing:3px}
+.test-feedback.test-success{color:#edce95;border-color:#b7955b;background:#30291c;animation:test-result-rise .36s ease-out}
+.test-feedback.test-failure{color:#f0b2a6;border-color:#a76255;background:#33201e;animation:test-result-tension .32s ease-out}
+@keyframes test-result-rise{from{opacity:.4;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes test-result-tension{0%{transform:translateX(0)}30%{transform:translateX(-3px)}65%{transform:translateX(2px)}100%{transform:translateX(0)}}
+@media(prefers-reduced-motion:reduce){.test-feedback.test-success,.test-feedback.test-failure{animation:none}}
 .center{text-align:center}.mb{margin-top:20px;margin-bottom:4px}
 .modal-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .modal-stat{border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;display:flex;align-items:center;justify-content:space-between}
@@ -1300,6 +1306,7 @@ function resolveTest(){
   gameSfx('token');
   total=token.autofail?0:Math.max(0,total+token.mod);
   const result=!token.autofail && total>=t.difficulty;
+  gameSfx(result?'testSuccess':'testFailure');
   const tokenHtml=token.label;
   t.searchGhoul=token.searchGhoul && !result;
   S.committed.forEach(c=>{
@@ -1318,7 +1325,7 @@ function resolveTest(){
     <div class="chaos">${tokenHtml}</div>
     <div class="center" style="font-size:15px">
       最终技能值：<b>${total}</b> vs 难度 ${t.difficulty}<br><br>
-      ${result?'<span class="result-good"> 检定成功</span>':'<span class="result-bad"> 检定失败</span>'}
+      <div class="test-feedback ${result?'test-success':'test-failure'}" role="status" aria-live="polite" aria-atomic="true">${result?'检定成功':'检定失败'}</div>
     </div>
     ${t.searchGhoul?`<div class="ghoul-choice"><label for="ghoulSearchChoice">检定结束后寻找并抽取一名食尸鬼</label>${choices.length?`<select id="ghoulSearchChoice">${choices.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>`:'<p>遭遇牌组及弃牌堆中没有可选择的食尸鬼。</p>'}</div>`:''}
     <p class="action-confirm-note">指示物已抽取，不能返回重抽。</p>
@@ -1562,7 +1569,7 @@ function resolve(code, text){
   `);
 }
 </script>
-<script src="ambience.js?v=creature-cues-3"></script>
+<script src="ambience.js?v=test-result-cues-4"></script>
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=guide-1"></script>
 <script src="phase-transition.js?v=skip-countdown-2"></script>

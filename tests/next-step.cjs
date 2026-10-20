@@ -1,16 +1,16 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.join(__dirname,'..'),source=fs.readFileSync(path.join(root,'next-step.js'),'utf8');
 function setup(){
-  const nodes=new Map(),selectors=new Map(),frames=[],observed=[],events={},winEvents={};let observerCallback,nativeOpen=false;
+  const nodes=new Map(),selectors=new Map(),frames=[],observed=[],events={},winEvents={};let observerCallback,nativeOpen=false,now=0,timerId=0;const timers=new Map();
   function node(id){const classes=new Set();return{id,hidden:false,style:{setProperty(k,v){this[k]=v}},dataset:{},textContent:'',disabled:false,isConnected:true,listeners:{},rect:{left:100,top:300,right:270,bottom:348,width:170,height:48},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c)},getBoundingClientRect(){return this.rect},addEventListener(k,fn){this.listeners[k]=fn},setAttribute(k,v){this[k]=v},click(){throw Error('must not click target')},focus(){throw Error('must not steal focus')}};}
   const doc={activeElement:{id:'player-focus'},getElementById(id){if(!nodes.has(id))nodes.set(id,node(id));return nodes.get(id)},querySelector(q){return q==='dialog[open]'?(nativeOpen?{}:null):selectors.get(q)||null},querySelectorAll(){return[doc.getElementById('assetInfoDialog')]},addEventListener(k,fn){events[k]=fn}};
   doc.getElementById('tutorial').hidden=true;doc.getElementById('game').style.display='block';doc.getElementById('nextStepArrow').rect={width:200,height:72};
   for(const s of ['#endTurnButton','#testDrawButton','#testResolveButton','#actionContinueButton','#actions [data-action="next"]'])selectors.set(s,node(s));
   const win={innerWidth:1024,innerHeight:768,addEventListener(k,fn){winEvents[k]=fn}};
-  const context=vm.createContext({document:doc,window:win,S:{actions:3,phase:'investigation',gameOver:false,test:null,pendingMove:false},phaseTransitionActive:false,pendingAction:null,pendingNavigation:false,requestAnimationFrame(fn){frames.push(fn)},MutationObserver:class{constructor(fn){observerCallback=fn}observe(n){observed.push(n.id)}}});
+  const context=vm.createContext({document:doc,window:win,S:{actions:3,phase:'investigation',gameOver:false,test:null,pendingMove:false},phaseTransitionActive:false,pendingAction:null,pendingNavigation:false,setTimeout(fn,delay){const id=++timerId;timers.set(id,{fn,at:now+delay});return id},clearTimeout(id){timers.delete(id)},requestAnimationFrame(fn){frames.push(fn)},MutationObserver:class{constructor(fn){observerCallback=fn}observe(n){observed.push(n.id)}}});
   vm.runInContext(source,context);
   const flush=()=>{const list=frames.splice(0);list.forEach(fn=>fn())};flush();
-  return{context,doc,win,winEvents,events,frames,observed,selectors,flush,el:id=>doc.getElementById(id),mutate:()=>observerCallback(),update(){observerCallback();flush()},native(value){nativeOpen=value}};
+  return{context,doc,win,winEvents,events,frames,observed,selectors,flush,timers,advance(ms){now+=ms;for(const[id,timer]of [...timers])if(timer.at<=now){timers.delete(id);timer.fn();}},el:id=>doc.getElementById(id),mutate:()=>observerCallback(),update(){observerCallback();flush()},native(value){nativeOpen=value}};
 }
 test('行动未用完不催结束，用完才指向结束回合',()=>{
   const g=setup();assert.equal(g.el('nextStepArrow').hidden,true);g.context.S.actions=1;g.update();assert.equal(g.el('nextStepArrow').hidden,true);g.context.S.actions=0;g.update();assert.equal(g.el('nextStepArrow').hidden,false);assert.match(g.el('nextStepLabel').textContent,/行动已用完/);assert.equal(g.el('nextStepArrow').style.top,'222px');
@@ -48,7 +48,7 @@ test('观察器不观察箭头自身，不形成重绘循环，批量变更合�
   const g=setup();assert.ok(g.observed.includes('game'));assert.ok(g.observed.includes('modal'));assert.ok(g.observed.includes('assetInfoDialog'));assert.ok(!g.observed.includes('nextStepArrow'));g.mutate();g.mutate();g.mutate();assert.equal(g.frames.length,1);g.flush();assert.equal(g.frames.length,0);
 });
 test('标记存在、箭头不占布局且鼠标触摸可穿透，无闪烁动画',()=>{
-  const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),css=fs.readFileSync(path.join(root,'next-step.css'),'utf8');for(const id of ['endTurnButton','actionContinueButton','testDrawButton','testResolveButton','nextStepArrow','nextStepToggle'])assert.ok(html.includes(`id="${id}"`),id);assert.match(css,/position:fixed/);assert.match(css,/pointer-events:none/);assert.doesNotMatch(css,/animation:/);assert.match(html,/next-step.js\?v=smart-guide-2/);
+  const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),css=fs.readFileSync(path.join(root,'next-step.css'),'utf8');for(const id of ['endTurnButton','actionContinueButton','testDrawButton','testResolveButton','nextStepArrow','nextStepToggle'])assert.ok(html.includes(`id="${id}"`),id);assert.match(css,/position:fixed/);assert.match(css,/pointer-events:none/);assert.doesNotMatch(css,/infinite/);assert.match(css,/prefers-reduced-motion:reduce/);assert.match(html,/next-step.js\?v=animated-cue-3/);
 });
 
 function smart(){
@@ -92,9 +92,32 @@ test('调查到检定再回到下一行动，推荐随结算更新且不改变�
  g.context.S.test=null;g.el('modal').classList.remove('open');g.context.S.clues=1;g.context.S.locClues.study=1;g.context.S.actions=2;const before=JSON.stringify(g.context.S);g.update();assert.match(g.el('nextStepLabel').textContent,/继续调查/);assert.equal(JSON.stringify(g.context.S),before);
 });
 test('提示贴到屏幕边缘时箭头尖端仍对准按钮，不误指相邻按钮',()=>{
- const g=smart(),button=g.selectors.get('#actions [data-action="investigate"]');button.rect={left:8,top:220,right:78,bottom:260,width:70,height:40};g.update();assert.equal(g.el('nextStepArrow').style.left,'8px');assert.equal(g.el('nextStepArrow').style['--tip-offset'],'22px');assert.equal(g.el('nextStepTarget').style.left,'5px');
+ const g=smart(),button=g.selectors.get('#actions [data-action="investigate"]');button.rect={left:8,top:220,right:78,bottom:260,width:70,height:40};g.update();assert.equal(g.el('nextStepArrow').style.left,'8px');assert.equal(g.el('nextStepArrow').style['--tip-offset'],'9px');assert.equal(g.el('nextStepTarget').style.left,'5px');
  g.context.S.gameOver=true;g.update();assert.equal(g.el('nextStepTarget').hidden,true);
 });
 test('智能指导开关在顶栏独立可见，无需展开指引，也不影响布局和操作',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),header=html.split('<header class="topbar">')[1].split('</header>')[0];assert.match(header,/id="nextStepToggle"/);assert.match(header,/智能指导：开/);assert.equal((html.match(/id="nextStepToggle"/g)||[]).length,1);assert.match(html,/data-move-target="\$\{id\}"/);assert.match(html,/id="nextStepTarget"[^>]*aria-hidden="true"/);
+});
+
+test('动态提示只显示4.8秒，到时箭头和目标描边一同消失',()=>{
+ const g=smart();assert.equal(g.timers.size,1);assert.equal(g.el('nextStepArrow').classList.contains('is-cue-active'),true);g.advance(4799);assert.equal(g.el('nextStepArrow').hidden,false);g.advance(1);assert.equal(g.el('nextStepArrow').hidden,true);assert.equal(g.el('nextStepTarget').hidden,true);assert.equal(g.timers.size,0);
+});
+test('同一步的重绘、滚动和窗口变化不重播，也不延长显示时间',()=>{
+ const g=smart();g.advance(3000);for(let i=0;i<5;i++){g.update();g.winEvents.scroll();g.winEvents.resize();g.flush();}g.advance(1800);assert.equal(g.el('nextStepArrow').hidden,true);g.update();g.winEvents.resize();g.flush();assert.equal(g.el('nextStepArrow').hidden,true);assert.equal(g.timers.size,0);
+});
+test('完成操作或推荐目标改变时播放新的一次提示',()=>{
+ const g=smart();g.advance(4800);g.context.S.actions=2;g.context.S.clues=1;g.context.S.locClues.study=1;g.update();assert.equal(g.el('nextStepArrow').hidden,false);assert.match(g.el('nextStepLabel').textContent,/继续调查/);g.advance(2000);g.context.S.locClues.study=0;g.update();g.advance(2800);assert.equal(g.el('nextStepArrow').hidden,false);g.advance(2000);assert.equal(g.el('nextStepArrow').hidden,true);
+});
+test('关闭、返回菜单、页面离开清理计时，重开可再看当前步骤',()=>{
+ for(const event of ['off','menu','pagehide']){const g=smart();if(event==='off')g.el('nextStepToggle').listeners.click();else if(event==='menu')g.events['arkham:menu']();else g.winEvents.pagehide();assert.equal(g.el('nextStepArrow').hidden,true);assert.equal(g.timers.size,0);}
+ const g=smart();g.advance(4800);g.el('nextStepToggle').listeners.click();g.flush();g.el('nextStepToggle').listeners.click();g.flush();assert.equal(g.el('nextStepArrow').hidden,false);assert.equal(g.timers.size,1);
+});
+test('连续切换步骤只保留一个计时器，提示期间不改游戏或抢焦点',()=>{
+ const g=smart();for(let i=0;i<20;i++){g.context.S.round=i+1;const before=JSON.stringify(g.context.S);g.update();assert.equal(g.timers.size,1);assert.equal(JSON.stringify(g.context.S),before);}assert.equal(g.doc.activeElement.id,'player-focus');
+});
+test('大号实心图标和短时动效仅使用变换与透明度，尊重减少动态效果',()=>{
+ const css=fs.readFileSync(path.join(root,'next-step.css'),'utf8'),html=fs.readFileSync(path.join(root,'index.html'),'utf8'),svg=fs.readFileSync(path.join(root,'assets/icons/ui.svg'),'utf8');
+ assert.match(css,/\.next-step-arrow \.ui-icon\{width:52px;height:52px/);assert.match(css,/guide-pointer-nudge 650ms ease-in-out 6/);assert.match(css,/guide-cue-life 4800ms/);assert.match(css,/@media\(prefers-reduced-motion:reduce\)[^\n]*animation:none!important/);assert.doesNotMatch(css,/infinite/);
+ assert.match(html,/ui.svg\?v=guide-pointer-1#guide-pointer/);assert.match(svg,/<symbol id="guide-pointer" viewBox="0 0 48 48">/);
+ for(const rule of css.matchAll(/@keyframes[^}]+\{([\s\S]*?)\}\}/g))assert.doesNotMatch(rule[1],/(?:width|height|left|top|margin|padding):/);
 });

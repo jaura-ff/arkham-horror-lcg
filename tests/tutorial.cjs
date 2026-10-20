@@ -52,20 +52,20 @@ function setup({saved=null,storageFails=false,transition=false}={}){
   function key(value,shiftKey=false){let prevented=false;nodes.get('tutorialPanel').listeners.keydown({key:value,shiftKey,preventDefault(){prevented=true}});return prevented}
   return{nodes,targets,doc,win,winEvents,events,storage,state,click,key,setPhasePending:value=>{runtime.phaseTransitionActive=value},open:()=>!nodes.get('tutorial').hidden};
 }
-test('主动选择新人指导，五步完成不扣资源或行动',()=>{
+test('主动选择新人指导，六步完成不扣资源或行动',()=>{
   const g=setup(),before=JSON.stringify(g.state);g.click('learnButton');
   assert.equal(g.open(),true);assert.equal(g.nodes.get('game').inert,true);
-  assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 5');
+  assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 6');
   assert.equal(g.nodes.get('tutorialPrev').disabled,true);
-  for(let i=0;i<4;i++)g.click('tutorialNext');
-  assert.equal(g.nodes.get('tutorialNext').textContent,'开始调查');g.click('tutorialNext');
+  for(let i=0;i<5;i++)g.click('tutorialNext');
+  assert.equal(g.nodes.get('tutorialNext').textContent,'开始实操');g.click('tutorialNext');
   assert.equal(g.open(),false);assert.equal(g.nodes.get('game').inert,false);assert.equal(g.doc.body.style.overflow,'');
   assert.equal(g.storage.value,'seen');assert.equal(JSON.stringify(g.state),before);
   assert.equal(g.doc.activeElement.id,'guideButton');
 });
 test('跳过后不再自动出现，顶栏可随时重看',()=>{
   const g=setup();g.click('learnButton');g.click('tutorialSkip');g.click('startButton');assert.equal(g.open(),false);
-  g.click('guideButton');assert.equal(g.open(),true);assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 5');
+  g.click('guideButton');assert.equal(g.open(),true);assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 6');
 });
 test('菜单新人指导可启动并打开已看过的教学',()=>{
   const g=setup({saved:'seen'});g.click('learnButton');assert.equal(g.open(),true);assert.equal(g.nodes.get('game').style.display,'block');
@@ -76,7 +76,7 @@ test('弹窗进行中不覆盖检定或打开教学',()=>{
 });
 test('上一步边界和 Escape 退出均安全',()=>{
   const g=setup();g.click('learnButton');g.click('tutorialNext');g.click('tutorialPrev');g.click('tutorialPrev');
-  assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 5');assert.equal(g.key('Escape'),true);assert.equal(g.open(),false);
+  assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 6');assert.equal(g.key('Escape'),true);assert.equal(g.open(),false);
 });
 test('Tab 焦点限制在教学内，关闭后恢复焦点',()=>{
   const g=setup({saved:'seen'});g.click('startButton');g.click('guideButton');g.nodes.get('tutorialNext').focus();
@@ -98,11 +98,11 @@ test('默认位置居中偏右，不随高亮目标左右跳动',()=>{
     target.getBoundingClientRect=()=>({left,top:40,right:left+300,bottom:240,width:300,height:200});
   }
   g.click('learnButton');
-  for(let step=0;step<5;step++){
+  for(let step=0;step<6;step++){
     const panel=g.nodes.get('tutorialPanel');
     assert.equal(parseFloat(panel.style.left),(1440-380)*0.66);assert.equal(panel.style.top,'350px');
     assert.equal(g.nodes.get('tutorialSpotlight').style.left,step%2?'1045px':'15px');
-    if(step<4)g.click('tutorialNext');
+    if(step<5)g.click('tutorialNext');
   }
   g.winEvents.scroll();assert.equal(parseFloat(g.nodes.get('tutorialPanel').style.left),(1440-380)*0.66);
 });
@@ -164,21 +164,21 @@ test('标题栏方向键移动，Home 复位，不截获正文及按钮点击',(
   key('ArrowLeft');assert.equal(parseFloat(panel.style.left),parseFloat(before.left)-16);
   key('ArrowDown',true);assert.equal(parseFloat(panel.style.top),parseFloat(before.top)+40);
   key('Home');assert.deepEqual(panel.style,before);assert.equal(panel.listeners.pointerdown,undefined);
-  g.click('tutorialNext');assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 2 / 5');
+  g.click('tutorialNext');assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 2 / 6');
 });
 
-test('五步均配本地图示，正文保持简短且每步只有一条提醒',()=>{
+test('六步均配本地图示，正文保持简短且每步只有一条提醒',()=>{
   const g=setup();g.click('learnButton');const visuals=[];
-  for(let i=0;i<5;i++){
+  for(let i=0;i<6;i++){
     const text=g.nodes.get('tutorialText').textContent;
     const tips=g.nodes.get('tutorialTips').innerHTML;
     const visual=g.nodes.get('tutorialVisual').innerHTML;
     assert.ok(text.length<=50,text);assert.equal((tips.match(/<li>/g)||[]).length,1);
     assert.ok(visual.length>0);assert.doesNotMatch(visual,/https?:/);visuals.push(visual);
     for(const [,asset] of visual.matchAll(/src="([^"]+)"/g))assert.ok(fs.existsSync(path.join(__dirname,'..',asset)),asset);
-    if(i<4)g.click('tutorialNext');
+    if(i<5)g.click('tutorialNext');
   }
-  assert.equal(new Set(visuals).size,5);assert.equal(g.nodes.get('tutorialNext').textContent,'开始调查');
+  assert.equal(new Set(visuals).size,6);assert.equal(g.nodes.get('tutorialNext').textContent,'开始实操');
   const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
   assert.ok(html.includes('id="tutorialVisual" class="tutorial-visual" aria-hidden="true"'));
   assert.ok(html.includes('tutorial.css?v=illustrated-five-1'));assert.ok(!html.includes('七步'));
@@ -187,9 +187,21 @@ test('五步均配本地图示，正文保持简短且每步只有一条提醒',
   assert.match(css,/@media\(orientation:landscape\) and \(max-height:440px\)/);
 });
 
+test('最后新增鼓励实操页，可返回回合说明，开始实操仅退出引导',()=>{
+  const g=setup(),before=JSON.stringify(g.state);g.click('learnButton');
+  for(let i=0;i<4;i++)g.click('tutorialNext');
+  assert.equal(g.nodes.get('tutorialNext').textContent,'下一步');g.click('tutorialNext');
+  assert.match(g.nodes.get('tutorialText').textContent,/还没完全理解也没关系/);
+  assert.equal(g.nodes.get('tutorialNext').textContent,'开始实操');
+  g.click('tutorialPrev');assert.match(g.nodes.get('tutorialTitle').textContent,/下一轮/);
+  g.click('tutorialNext');g.click('tutorialNext');
+  assert.equal(g.open(),false);assert.equal(g.nodes.get('game').inert,false);
+  assert.equal(JSON.stringify(g.state),before);
+});
+
 test('教学入口与所有目标区域均存在，脚本随游戏本地加载',()=>{
   const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
   for(const id of ['tutorial','tutorialPanel','tutorialSpotlight','learnButton','guideButton','tutorialClose','tutorialSkip','tutorialPrev','tutorialNext','tutorialTitle','tutorialText','tutorialTips','tutorialProgress','guideStatus','investigator','scenePanel','actions','hand','phasebar'])assert.ok(html.includes(`id="${id}"`),id);
-  assert.ok(html.includes('src="tutorial.js?v=illustrated-five-1"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
+  assert.ok(html.includes('src="tutorial.js?v=practice-outro-1"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
   assert.ok(html.includes('id="tutorialDrag"'));assert.ok(html.includes('拖动调整位置'));
 });

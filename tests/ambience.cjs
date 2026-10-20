@@ -59,11 +59,15 @@ test('静音、音量零和后台停止氛围声，不在后台持续生成',asy
 });
 
 test('CC0短音效在用户进入后预加载，本地缓存不重复下载和解码',async()=>{
-  const g=setup({samples:true});assert.equal(g.fetches.length,0);await g.fire('startButton');assert.equal(g.fetches.length,11);assert.ok(g.fetches.every(p=>p.startsWith('assets/audio/kenney/')&&p.endsWith('.mp3')));
-  await g.win.playGameSfx('card');await g.win.playGameSfx('card');assert.equal(g.played.length,2);assert.equal(g.fetches.length,11);assert.equal(g.decodes(),11);
+  const g=setup({samples:true});assert.equal(g.fetches.length,0);await g.fire('startButton');assert.equal(g.fetches.length,13);assert.ok(g.fetches.every(p=>p.startsWith('assets/audio/')&&p.endsWith('.mp3')));
+  await g.win.playGameSfx('card');await g.win.playGameSfx('card');assert.equal(g.played.length,2);assert.equal(g.fetches.length,13);assert.equal(g.decodes(),13);
 });
 test('新增交互提示均可缓存播放且受静音控制，精神警示音不再过轻',async()=>{
- const g=setup({samples:true});await g.fire('startButton');for(const name of ['sanity','attackMiss','monster','clue','move'])await g.win.playGameSfx(name);assert.equal(g.played.length,5);assert.equal(g.fetches.length,11);assert.ok(g.fetches.includes('assets/audio/kenney/sanity-alert.mp3'));assert.equal(g.gains.at(-5).gain.value,.85);await g.fire('soundToggle');assert.ok(g.played.every(p=>p.stopped));for(const name of ['sanity','attackMiss','monster','clue','move'])await g.win.playGameSfx(name);assert.equal(g.played.length,5);
+ const g=setup({samples:true});await g.fire('startButton');for(const name of ['sanity','attackMiss','monster','clue','move'])await g.win.playGameSfx(name);assert.equal(g.played.length,5);assert.equal(g.fetches.length,13);assert.ok(g.fetches.includes('assets/audio/kenney/sanity-alert.mp3'));assert.equal(g.gains.at(-5).gain.value,.85);await g.fire('soundToggle');assert.ok(g.played.every(p=>p.stopped));for(const name of ['sanity','attackMiss','monster','clue','move'])await g.win.playGameSfx(name);assert.equal(g.played.length,5);
+});
+
+test('两类怪物专属素材本地可用，首次预载缓存并随静音停止',async()=>{
+ const g=setup({samples:true});await g.fire('startButton');for(const name of ['ghoul','ghoulHunter']){const file=`assets/audio/${name==='ghoul'?'ghoul-servant-v1':'ghoul-hunter-v1'}.mp3`;assert.ok(g.fetches.includes(file));const bytes=fs.readFileSync(path.join(__dirname,'..',file));assert.ok(bytes.length>1000&&bytes.length<100000);await g.win.playGameSfx(name);assert.equal(g.gains.at(-1).gain.value,.65);}assert.equal(g.fetches.length,13);assert.equal(g.played.length,2);await g.fire('soundToggle');assert.ok(g.played.every(p=>p.stopped));await g.win.playGameSfx('ghoul');await g.win.playGameSfx('ghoulHunter');assert.equal(g.played.length,2);
 });
 
 test('静音、音量零、后台和菜单时不播放，正在播放的短音效被停止',async()=>{

@@ -1,5 +1,16 @@
 # Locally hosted CC0 sound effects
 
+## Creature-specific generated cues (2026-10-20)
+
+The user approved two distinct short creature sounds before generation and requested their integration. These new assets are generated production media, **not Kenney CC0 recordings**. They live outside the kenney/ directory; existing CC0 attribution remains unchanged.
+
+- `assets/audio/ghoul-servant-v1.mp3`: 1.5-second raspy zombie-like guttural moan, decayed breath and short throat rattle in a dark wooden room. Runway task `d783f9dc-9427-47d7-a7df-4b488bc7c5f7`.
+- `assets/audio/ghoul-hunter-v1.mp3`: 2-second deeper undead growl with two short approaching wooden-floor footfalls and snarling breath. Runway task `f3e270b5-81d9-4409-a190-27df8b29bd38`.
+
+Prompts specified no intelligible words, no music, no screaming or loud jump-scare blasts; each naturally decays. Local preparation applies high-pass 75 Hz, low-pass 6500 Hz, short edge fades, mono 44.1 kHz/128 kbps MP3 and loudness I=-23, TP=-6. Per-cue gain is .65 under the existing master volume. Neither loops. No perceptual listening QA is claimed.
+
+On actual creation, `monsterSfx(card)` checks enemy type and existing ghoul identification; ghoul `hunter:true` selects the hunter cue, other ghouls select the servant cue, non-ghoul enemies retain the generic monster sound. Both encounter draws and chaos ghoul searches route through it. Rendering, moving, engaging existing enemies or empty searches cannot trigger an extra emergence cue. Thirteen selected cues now preload after entry, share caching/mute controls and stop on leaving/backgrounding. No changes to gameplay or prologue narration.
+
 ## Expanded interaction feedback (2026-10-20)
 
 Four short derivatives of the already retained Kenney CC0 source packs add distinct feedback. No newly generated voice, runtime service or download is used. Original license texts remain in this directory. The player preloads eleven selected cues only after entry; all cues share the existing sound toggle/volume, four-voice cap and background/menu cleanup. First/second/third-scene narration and premixed environment assets are unchanged.

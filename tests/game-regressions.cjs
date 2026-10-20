@@ -21,8 +21,16 @@ test('攻击失败专属提示只在实际结算响一次，取消和成功不�
 });
 
 test('遭遇怪物和混沌搜索生成怪物各有一次提示，空牌堆不误报',()=>{
- const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);S.encounter=[{...ENCOUNTER[0]}];drawEncounter();S.encounter=[];S.encounterDiscard=[];drawEncounter();drawSearchedGhoul()`);assert.deepEqual(g.get('cues'),['monster']);assert.equal(g.get('S.enemies.length'),1);
- const h=game();h.run(`let cues=[];playGameSfx=name=>cues.push(name);S.encounter=[{...ENCOUNTER[0]}];S.encounterDiscard=[];drawSearchedGhoul()`);assert.deepEqual(h.get('cues'),['monster']);
+ const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);S.encounter=[{...ENCOUNTER[0]}];drawEncounter();S.encounter=[];S.encounterDiscard=[];drawEncounter();drawSearchedGhoul()`);assert.deepEqual(g.get('cues'),['ghoul']);assert.equal(g.get('S.enemies.length'),1);
+ const h=game();h.run(`let cues=[];playGameSfx=name=>cues.push(name);S.encounter=[{...ENCOUNTER[0]}];S.encounterDiscard=[];drawSearchedGhoul()`);assert.deepEqual(h.get('cues'),['ghoul']);
+});
+
+test('食尸鬼仆人与猎手按怪物属性分别出声，非食尸鬼保留通用声',()=>{
+ const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);for(const card of ENCOUNTER.filter(c=>c.type==='enemy')){S.encounter=[card];drawEncounter()}monsterSfx({id:'future',name:'未知怪物',type:'enemy',hunter:true});monsterSfx({type:'treachery'});monsterSfx(null)`);assert.deepEqual(g.get('cues'),['ghoul','ghoul','ghoulHunter','monster']);
+});
+
+test('混沌搜索猎手使用猎手声，刷新和怪物移动不再次触发出场',()=>{
+ const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);S.encounter=[{...ENCOUNTER[2]}];S.encounterDiscard=[];drawSearchedGhoul();render();renderEnemies();engageLocalEnemies();doMove('hallway');renderEnemies()`);assert.deepEqual(g.get('cues'),['ghoulHunter','hurt','sanity','move']);
 });
 
 test('新地点和已探索地点移动均提示，确认取消不响',()=>{

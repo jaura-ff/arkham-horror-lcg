@@ -195,6 +195,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="next-step.css?v=arrow-1">
 <link rel="stylesheet" href="prologue.css?v=narration-1">
 <link rel="stylesheet" href="tutorial.css?v=standalone-outro-1">
+<link rel="stylesheet" href="board.css?v=one-screen-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -318,6 +319,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
             <h2>手牌 <span class="cnt" id="handcount"></span></h2>
             <p class="hand-interaction-hint" id="handInteractionHint">单击选中 · 双击／快速连点两次查看效果 · 弹窗确认后才出牌</p>
             <div class="hand" id="hand"></div>
+            <div class="board-hand-nav" aria-label="切换手牌"><button id="handPrevious" type="button" class="btn" aria-label="上一组手牌">‹</button><button id="handNext" type="button" class="btn" aria-label="下一组手牌">›</button></div>
             <button id="discardPileButton" type="button" class="btn discard-pile-button" aria-haspopup="dialog" aria-controls="discardDialog"><span class="pile-stack" aria-hidden="true"><i></i><i></i><i></i></span><span><strong>弃牌区 / 出牌记录</strong><small id="discardPileSummary">弃牌 0 张 · 已打出 0 次</small></span><span aria-hidden="true">查看 ›</span></button>
           </div>
         </div>
@@ -328,6 +330,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
         <details class="panel log-panel" open>
           <summary>调查手记 / 事件记录</summary>
           <div id="log" aria-live="polite" aria-relevant="additions"></div>
+          <button id="boardLogButton" type="button" class="btn" aria-haspopup="dialog" aria-controls="boardLogDialog">查看全部记录</button>
         </details>
       </div>
     </div>
@@ -402,6 +405,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     <p class="atlas-source">图鉴只供查阅，不会打出卡牌、抽牌或消耗行动。按 Esc 或右上角关闭后继续原来的游戏。</p>
   </div>
 </dialog>
+<dialog id="boardLogDialog" class="home-dialog" aria-labelledby="boardLogTitle"><div class="home-dialog-shell"><header class="home-dialog-header"><h2 id="boardLogTitle">调查手记 · 全部记录</h2></header><div id="boardLogContent" class="board-log-content"></div><footer class="home-dialog-footer"><button id="boardLogClose" type="button" class="btn primary">返回游戏</button></footer></div></dialog>
 <div id="tutorial" class="tutorial-overlay" hidden>
   <div id="tutorialSpotlight" class="tutorial-spotlight" aria-hidden="true"></div>
   <section id="tutorialPanel" class="tutorial-panel" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle" aria-describedby="tutorialText">
@@ -1617,6 +1621,7 @@ function resolve(code, text){
 <script src="prologue-narration.js?v=three-scenes-2"></script>
 <script src="prologue.js?v=three-scenes-2"></script>
 <script src="home-dialogs.js?v=four-dialogs-2"></script>
+<script src="board.js?v=one-screen-1"></script>
 </body>
 </html>
 

@@ -19,6 +19,31 @@ function setup(){
   function tick(ms){now+=ms;for(const[id,t]of [...timers])if(t.at<=now){timers.delete(id);t.fn();}}
   return{run,get,tick,timers,events,el:id=>document.getElementById(id)};
 }
+test('立即进入在3、2、1任意时刻关闭提示并只结算一次',()=>{
+ for(const elapsed of [0,1000,2000,2999]){
+  const g=setup();let ready=0;g.events['arkham:phase-ready']=()=>ready++;g.tick(elapsed);const stale=[...g.timers.values()].map(t=>t.fn),before=g.get('S');g.el('phaseAnnouncementSkip').listeners.click();assert.equal(g.el('phaseAnnouncement').open,false);assert.equal(g.get('canAct()'),true);assert.deepEqual(g.get('S'),before);assert.equal(g.timers.size,0);g.el('phaseAnnouncementSkip').listeners.click();stale.forEach(fn=>fn());g.tick(5000);assert.equal(ready,1);assert.deepEqual(g.get('S'),before);
+ }
+});
+
+test('立即进入只进入提示阶段，不越过该阶段，四阶段各结算一次',()=>{
+ const g=setup();g.el('phaseAnnouncementSkip').listeners.click();g.run('S.enemies=[];S.encounter=[];S.encounterDiscard=[];S.actions=0');
+ for(const phase of ['enemy','upkeep','mythos','investigation']){
+  const from=g.get('S.phase');g.run('advancePhase()');assert.equal(g.get('S.phase'),from);const callbacks=[...g.timers.values()].map(t=>t.fn);g.el('phaseAnnouncementSkip').listeners.click();assert.equal(g.get('S.phase'),phase);const after=g.get('S');callbacks.forEach(fn=>fn());g.el('phaseAnnouncementSkip').listeners.click();g.tick(3000);assert.deepEqual(g.get('S'),after);
+ }assert.equal(g.get('S.round'),2);assert.equal(g.get('S.actions'),3);
+});
+
+test('立即进入仍正常结算敌人攻击、维持补给及神话遭遇',()=>{
+ const g=setup();g.el('phaseAnnouncementSkip').listeners.click();g.run(`S.enemies=[{card:{...ENCOUNTER[0]},hp:2,location:'study',engaged:true,exhausted:false}];advancePhase()`);const hp=g.get('S.hp');g.el('phaseAnnouncementSkip').listeners.click();assert.equal(g.get('S.hp'),hp-g.get('ENCOUNTER[0].dmg'));const resources=g.get('S.resources');g.run('advancePhase()');g.el('phaseAnnouncementSkip').listeners.click();assert.equal(g.get('S.resources'),resources+1);g.run(`S.encounter=[{id:'whisper-test',name:'低语',type:'treachery'}];advancePhase()`);g.el('phaseAnnouncementSkip').listeners.click();assert.equal(g.get('S.phase'),'mythos');assert.notEqual(g.get('S.test'),null);assert.equal(g.el('modal').classList.contains('open'),true);
+});
+
+test('重置后立即进入无效，旧计时器不能关闭新一轮提示',()=>{
+ const g=setup();const stale=[...g.timers.values()].map(t=>t.fn);g.run('resetPhaseAnnouncement()');g.el('phaseAnnouncementSkip').listeners.click();assert.equal(g.timers.size,0);g.run('startGame()');stale.forEach(fn=>fn());assert.equal(g.el('phaseAnnouncement').open,true);assert.equal(g.get('phaseTransitionActive'),true);g.el('phaseAnnouncementSkip').listeners.click();assert.equal(g.get('phaseTransitionActive'),false);
+});
+
+test('立即进入按钮为可聚焦原生按钮且保留触摸尺寸和焦点样式',()=>{
+ assert.match(html,/<button id="phaseAnnouncementSkip" type="button"[^>]*>立即进入<\/button>/);const css=fs.readFileSync(path.join(root,'phase-transition.css'),'utf8');assert.match(css,/phase-announcement-skip\{min-height:44px/);assert.match(css,/phase-announcement-skip:focus-visible/);
+});
+
 test('开局调查提示满3000ms关闭，等待期间保留起手状态',()=>{
   const g=setup(),state=g.get('S');assert.equal(g.el('phaseAnnouncement').open,true);assert.equal(g.el('phaseAnnouncementTitle').textContent,'调查阶段');assert.equal(g.el('phaseAnnouncementRound').textContent,'第 1 回合');assert.equal(g.get('canAct()'),false);
   g.tick(2999);assert.equal(g.el('phaseAnnouncement').open,true);assert.deepEqual(g.get('S'),state);g.tick(1);assert.equal(g.el('phaseAnnouncement').open,false);assert.equal(g.get('canAct()'),true);assert.deepEqual(g.get('S'),state);
@@ -53,6 +78,6 @@ test('状态被替换或结束时，延迟回调不执行原阶段',()=>{
   const g=setup();g.tick(3000);g.run('advancePhase();S={...S,gameOver:true}');g.tick(3000);assert.equal(g.get('S.phase'),'investigation');assert.equal(g.get('phaseTransitionActive'),false);assert.equal(g.el('phaseAnnouncement').open,false);
 });
 test('提示完成事件只发一次，无动画、不改变页面布局',()=>{
-  const g=setup();let ready=0;g.events['arkham:phase-ready']=()=>ready++;g.tick(3000);g.tick(3000);assert.equal(ready,1);assert.match(html,/<dialog id="phaseAnnouncement"[^>]*aria-labelledby/);assert.match(html,/phase-transition.js\?v=sample-sfx-1/);assert.match(html,/停留 3 秒后自动继续/);
+  const g=setup();let ready=0;g.events['arkham:phase-ready']=()=>ready++;g.tick(3000);g.tick(3000);assert.equal(ready,1);assert.match(html,/<dialog id="phaseAnnouncement"[^>]*aria-labelledby/);assert.match(html,/phase-transition.js\?v=skip-countdown-2/);assert.match(html,/停留 3 秒后自动继续/);
   const css=fs.readFileSync(path.join(root,'phase-transition.css'),'utf8');assert.match(css,/100dvh/);assert.match(css,/overflow:auto/);assert.doesNotMatch(css,/animation:/);
 });

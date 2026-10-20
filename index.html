@@ -182,7 +182,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="atlas.css?v=action-confirm-1">
 <link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=asset-icons-1">
-<link rel="stylesheet" href="phase-transition.css?v=countdown-1">
+<link rel="stylesheet" href="phase-transition.css?v=skip-countdown-2">
 <link rel="stylesheet" href="loss-notices.css?v=loss-1">
 <link rel="stylesheet" href="play-guide.css?v=guide-1">
 <link rel="stylesheet" href="next-step.css?v=arrow-1">
@@ -313,7 +313,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <div id="lossNotice" class="loss-notice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden><strong id="lossNoticeAmount"></strong><span id="lossNoticeSource"></span></div>
 <div id="nextStepArrow" class="next-step-arrow" role="status" aria-live="polite" hidden><span id="nextStepLabel"></span><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#next"></use></svg></div>
 <dialog id="phaseAnnouncement" class="phase-announcement" aria-labelledby="phaseAnnouncementTitle" aria-describedby="phaseAnnouncementRule phaseAnnouncementHint">
-  <div class="phase-announcement-shell"><p class="phase-announcement-kicker">ARKHAM / NEXT PHASE</p><p id="phaseAnnouncementRound" class="phase-announcement-round"></p><p class="phase-announcement-label">即将进入</p><h2 id="phaseAnnouncementTitle" tabindex="-1"></h2><p id="phaseAnnouncementRule"></p><p id="phaseAnnouncementCountdown" class="phase-announcement-countdown" aria-live="polite" aria-atomic="true">3</p><p id="phaseAnnouncementHint">停留 3 秒后自动继续</p></div>
+  <div class="phase-announcement-shell"><p class="phase-announcement-kicker">ARKHAM / NEXT PHASE</p><p id="phaseAnnouncementRound" class="phase-announcement-round"></p><p class="phase-announcement-label">即将进入</p><h2 id="phaseAnnouncementTitle" tabindex="-1"></h2><p id="phaseAnnouncementRule"></p><p id="phaseAnnouncementCountdown" class="phase-announcement-countdown" aria-live="polite" aria-atomic="true">3</p><p id="phaseAnnouncementHint">停留 3 秒后自动继续，也可立即进入提示中的阶段</p><button id="phaseAnnouncementSkip" type="button" class="btn phase-announcement-skip">立即进入</button></div>
 </dialog>
 <dialog id="assetInfoDialog" class="card-atlas asset-info-dialog" aria-labelledby="assetInfoTitle">
   <div class="atlas-shell"><header class="atlas-heading"><h2 id="assetInfoTitle">资产说明</h2><button type="button" class="btn icon-button" aria-label="关闭资产说明" onclick="document.getElementById('assetInfoDialog').close()" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
@@ -1555,7 +1555,7 @@ function resolve(code, text){
 <script src="ambience.js?v=soft-pad-1"></script>
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=guide-1"></script>
-<script src="phase-transition.js?v=sample-sfx-1"></script>
+<script src="phase-transition.js?v=skip-countdown-2"></script>
 <script src="loss-notices.js?v=loss-1"></script>
 <script src="tutorial.js?v=explicit-entry-2"></script>
 <script src="atlas.js"></script>

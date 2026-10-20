@@ -16,7 +16,8 @@
     { target: '#actions', title: '每回合，3 次行动', text: '调查、移动、抽牌、拿资源、出牌等，通常各花 1 次行动。', tips: ['先看剩余行动，再决定下一步。'], visual: '<div class="tutorial-action-row"><span><i>1</i>调查</span><span><i>2</i>移动</span><span><i>3</i>补给</span></div><small class="tutorial-caption">举例：你也可以重复同一种行动</small>' },
     { target: '#hand', title: '先看卡，再出牌', text: '双击手牌看效果，再确认出牌；技能牌在检定时投入。', tips: ['资产留在场上；事件结算后弃置。'], visual: `<div class="tutorial-card-pair"><div>${art(33.3333,0,'资产 · 装备武器')}</div><span>／</span><div>${art(100,50,'技能 · 帮助检定')}</div></div>` },
     { target: '.command-panel', title: '遇到敌人，先处理', text: '选择战斗造成伤害，或闪避让敌人力竭并脱离交缠。', tips: ['交缠中的就绪敌人，会对多数其他行动借机攻击。'], visual: `<div class="tutorial-card-pair"><div>${art(66.6667,0,'战斗 · 击败敌人')}</div><span>／</span><div>${art(33.3333,50,'闪避 · 暂时脱身')}</div></div>` },
-    { target: '#phasebar', title: '行动结束，继续下一轮', text: '点「结束回合」，再按「继续」走完后续阶段。', tips: ['新的调查阶段恢复 3 行动；顶栏「?」可重看。'], visual: '<div class="tutorial-phase-flow"><span><i>Ⅰ</i>敌人<small>攻击</small></span><b>→</b><span><i>Ⅱ</i>维持<small>补给</small></span><b>→</b><span><i>Ⅲ</i>神话<small>遭遇</small></span></div>' }
+    { target: '#phasebar', title: '行动结束，继续下一轮', text: '点「结束回合」，再按「继续」走完后续阶段。', tips: ['新的调查阶段恢复 3 行动；顶栏「?」可重看。'], visual: '<div class="tutorial-phase-flow"><span><i>Ⅰ</i>敌人<small>攻击</small></span><b>→</b><span><i>Ⅱ</i>维持<small>补给</small></span><b>→</b><span><i>Ⅲ</i>神话<small>遭遇</small></span></div>' },
+    { target: '#actions', title: '没记住也没关系，试一试吧', text: '还没完全理解也没关系，接下来亲手试一试，边玩边熟悉吧。', tips: ['可以先点「调查」试试；需要帮助时，点顶栏「?」。'], visual: '<img class="tutorial-room" src="assets/images/noir-study.webp" alt="" width="344" height="104"><div class="tutorial-route"><b>亲手调查</b><span>→</span><b>发现线索</b></div>' }
   ];
   let active = false, index = 0, lastFocus = null;
   let savedOverflow = '', savedInert = false, savedScroll = [0, 0], target = null;
@@ -90,7 +91,7 @@
     byId('tutorialText').textContent = step.text;
     byId('tutorialTips').innerHTML = step.tips.map(tip=>`<li>${tip}</li>`).join('');
     previous.disabled = index === 0;
-    next.textContent = index === steps.length-1 ? '开始调查' : '下一步';
+    next.textContent = index === steps.length-1 ? '开始实操' : '下一步';
     target = document.querySelector(step.target);
     target?.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
     panel.scrollTop = 0;

@@ -13,8 +13,26 @@ test('取消检定、取消移动与非法出牌不会播放操作音',()=>{
   const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);requestAction('investigate');cancelTest();S.revealed.hallway=true;requestMapMove('hallway');closeModal();S.resources=0;S.hand=[{...INVESTIGATOR.deck[0]}];onHandCard(0)`);assert.deepEqual(g.get('cues'),[]);
 });
 test('抽取指示物和成功移动仅各播放一次，重复确认无效',()=>{
-  const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);investigate();resolveTest();resolveTest();finishTest(true);S.revealed.hallway=true;requestMapMove('hallway');confirmAction();confirmAction()`);assert.deepEqual(g.get('cues'),['token','move']);
+  const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);investigate();resolveTest();resolveTest();finishTest(true);S.revealed.hallway=true;requestMapMove('hallway');confirmAction();confirmAction()`);assert.deepEqual(g.get('cues'),['token','clue','move']);
 });
+test('攻击失败专属提示只在实际结算响一次，取消和成功不误报',()=>{
+ const g=game();g.enemy();g.run(`let cues=[];playGameSfx=name=>cues.push(name);requestAction('fight');cancelTest()`);assert.deepEqual(g.get('cues'),[]);g.run(`S.chaos=[{label:'失败',autofail:true}];requestAction('fight');resolveTest();finishTest(false);finishTest(false)`);assert.deepEqual(g.get('cues'),['token','attackMiss']);
+ const h=game();h.enemy();h.run(`let cues=[];playGameSfx=name=>cues.push(name);fight();resolveTest();finishTest(true)`);assert.deepEqual(h.get('cues'),['token']);
+});
+
+test('遭遇怪物和混沌搜索生成怪物各有一次提示，空牌堆不误报',()=>{
+ const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);S.encounter=[{...ENCOUNTER[0]}];drawEncounter();S.encounter=[];S.encounterDiscard=[];drawEncounter();drawSearchedGhoul()`);assert.deepEqual(g.get('cues'),['monster']);assert.equal(g.get('S.enemies.length'),1);
+ const h=game();h.run(`let cues=[];playGameSfx=name=>cues.push(name);S.encounter=[{...ENCOUNTER[0]}];S.encounterDiscard=[];drawSearchedGhoul()`);assert.deepEqual(h.get('cues'),['monster']);
+});
+
+test('新地点和已探索地点移动均提示，确认取消不响',()=>{
+ const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);requestMove('hallway');closeModal()`);assert.deepEqual(g.get('cues'),[]);g.run(`requestMove('hallway');confirmAction();confirmAction();requestMove('study');confirmAction()`);assert.deepEqual(g.get('cues'),['move','move']);
+});
+
+test('调查只有实际获得线索才响，失败及空地点成功不响线索提示',()=>{
+ for(const empty of [false,true])for(const success of [false,true]){const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);S.locClues.study=${empty?0:2};S.chaos=[${success?"{label:'0',mod:0}":"{label:'失败',autofail:true}"}];requestAction('investigate');${empty?'confirmAction();':''}resolveTest();finishTest(S.testResult);finishTest(true)`);assert.deepEqual(g.get('cues'),success&&!empty?['token','clue']:['token']);}
+});
+
 test('实际生命理智损失触发对应音效，零伤害及失效音频不阻断游戏',()=>{
   const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);applyPlayerLoss(2,1);applyPlayerLoss(0,0)`);assert.deepEqual(g.get('cues'),['hurt','sanity']);g.run(`playGameSfx=()=>{throw Error('audio blocked')};resource()`);assert.equal(g.get('S.resources'),6);assert.equal(g.get('S.actions'),2);
 });

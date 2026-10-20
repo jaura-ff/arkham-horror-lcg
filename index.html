@@ -1085,6 +1085,7 @@ function investigate(preview=false,emptyConfirmed=false){
     if(success && S.locClues[S.location]>0){
       S.locClues[S.location]--;
       S.clues++;
+      gameSfx('clue');
       log(`你发现了 1 条线索！（线索 ${S.clues}）`,'good');
     } else if(success){
       log('调查成功，但这个地点已没有线索，未获得线索。','dim');
@@ -1124,6 +1125,7 @@ function fight(preview=false){
         else S.encounterDiscard.push(target.card);
       }
     } else {
+      gameSfx('attackMiss');
       log('你的攻击落空了。','dim');
     }
     render();
@@ -1249,6 +1251,7 @@ function drawSearchedGhoul(id){
     const source=S.encounter.includes(card)?S.encounter:S.encounterDiscard;
     source.splice(source.indexOf(card),1);
     S.enemies.push({card,hp:card.hp,engaged:true,exhausted:false,location:S.location});
+    gameSfx('monster');
     log(`骷髅后果：你抽到 ${card.name}，在当前地点交缠。`,'bad');
   }else log('骷髅后果：遭遇牌组及弃牌堆没有可寻找的食尸鬼。','dim');
   shuffle(S.encounter);
@@ -1450,6 +1453,7 @@ function drawEncounter(){
   if(c.type==='enemy'){
     const e = {card:c, hp:c.hp, engaged:true, exhausted:false, location:S.location};
     S.enemies.push(e);
+    gameSfx('monster');
     log(`遭遇：<b>${c.name}</b> 在${LOCATIONS[S.location].name}出现并交缠了你！`,'bad');
   } else if(c.type==='treachery'){
     S.encounterDiscard.push(c);
@@ -1554,7 +1558,7 @@ function resolve(code, text){
   `);
 }
 </script>
-<script src="ambience.js?v=soft-pad-1"></script>
+<script src="ambience.js?v=interaction-cues-2"></script>
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=guide-1"></script>
 <script src="phase-transition.js?v=skip-countdown-2"></script>

@@ -5,9 +5,9 @@ const vm = require('node:vm');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname,'..','ambience.js'),'utf8');
 test('本地MP3及四份原始CC0授权齐全，素材总量保持轻量',()=>{
-  const dir=path.join(__dirname,'..','assets/audio/kenney'),names=['card-draw','card-play','chaos-token','hurt','sanity','phase','door','page'];let total=0;
+  const dir=path.join(__dirname,'..','assets/audio/kenney'),names=['card-draw','card-play','chaos-token','hurt','sanity','phase','door','page','sanity-alert','attack-miss','monster-appear','clue-found'];let total=0;
   for(const name of names){const bytes=fs.readFileSync(path.join(dir,name+'.mp3'));assert.ok(bytes.length>1000,name);assert.ok(bytes.subarray(0,3).toString()==='ID3'||bytes[0]===255,name);total+=bytes.length;}
-  assert.ok(total<100000);for(const pack of ['casino','impact','interface','rpg'])assert.match(fs.readFileSync(path.join(dir,`LICENSE-${pack}.txt`),'utf8'),/CC0|Creative Commons Zero/);
+  assert.ok(total<150000);for(const pack of ['casino','impact','interface','rpg'])assert.match(fs.readFileSync(path.join(dir,`LICENSE-${pack}.txt`),'utf8'),/CC0|Creative Commons Zero/);
 });
 test('前序后的实际开局事件可启动音频，返回菜单会停止',async()=>{
   const g=setup();g.doc.listeners['arkham:game-started']();await g.flush();assert.equal(g.contexts.length,1);assert.equal(g.contexts[0].state,'running');g.doc.listeners['arkham:menu']();await g.flush();assert.equal(g.contexts[0].state,'suspended');assert.equal(g.timers.size,0);
@@ -59,9 +59,13 @@ test('静音、音量零和后台停止氛围声，不在后台持续生成',asy
 });
 
 test('CC0短音效在用户进入后预加载，本地缓存不重复下载和解码',async()=>{
-  const g=setup({samples:true});assert.equal(g.fetches.length,0);await g.fire('startButton');assert.equal(g.fetches.length,8);assert.ok(g.fetches.every(p=>p.startsWith('assets/audio/kenney/')&&p.endsWith('.mp3')));
-  await g.win.playGameSfx('card');await g.win.playGameSfx('card');assert.equal(g.played.length,2);assert.equal(g.fetches.length,8);assert.equal(g.decodes(),8);
+  const g=setup({samples:true});assert.equal(g.fetches.length,0);await g.fire('startButton');assert.equal(g.fetches.length,11);assert.ok(g.fetches.every(p=>p.startsWith('assets/audio/kenney/')&&p.endsWith('.mp3')));
+  await g.win.playGameSfx('card');await g.win.playGameSfx('card');assert.equal(g.played.length,2);assert.equal(g.fetches.length,11);assert.equal(g.decodes(),11);
 });
+test('新增交互提示均可缓存播放且受静音控制，精神警示音不再过轻',async()=>{
+ const g=setup({samples:true});await g.fire('startButton');for(const name of ['sanity','attackMiss','monster','clue','move'])await g.win.playGameSfx(name);assert.equal(g.played.length,5);assert.equal(g.fetches.length,11);assert.ok(g.fetches.includes('assets/audio/kenney/sanity-alert.mp3'));assert.equal(g.gains.at(-5).gain.value,.85);await g.fire('soundToggle');assert.ok(g.played.every(p=>p.stopped));for(const name of ['sanity','attackMiss','monster','clue','move'])await g.win.playGameSfx(name);assert.equal(g.played.length,5);
+});
+
 test('静音、音量零、后台和菜单时不播放，正在播放的短音效被停止',async()=>{
   const g=setup({samples:true});await g.fire('startButton');await g.win.playGameSfx('hurt');await g.fire('soundToggle');assert.equal(g.played[0].stopped,true);await g.win.playGameSfx('hurt');assert.equal(g.played.length,1);
   await g.fire('soundToggle');await g.win.playGameSfx('token');g.nodes.get('soundVolume').value='0';await g.fire('soundVolume','input');assert.equal(g.played[1].stopped,true);await g.win.playGameSfx('token');assert.equal(g.played.length,2);

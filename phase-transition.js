@@ -4,10 +4,11 @@
   const byId=id=>document.getElementById(id),dialog=byId('phaseAnnouncement');
   if(!dialog)return;
   const labels={investigation:'调查阶段',enemy:'敌人阶段',upkeep:'维持阶段',mythos:'神话阶段'};
-  let timer=null,version=0,countdownTimers=[];
+  const skip=byId('phaseAnnouncementSkip');
+  let timer=null,version=0,countdownTimers=[],finishPending=null;
   function clearCountdown(){countdownTimers.forEach(clearTimeout);countdownTimers=[];}
   window.resetPhaseAnnouncement=()=>{
-    version++;
+    version++;finishPending=null;if(skip)skip.disabled=true;
     if(timer!==null)clearTimeout(timer);
     clearCountdown();
     timer=null;phaseTransitionActive=false;
@@ -17,6 +18,7 @@
     if(!S || S.gameOver || !labels[phase] || phaseTransitionActive)return;
     const state=S,from=S.phase,ticket=++version;
     phaseTransitionActive=true;
+    if(skip)skip.disabled=false;
     byId('phaseAnnouncementCountdown').textContent='3';
     byId('phaseAnnouncementTitle').textContent=labels[phase];
     byId('phaseAnnouncementRule').textContent=typeof phaseGuideText==='function'?phaseGuideText(phase,true):'';
@@ -28,8 +30,10 @@
         byId('phaseAnnouncementCountdown').textContent=String(remaining);
       }
     },(index+1)*1000));
-    timer=setTimeout(()=>{
+    const finish=()=>{
       if(ticket!==version)return;
+      version++;finishPending=null;if(skip)skip.disabled=true;
+      if(timer!==null)clearTimeout(timer);
       clearCountdown();
       timer=null;phaseTransitionActive=false;
       if(dialog.open)dialog.close();
@@ -41,7 +45,10 @@
       if(!byId('modal').classList.contains('open') && byId('tutorial').hidden){
         (document.querySelector('#actions .btn:not(:disabled)')||byId('menuButton'))?.focus();
       }
-    },3000);
+    };
+    finishPending=finish;
+    timer=setTimeout(finish,3000);
   };
+  skip?.addEventListener('click',()=>finishPending?.());
   dialog.addEventListener('cancel',event=>event.preventDefault());
 })();

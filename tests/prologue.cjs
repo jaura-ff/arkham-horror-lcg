@@ -56,7 +56,7 @@ test('减少动态效果优先，系统设置变化立即生效，不改变游�
 });
 
 test('动画层仅装饰、无无限循环，不遮挡交互且缓存版本更新',()=>{
- const css=fs.readFileSync(path.join(root,'prologue.css'),'utf8');assert.match(html,/class="prologue-stage" aria-hidden="true"/);assert.match(html,/prologue\.css\?v=narration-1/);assert.match(html,/prologue\.js\?v=intro-voice-1/);assert.match(css,/pointer-events:none/);assert.doesNotMatch(css,/infinite/);assert.match(css,/pointer:coarse/);assert.match(css,/noir-rooms.webp/);
+ const css=fs.readFileSync(path.join(root,'prologue.css'),'utf8');assert.match(html,/class="prologue-stage" aria-hidden="true"/);assert.match(html,/prologue\.css\?v=narration-1/);assert.match(html,/prologue\.js\?v=three-scenes-2/);assert.match(css,/pointer-events:none/);assert.doesNotMatch(css,/infinite/);assert.match(css,/pointer:coarse/);assert.match(css,/noir-rooms.webp/);
 });
 
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
@@ -65,12 +65,21 @@ test('第一幕配音加载期间跳过也会立即停止，迟到结果不复�
 });
 test('第一幕发布音频存在且校验固定，第二幕确认版本保持不变',()=>{
  const digest=file=>require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex');
- assert.equal(digest('assets/audio/prologue-intro-rain-v1.mp3'),'a38c2ef3c4e9c3ca1e5613c8764b73b1b1200f81407a712b73521f796cf22752');
+ assert.equal(digest('assets/audio/prologue-intro-soft-v2.mp3'),'26c20c3d99c8bb5baab89d04727b07891227aff676468f09372fefa7bf17ba84');
+ assert.equal(digest('assets/audio/prologue-investigation-v10-rats-v2.mp3'),'a395f52505a319b79cdd78807adbf68b8a0135cdf1f86b005fe030f8a8327eb1');
  assert.equal(digest('assets/audio/prologue-study-foley-v2.mp3'),'41a5ce9acedc02b46972828ecbb32a5708ba65a9b885006833914d8ce452aacc');
 });
-test('前两幕各播放对应的本地配音，第三幕保持文字动画',async()=>{
- const g=setup(false,{audio:true});g.run('beginPrologue()');assert.equal(g.media.length,1);assert.equal(g.media[0].src,'assets/audio/prologue-intro-rain-v1.mp3');const intro=g.media[0];g.click('prologueNext');await flush();assert.equal(g.media.length,2);assert.ok(intro.pauses>0);assert.equal(intro.src,'');assert.equal(g.media.at(-1).src,'assets/audio/prologue-study-foley-v2.mp3');assert.match(g.el('prologueVoiceStatus').textContent,/正在播放/);assert.equal(g.get('S'),null);assert.match(g.el('prologueText').textContent,/只有你，一个人/);g.click('prologueNext');assert.ok(g.media.at(-1).pauses>0);assert.match(g.el('prologueVoiceStatus').textContent,/文字与动画/);
+test('三幕各播放对应本地配音，切幕清理前一幕',async()=>{
+ const g=setup(false,{audio:true});g.run('beginPrologue()');assert.equal(g.media.length,1);assert.equal(g.media[0].src,'assets/audio/prologue-intro-soft-v2.mp3');const intro=g.media[0];g.click('prologueNext');await flush();assert.equal(g.media.length,2);assert.ok(intro.pauses>0);assert.equal(intro.src,'');assert.equal(g.media.at(-1).src,'assets/audio/prologue-study-foley-v2.mp3');assert.match(g.el('prologueVoiceStatus').textContent,/正在播放/);assert.equal(g.get('S'),null);assert.match(g.el('prologueText').textContent,/只有你，一个人/);const second=g.media.at(-1);g.click('prologueNext');await flush();assert.ok(second.pauses>0);assert.equal(second.src,'');assert.equal(g.media.length,3);assert.equal(g.media.at(-1).src,'assets/audio/prologue-investigation-v10-rats-v2.mp3');assert.match(g.el('prologueVoiceStatus').textContent,/正在播放/);assert.equal(g.get('S'),null);
 });
+test('第三幕可暂停重播，配音结束不直接开局，确认开始才清理播放器',async()=>{
+ const g=setup(false,{audio:true});g.run('beginPrologue()');g.click('prologueNext');g.click('prologueNext');await flush();const a=g.media.at(-1);a.currentTime=31.7;g.click('prologueVoicePause');g.click('prologueVoicePause');await flush();assert.equal(a.currentTime,31.7);g.click('prologueVoiceReplay');await flush();assert.equal(a.currentTime,0);a.onended();assert.equal(g.get('S'),null);assert.equal(g.el('prologueDialog').dataset.scene,'2');g.click('prologueNext');assert.equal(a.src,'');assert.equal(g.get('startCalls'),1);
+});
+
+test('第三幕返回上一幕不会留下人声或环境音重叠',async()=>{
+ const g=setup(false,{audio:true});g.run('beginPrologue()');g.click('prologueNext');g.click('prologueNext');await flush();const a=g.media.at(-1),lateEnd=a.onended;g.click('prologuePrevious');await flush();lateEnd();assert.equal(a.src,'');assert.ok(a.pauses>0);assert.equal(g.media.at(-1).src,'assets/audio/prologue-study-foley-v2.mp3');assert.match(g.el('prologueVoiceStatus').textContent,/正在播放/);
+});
+
 test('暂停保留播放时间，继续不重头，重播回到开头',async()=>{
  const g=setup(false,{audio:true});g.run('beginPrologue()');g.click('prologueNext');await flush();const a=g.media.at(-1);a.currentTime=28;g.click('prologueVoicePause');assert.match(g.el('prologueVoiceStatus').textContent,/已暂停/);assert.equal(g.el('prologueDialog').dataset.motion,'playing');g.click('prologueVoicePause');await flush();assert.equal(a.currentTime,28);g.click('prologueVoiceReplay');await flush();assert.equal(a.currentTime,0);assert.equal(a.plays,3);
 });
@@ -103,5 +112,5 @@ test('上一幕再回来创建全新播放器，不复活旧幕音频',async()=>
  const g=setup(false,{audio:true});g.run('beginPrologue()');g.click('prologueNext');await flush();const old=g.media.at(-1),end=old.onended;g.click('prologuePrevious');g.click('prologueNext');await flush();end();assert.equal(g.media.length,4);assert.equal(old.src,'');assert.match(g.el('prologueVoiceStatus').textContent,/正在播放/);
 });
 test('固定配音文件与确认的试听逐字节相同，且不再调用系统TTS',()=>{
- const audio=fs.readFileSync(path.join(root,'assets/audio/prologue-study-foley-v2.mp3'));assert.equal(require('node:crypto').createHash('sha256').update(audio).digest('hex'),'41a5ce9acedc02b46972828ecbb32a5708ba65a9b885006833914d8ce452aacc');const source=fs.readFileSync(path.join(root,'prologue-narration.js'),'utf8');assert.doesNotMatch(source,/speechSynthesis|SpeechSynthesisUtterance/);assert.match(html,/prologue-narration\.js\?v=intro-voice-1/);
+ const audio=fs.readFileSync(path.join(root,'assets/audio/prologue-study-foley-v2.mp3'));assert.equal(require('node:crypto').createHash('sha256').update(audio).digest('hex'),'41a5ce9acedc02b46972828ecbb32a5708ba65a9b885006833914d8ce452aacc');const source=fs.readFileSync(path.join(root,'prologue-narration.js'),'utf8');assert.doesNotMatch(source,/speechSynthesis|SpeechSynthesisUtterance/);assert.match(html,/prologue-narration\.js\?v=three-scenes-2/);
 });

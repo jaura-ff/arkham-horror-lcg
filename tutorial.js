@@ -18,10 +18,9 @@
     { target: '.command-panel', title: '遇到敌人，不要只顾调查', text: '战斗和闪避也需要检定。成功战斗通常造成 1 点伤害；成功闪避会使敌人力竭并脱离交缠。', tips: ['与就绪敌人交缠时，做战斗、闪避以外的普通行动，会先受到借机攻击。移动也不例外。', '这局的 .45 自动手枪能提高战斗检定，并让成功攻击额外造成 1 点伤害。没有足够资源或手槽就不能装备。'] },
     { target: '#phasebar', title: '结束回合之后做什么？', text: '点「结束回合」后，按「继续」依次经过敌人、维持、神话阶段，再回到调查阶段。第一回合从调查开始。', tips: ['敌人可能攻击；维持会抽牌、获得资源并恢复敌人；神话会推进末日并抽遭遇。', '新一轮调查阶段恢复 3 次行动。有检定弹窗时先完成检定。准备好了就开始调查；顶栏「?」可以随时重看。'] }
   ];
-  let active = false, index = 0, seen = false, lastFocus = null;
+  let active = false, index = 0, lastFocus = null;
   let savedOverflow = '', savedInert = false, savedScroll = [0, 0], target = null;
   let position = null, drag = null;
-  try { seen = !!localStorage.getItem(key); } catch (_) {}
 
   function movePanel(x, y) {
     const width = Math.min(380, window.innerWidth - 24);
@@ -98,7 +97,7 @@
     if (document.activeElement === previous && previous.disabled) next.focus();
   }
   function open(force = false) {
-    if (active || (!force && seen) || game.style.display === 'none') return;
+    if (!force || active || game.style.display === 'none') return;
     if(typeof phaseTransitionActive!=='undefined' && phaseTransitionActive){queuedOpen=queuedOpen===true || force;return;}
     if (byId('modal').classList.contains('open')) {
       byId('guideStatus').textContent = '请先完成或关闭当前游戏弹窗，再打开新人指导。'; return;
@@ -115,15 +114,15 @@
     active = false; overlay.hidden = true; target = null;
     document.body.style.overflow = savedOverflow; game.inert = savedInert;
     window.scrollTo(...savedScroll);
-    if (remember) { seen = true; try { localStorage.setItem(key,'seen'); } catch (_) {} }
+    if (remember) { try { localStorage.setItem(key,'seen'); } catch (_) {} }
     if (game.style.display === 'none') learn.focus();
     else if (lastFocus && !lastFocus.closest?.('#startOverlay') && lastFocus.isConnected !== false) lastFocus.focus?.();
     else guide.focus();
   }
   let queuedOpen=null;
   document.addEventListener('arkham:phase-ready',()=>{if(queuedOpen!==null){const force=queuedOpen;queuedOpen=null;open(force);}});
-  document.addEventListener('arkham:game-started',event=>open(event.detail?.tutorial===true));
-  start.addEventListener('click',()=>open());
+  // Only an explicit Learn entry requests onboarding; normal starts never do.
+  document.addEventListener('arkham:game-started',event=>{queuedOpen=null;if(event.detail?.tutorial===true)open(true);});
   learn.addEventListener('click',()=>{if(typeof beginPrologue==='function'){beginPrologue(true);return;}start.click();open(true);});
   guide.addEventListener('click',()=>open(true));
   previous.addEventListener('click',()=>{if(active && index>0){index--;render();}});

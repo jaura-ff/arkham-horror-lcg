@@ -7,12 +7,25 @@ const source=fs.readFileSync(path.join(__dirname,'..','tutorial.js'),'utf8');
 test('实际开局事件在阶段提示后启动教学，并保留强制重看请求',()=>{
   const g=setup({saved:'seen',transition:true});g.nodes.get('game').style.display='block';g.events['arkham:game-started']({detail:{tutorial:true}});assert.equal(g.open(),false);g.setPhasePending(false);g.events['arkham:phase-ready']();assert.equal(g.open(),true);
 });
-test('普通前序结束后仍遵守已看过不自动出现的教学偏好',()=>{
+test('普通前序结束后不会开启教学',()=>{
   const g=setup({saved:'seen'});g.nodes.get('game').style.display='block';g.events['arkham:game-started']({detail:{tutorial:false}});assert.equal(g.open(),false);
 });
 
-test('阶段提示优先，提示完成后才自动打开新人指导',()=>{
-  const g=setup({transition:true});g.click('startButton');assert.equal(g.open(),false);assert.equal(g.nodes.get('game').inert,false);g.setPhasePending(false);g.events['arkham:phase-ready']();assert.equal(g.open(),true);g.click('tutorialSkip');g.events['arkham:phase-ready']();assert.equal(g.open(),false);
+test('首次访问、已看过或存储不可用，普通开始和阶段完成均不打开教学',()=>{
+  for(const saved of [null,'seen'])for(const storageFails of [false,true])for(const transition of [false,true]){
+    const g=setup({saved,storageFails,transition});g.click('startButton');assert.equal(g.open(),false);assert.equal(g.nodes.get('game').inert,false);
+    g.events['arkham:game-started']({detail:{tutorial:false}});g.setPhasePending(false);g.events['arkham:phase-ready']();assert.equal(g.open(),false);
+    g.events['arkham:game-started']({});g.events['arkham:phase-ready']();assert.equal(g.open(),false);assert.equal(g.nodes.get('game').inert,false);
+    g.click('guideButton');assert.equal(g.open(),true);
+  }
+});
+
+test('取消教学排队后普通开局不遗留引导，后来仍可主动重开',()=>{
+  const g=setup({transition:true});g.click('learnButton');g.events['arkham:menu']();g.click('startButton');g.events['arkham:game-started']({detail:{tutorial:false}});g.setPhasePending(false);g.events['arkham:phase-ready']();assert.equal(g.open(),false);g.click('guideButton');assert.equal(g.open(),true);
+});
+
+test('主动教学等待阶段提示完成才打开',()=>{
+  const g=setup({transition:true});g.click('learnButton');assert.equal(g.open(),false);assert.equal(g.nodes.get('game').inert,false);g.setPhasePending(false);g.events['arkham:phase-ready']();assert.equal(g.open(),true);g.click('tutorialSkip');g.events['arkham:phase-ready']();assert.equal(g.open(),false);
 });
 test('已看过不自动排队，手动教学可延后，菜单清理排队',()=>{
   const g=setup({saved:'seen',transition:true});g.click('startButton');g.setPhasePending(false);g.events['arkham:phase-ready']();assert.equal(g.open(),false);
@@ -39,8 +52,8 @@ function setup({saved=null,storageFails=false,transition=false}={}){
   function key(value,shiftKey=false){let prevented=false;nodes.get('tutorialPanel').listeners.keydown({key:value,shiftKey,preventDefault(){prevented=true}});return prevented}
   return{nodes,targets,doc,win,winEvents,events,storage,state,click,key,setPhasePending:value=>{runtime.phaseTransitionActive=value},open:()=>!nodes.get('tutorial').hidden};
 }
-test('初次开始自动引导，七步完成不扣资源或行动',()=>{
-  const g=setup(),before=JSON.stringify(g.state);g.click('startButton');
+test('主动选择新人指导，七步完成不扣资源或行动',()=>{
+  const g=setup(),before=JSON.stringify(g.state);g.click('learnButton');
   assert.equal(g.open(),true);assert.equal(g.nodes.get('game').inert,true);
   assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 7');
   assert.equal(g.nodes.get('tutorialPrev').disabled,true);
@@ -51,7 +64,7 @@ test('初次开始自动引导，七步完成不扣资源或行动',()=>{
   assert.equal(g.doc.activeElement.id,'guideButton');
 });
 test('跳过后不再自动出现，顶栏可随时重看',()=>{
-  const g=setup();g.click('startButton');g.click('tutorialSkip');g.click('startButton');assert.equal(g.open(),false);
+  const g=setup();g.click('learnButton');g.click('tutorialSkip');g.click('startButton');assert.equal(g.open(),false);
   g.click('guideButton');assert.equal(g.open(),true);assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 7');
 });
 test('菜单新人指导可启动并打开已看过的教学',()=>{
@@ -62,7 +75,7 @@ test('弹窗进行中不覆盖检定或打开教学',()=>{
   assert.equal(g.open(),false);assert.match(g.nodes.get('guideStatus').textContent,/先完成或关闭/);assert.equal(g.nodes.get('game').inert,false);
 });
 test('上一步边界和 Escape 退出均安全',()=>{
-  const g=setup();g.click('startButton');g.click('tutorialNext');g.click('tutorialPrev');g.click('tutorialPrev');
+  const g=setup();g.click('learnButton');g.click('tutorialNext');g.click('tutorialPrev');g.click('tutorialPrev');
   assert.equal(g.nodes.get('tutorialProgress').textContent,'新人指导 1 / 7');assert.equal(g.key('Escape'),true);assert.equal(g.open(),false);
 });
 test('Tab 焦点限制在教学内，关闭后恢复焦点',()=>{
@@ -72,7 +85,7 @@ test('Tab 焦点限制在教学内，关闭后恢复焦点',()=>{
   g.click('tutorialClose');assert.equal(g.doc.activeElement.id,'guideButton');
 });
 test('禁用存储仍可使用，返回菜单和旋转会正确清理或重定位',()=>{
-  const g=setup({storageFails:true});g.click('startButton');g.win.innerWidth=390;g.win.innerHeight=320;g.winEvents.resize();
+  const g=setup({storageFails:true});g.click('learnButton');g.win.innerWidth=390;g.win.innerHeight=320;g.winEvents.resize();
   const panel=g.nodes.get('tutorialPanel');assert.ok(parseFloat(panel.style.left)>=12);assert.ok(parseFloat(panel.style.top)>=12);
   g.nodes.get('game').style.display='none';g.events['arkham:menu']();assert.equal(g.open(),false);assert.equal(g.doc.body.style.overflow,'');assert.equal(g.doc.activeElement.id,'learnButton');
 });
@@ -84,7 +97,7 @@ test('默认位置居中偏右，不随高亮目标左右跳动',()=>{
     const left=position++%2?1050:20;
     target.getBoundingClientRect=()=>({left,top:40,right:left+300,bottom:240,width:300,height:200});
   }
-  g.click('startButton');
+  g.click('learnButton');
   for(let step=0;step<7;step++){
     const panel=g.nodes.get('tutorialPanel');
     assert.equal(parseFloat(panel.style.left),(1440-380)*0.66);assert.equal(panel.style.top,'350px');
@@ -95,7 +108,7 @@ test('默认位置居中偏右，不随高亮目标左右跳动',()=>{
 });
 
 test('右侧引导在窄屏及短横屏保留安全边距',()=>{
-  const g=setup();g.click('startButton');
+  const g=setup();g.click('learnButton');
   for(const [width,height] of [[390,844],[568,320],[844,390]]){
     g.win.innerWidth=width;g.win.innerHeight=height;g.winEvents.resize();
     const panel=g.nodes.get('tutorialPanel'),panelWidth=Math.min(380,width-24);
@@ -112,7 +125,7 @@ function pointer(g,type,x,y,extra={}){
 
 test('鼠标及触摸拖动标题栏，切步骤、滚动和重开保留位置',()=>{
   for(const pointerType of ['mouse','touch']){
-    const g=setup();g.win.innerWidth=1440;g.win.innerHeight=900;g.click('startButton');
+    const g=setup();g.win.innerWidth=1440;g.win.innerHeight=900;g.click('learnButton');
     const panel=g.nodes.get('tutorialPanel'),before=JSON.stringify(g.state),x=parseFloat(panel.style.left),y=parseFloat(panel.style.top);
     assert.equal(pointer(g,'pointerdown',x+20,y+20,{pointerType}),true);
     assert.equal(g.nodes.get('tutorialDrag').captured,1);
@@ -125,7 +138,7 @@ test('鼠标及触摸拖动标题栏，切步骤、滚动和重开保留位置',
 });
 
 test('拖动不能出屏，旋转及内容增高后重新约束位置',()=>{
-  const g=setup();g.click('startButton');const panel=g.nodes.get('tutorialPanel');
+  const g=setup();g.click('learnButton');const panel=g.nodes.get('tutorialPanel');
   pointer(g,'pointerdown',100,100);pointer(g,'pointermove',9999,9999);
   assert.equal(panel.style.left,'452px');assert.equal(panel.style.top,'178px');
   pointer(g,'pointermove',-9999,-9999);assert.equal(panel.style.left,'12px');assert.equal(panel.style.top,'12px');
@@ -137,7 +150,7 @@ test('拖动不能出屏，旋转及内容增高后重新约束位置',()=>{
 
 test('取消、丢失捕获、关闭会停止拖动，忽略右键及其他手指',()=>{
   for(const ending of ['pointercancel','lostpointercapture','close']){
-    const g=setup();g.click('startButton');const panel=g.nodes.get('tutorialPanel'),before={...panel.style};
+    const g=setup();g.click('learnButton');const panel=g.nodes.get('tutorialPanel'),before={...panel.style};
     pointer(g,'pointerdown',100,100,{button:2});pointer(g,'pointermove',200,200);assert.deepEqual(panel.style,before);
     pointer(g,'pointerdown',100,100);pointer(g,'pointermove',200,200,{pointerId:2});assert.deepEqual(panel.style,before);
     if(ending==='close')g.click('tutorialClose');else pointer(g,ending,100,100);
@@ -146,7 +159,7 @@ test('取消、丢失捕获、关闭会停止拖动，忽略右键及其他手�
 });
 
 test('标题栏方向键移动，Home 复位，不截获正文及按钮点击',()=>{
-  const g=setup();g.click('startButton');const panel=g.nodes.get('tutorialPanel'),handle=g.nodes.get('tutorialDrag'),before={...panel.style};
+  const g=setup();g.click('learnButton');const panel=g.nodes.get('tutorialPanel'),handle=g.nodes.get('tutorialDrag'),before={...panel.style};
   const key=(value,shiftKey=false)=>handle.listeners.keydown({key:value,shiftKey,preventDefault(){}});
   key('ArrowLeft');assert.equal(parseFloat(panel.style.left),parseFloat(before.left)-16);
   key('ArrowDown',true);assert.equal(parseFloat(panel.style.top),parseFloat(before.top)+40);
@@ -157,6 +170,6 @@ test('标题栏方向键移动，Home 复位，不截获正文及按钮点击',(
 test('教学入口与所有目标区域均存在，脚本随游戏本地加载',()=>{
   const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
   for(const id of ['tutorial','tutorialPanel','tutorialSpotlight','learnButton','guideButton','tutorialClose','tutorialSkip','tutorialPrev','tutorialNext','tutorialTitle','tutorialText','tutorialTips','tutorialProgress','guideStatus','investigator','scenePanel','actions','hand','phasebar'])assert.ok(html.includes(`id="${id}"`),id);
-  assert.ok(html.includes('src="tutorial.js?v=prologue-1"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
+  assert.ok(html.includes('src="tutorial.js?v=explicit-entry-2"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
   assert.ok(html.includes('id="tutorialDrag"'));assert.ok(html.includes('拖动调整位置'));
 });

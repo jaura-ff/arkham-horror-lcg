@@ -17,6 +17,17 @@
 .tutorial-phase-flow{display:flex;align-items:center;gap:14px;text-align:center;font-size:12px;color:var(--gold)}
 .tutorial-phase-flow span{min-width:50px}.tutorial-phase-flow i{display:block;font:26px Georgia,serif;margin-bottom:4px}.tutorial-phase-flow small{display:block;color:var(--dim);font-size:10px;margin-top:4px}.tutorial-phase-flow>b{font-weight:400;color:#8b754d}
 .tutorial-panel .tutorial-note{margin-top:9px}
+/* A dedicated in-game page after the five lessons, not another floating card. */
+.tutorial-outro .tutorial-panel{inset:0!important;width:100%!important;height:100dvh;max-height:100dvh;padding:80px clamp(24px,10vw,160px) 40px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;border:0;box-shadow:none;background:linear-gradient(90deg,#14120ff5,#14120fba),url('assets/images/noir-study.webp') center/cover}
+.tutorial-outro .tutorial-panel::before{display:none}
+.tutorial-outro .tutorial-heading{position:absolute;top:max(20px,env(safe-area-inset-top));right:max(24px,env(safe-area-inset-right));margin:0}
+.tutorial-outro .tutorial-panel .tutorial-visual,.tutorial-outro #tutorialTips,.tutorial-outro .tutorial-note{display:none}
+.tutorial-outro .tutorial-panel h2{max-width:640px;font-size:clamp(26px,4vw,46px);font-weight:400;letter-spacing:2px;margin:0 0 22px;color:var(--gold)}
+.tutorial-outro .tutorial-panel #tutorialText{max-width:510px;font-size:clamp(16px,2vw,21px);line-height:1.9;margin:0;color:var(--text)}
+.tutorial-outro .tutorial-nav{margin-top:34px;width:auto}
+.tutorial-outro .tutorial-nav>div{display:flex;gap:12px;flex-wrap:wrap}
+.tutorial-outro #tutorialNext{min-width:136px}
+.tutorial-outro [hidden]{display:none!important}
 @media(orientation:landscape) and (max-height:440px){
  .tutorial-panel .tutorial-visual{height:82px;margin:6px 0 9px}
  .tutorial-panel .tutorial-art{width:68px;height:48px;margin-bottom:3px}
@@ -27,4 +38,8 @@
  .tutorial-panel #tutorialText{font-size:12px}
  .tutorial-panel #tutorialTips{margin:6px 0 9px;padding:5px 8px;font-size:11px}
  .tutorial-panel h2{font-size:18px;margin-bottom:5px}
+ .tutorial-outro .tutorial-panel{justify-content:flex-start;padding:62px 8vw 24px}
+ .tutorial-outro .tutorial-panel h2{font-size:26px;margin-bottom:12px}
+ .tutorial-outro .tutorial-panel #tutorialText{font-size:15px;line-height:1.7}
+ .tutorial-outro .tutorial-nav{margin-top:20px}
 }

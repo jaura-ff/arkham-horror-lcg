@@ -17,7 +17,7 @@
     { target: '#hand', title: '先看卡，再出牌', text: '双击手牌看效果，再确认出牌；技能牌在检定时投入。', tips: ['资产留在场上；事件结算后弃置。'], visual: `<div class="tutorial-card-pair"><div>${art(33.3333,0,'资产 · 装备武器')}</div><span>／</span><div>${art(100,50,'技能 · 帮助检定')}</div></div>` },
     { target: '.command-panel', title: '遇到敌人，先处理', text: '选择战斗造成伤害，或闪避让敌人力竭并脱离交缠。', tips: ['交缠中的就绪敌人，会对多数其他行动借机攻击。'], visual: `<div class="tutorial-card-pair"><div>${art(66.6667,0,'战斗 · 击败敌人')}</div><span>／</span><div>${art(33.3333,50,'闪避 · 暂时脱身')}</div></div>` },
     { target: '#phasebar', title: '行动结束，继续下一轮', text: '点「结束回合」，再按「继续」走完后续阶段。', tips: ['新的调查阶段恢复 3 行动；顶栏「?」可重看。'], visual: '<div class="tutorial-phase-flow"><span><i>Ⅰ</i>敌人<small>攻击</small></span><b>→</b><span><i>Ⅱ</i>维持<small>补给</small></span><b>→</b><span><i>Ⅲ</i>神话<small>遭遇</small></span></div>' },
-    { target: '#actions', title: '没记住也没关系，试一试吧', text: '还没完全理解也没关系，接下来亲手试一试，边玩边熟悉吧。', tips: ['可以先点「调查」试试；需要帮助时，点顶栏「?」。'], visual: '<img class="tutorial-room" src="assets/images/noir-study.webp" alt="" width="344" height="104"><div class="tutorial-route"><b>亲手调查</b><span>→</span><b>发现线索</b></div>' }
+    { outro: true, target: null, title: '亲手试一试吧', text: '还没完全理解也没关系，接下来亲手试一试，边玩边熟悉吧。', tips: ['可以先点「调查」试试；需要帮助时，点顶栏「?」。'], visual: '<img class="tutorial-room" src="assets/images/noir-study.webp" alt="" width="344" height="104"><div class="tutorial-route"><b>亲手调查</b><span>→</span><b>发现线索</b></div>' }
   ];
   let active = false, index = 0, lastFocus = null;
   let savedOverflow = '', savedInert = false, savedScroll = [0, 0], target = null;
@@ -35,6 +35,7 @@
   }
   function place() {
     if (!active) return;
+    if (steps[index].outro) { spotlight.hidden = true; return; }
     const width = window.innerWidth, height = window.innerHeight;
     const rect = target?.getBoundingClientRect();
     if (rect && rect.width > 0 && rect.height > 0) {
@@ -85,14 +86,20 @@
   });
   function render() {
     const step = steps[index];
-    byId('tutorialProgress').textContent = `新人指导 ${index+1} / ${steps.length}`;
+    const isOutro = step.outro === true;
+    endDrag();
+    overlay.classList[isOutro ? 'add' : 'remove']('tutorial-outro');
+    if (handle) handle.hidden = isOutro;
+    byId('tutorialSkip').hidden = isOutro;
+    byId('tutorialProgress').textContent = isOutro ? '准备开始' : `新人指导 ${index+1} / ${steps.length-1}`;
     byId('tutorialTitle').textContent = step.title;
     byId('tutorialVisual').innerHTML = step.visual;
     byId('tutorialText').textContent = step.text;
     byId('tutorialTips').innerHTML = step.tips.map(tip=>`<li>${tip}</li>`).join('');
     previous.disabled = index === 0;
     next.textContent = index === steps.length-1 ? '开始实操' : '下一步';
-    target = document.querySelector(step.target);
+    previous.textContent = isOutro ? '返回教学' : '上一步';
+    target = step.target ? document.querySelector(step.target) : null;
     target?.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
     panel.scrollTop = 0;
     place();
@@ -135,7 +142,7 @@
     if(!active)return;
     if(event.key==='Escape'){event.preventDefault();close();return;}
     if(event.key!=='Tab')return;
-    const buttons=[handle,byId('tutorialClose'),byId('tutorialSkip'),previous,next].filter(button=>button && !button.disabled);
+    const buttons=[handle,byId('tutorialClose'),byId('tutorialSkip'),previous,next].filter(button=>button && !button.disabled && !button.hidden);
     const first=buttons[0],last=buttons[buttons.length-1];
     if(event.shiftKey && document.activeElement===first){event.preventDefault();last.focus();}
     else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first.focus();}

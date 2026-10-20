@@ -386,9 +386,29 @@ test('议程推进但未失败时仍抽本轮遭遇，终局时停止',()=>{
   g.run(`S.doom=2;S.encounter=[{...ENCOUNTER[1]}];mythosPhase()`);
   assert.equal(g.get('S.gameOver'),true);assert.equal(g.get('S.enemies.length'),1);assert.equal(g.get('S.encounter.length'),1);
 });
-test('无效调查或推进幕不扣行动、不触发借机攻击',()=>{
+test('空线索调查确认前及无效推进幕不扣行动、不触发借机攻击',()=>{
   const g=game();g.enemy();g.run(`S.locClues.study=0;investigate();advanceAct()`);
   assert.equal(g.get('S.actions'),3);assert.equal(g.get('S.hp'),9);
+});
+
+test('零线索地点调查按钮仍可用，警告可返回且不改变状态',()=>{
+ const g=game();g.run('S.locClues.study=0;renderActions()');const buttons=g.document.getElementById('actions').innerHTML;assert.match(buttons,/data-action="investigate"[^>]*onclick="requestAction\('investigate'\)" >[^]*?此处无剩余线索/);const before=g.get('S');g.run('requestAction(\'investigate\')');assert.deepEqual(g.get('S'),before);const modal=g.document.getElementById('modalBox').innerHTML;assert.match(modal,/这个地点已经没有线索/);assert.match(modal,/消耗 1 次行动/);assert.match(modal,/返回/);assert.match(modal,/继续/);g.run('closeModal()');assert.deepEqual(g.get('S'),before);assert.equal(g.get('pendingAction'),null);
+});
+
+test('确认空线索调查后仍可返回检定，不消耗行动或技能牌',()=>{
+ const g=game();g.run(`S.locClues.study=0;S.hand=[{...INVESTIGATOR.deck.find(c=>c.id==='percep')}];requestAction('investigate');confirmAction();confirmAction();toggleCommit(0);cancelTest()`);assert.equal(g.get('S.actions'),3);assert.equal(g.get('S.hand.length'),1);assert.equal(g.get('S.locClues.study'),0);assert.equal(g.get('S.clues'),0);
+});
+
+test('空线索调查照常检定并花一次行动，成功失败均不制造线索',()=>{
+ for(const success of [true,false]){const g=game();g.run(`S.locClues.study=0;S.clues=2;S.chaos=[${success?"{label:'0',mod:0}":"{label:'自动失败',autofail:true}"}];requestAction('investigate');confirmAction();resolveTest();resolveTest()`);assert.equal(g.get('S.actions'),2);assert.equal(g.get('S.testResult'),success);g.run('finishTest(S.testResult);finishTest(true)');assert.equal(g.get('S.locClues.study'),0);assert.equal(g.get('S.clues'),2);assert.equal(g.get('S.actions'),2);}
+});
+
+test('空线索调查提示攻击风险，只有实际抽取时受一次借机攻击',()=>{
+ const g=game();g.enemy();g.run(`S.locClues.study=0;requestAction('investigate')`);assert.match(g.document.getElementById('modalBox').innerHTML,/借机攻击/);assert.equal(g.get('S.hp'),9);g.run('confirmAction();confirmAction()');assert.equal(g.get('S.hp'),9);g.run('resolveTest();resolveTest()');assert.equal(g.get('S.hp'),9-g.get('ENCOUNTER[0].dmg'));assert.equal(g.get('S.actions'),2);g.run('finishTest(S.testResult)');assert.equal(g.get('S.locClues.study'),0);
+});
+
+test('空线索调查仍受阶段行动和确认锁约束，新开局取消旧确认',()=>{
+ const g=game();g.run(`S.locClues.study=0;requestAction('investigate');requestAction('resource');resource()`);assert.equal(g.get('S.actions'),3);assert.equal(g.get('S.resources'),5);g.run('startGame();confirmAction()');assert.equal(g.get('S.actions'),3);assert.equal(g.get('S.test'),null);for(const state of ["S.actions=0","S.phase='enemy'","phaseTransitionActive=true"]){const h=game();h.run(`S.locClues.study=0;${state};requestAction('investigate')`);assert.equal(h.get('pendingAction'),null);assert.equal(h.get('S.test'),null);}
 });
 test('完成调查消耗行动且先处理借机攻击，败北后不能获胜',()=>{
   const g=game();g.run(`S.location='attic';S.actIdx=1;finish()`);assert.equal(g.get('S.actions'),2);assert.equal(g.get('S.gameOver'),true);

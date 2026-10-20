@@ -903,7 +903,7 @@ function renderActions(){
     actions.push(btn(' 抽牌','draw',canTakeAction,'抽 1 张牌'));
     actions.push(btn(' 资源','resource',canTakeAction,'+1 资源'));
     actions.push(btn(' 移动','move',canTakeAction,'到相邻地点'));
-    actions.push(btn(' 调查','investigate',canTakeAction&&S.locClues[S.location]>0,'智慧 vs 迷雾'));
+    actions.push(btn(' 调查','investigate',canTakeAction,S.locClues[S.location]>0?'智慧 vs 迷雾':'此处无剩余线索'));
     actions.push(btn(' 战斗','fight',canTakeAction&&hasLocalEnemy(),'战斗 vs 敌人'));
     actions.push(btn(' 闪避','evade',canTakeAction&&hasEngagedReadyEnemy(),'敏捷 vs 闪避'));
     if(S.actIdx===0 && S.clues>=3){
@@ -1073,19 +1073,21 @@ function doMove(id){
   render();
 }
 
-function investigate(preview=false){
+function investigate(preview=false,emptyConfirmed=false){
   if(!canAct()) return;
   const loc = LOCATIONS[S.location];
-  if(S.locClues[S.location]<=0){
-    log('这个地点已经没有线索了。','dim');
+  if(S.locClues[S.location]<=0 && !emptyConfirmed){
+    showActionConfirmation('此处没有线索','这个地点已经没有线索。即使调查成功，也无法从这里获得线索。是否仍要消耗 1 次行动在原地调查？',()=>investigate(preview,true),actionRisk());
     return;
   }
   if(!preview && !beginAction()) return;
   startTest('int', loc.shroud, '调查', (success)=>{
-    if(success){
+    if(success && S.locClues[S.location]>0){
       S.locClues[S.location]--;
       S.clues++;
       log(`你发现了 1 条线索！（线索 ${S.clues}）`,'good');
+    } else if(success){
+      log('调查成功，但这个地点已没有线索，未获得线索。','dim');
     } else {
       log('你没有发现任何线索。','dim');
     }

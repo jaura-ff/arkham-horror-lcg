@@ -192,7 +192,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="phase-transition.css?v=skip-countdown-2">
 <link rel="stylesheet" href="loss-notices.css?v=loss-1">
 <link rel="stylesheet" href="play-guide.css?v=guide-1">
-<link rel="stylesheet" href="next-step.css?v=arrow-1">
+<link rel="stylesheet" href="next-step.css?v=smart-guide-2">
 <link rel="stylesheet" href="prologue.css?v=narration-1">
 <link rel="stylesheet" href="tutorial.css?v=standalone-outro-1">
 <link rel="stylesheet" href="board.css?v=icon-proportions-3">
@@ -261,6 +261,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <button type="button" class="btn icon-button" id="menuButton" aria-label="返回主菜单" title="返回主菜单" onclick="requestReturnMenu()"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#home"></use></svg></button>
       <button type="button" class="btn icon-button guide-button" id="guideButton" aria-label="重看新人指导" title="新人指导">?</button>
       <button type="button" class="btn" id="atlasButton">卡牌图鉴</button>
+      <button type="button" id="nextStepToggle" class="btn next-step-toggle" aria-pressed="true" title="根据当前局面推荐下一步操作，可随时关闭">智能指导：开</button>
       <span class="pill">回合 <b id="roundnum">1</b></span>
       <span class="pill">难度 <b id="currentDifficulty">标准</b></span>
       <span class="pill">资源 <b id="topres">5</b></span>
@@ -276,7 +277,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
   <div id="wrap">
     <div class="phasebar" id="phasebar"></div>
-    <details id="playGuide" class="play-guide" open><summary>游玩指引 <span id="playGuideLabel"></span><small>点击收起／展开</small></summary><p id="playGuideText" aria-live="polite"></p><button type="button" id="nextStepToggle" class="btn next-step-toggle" aria-pressed="true">下一步箭头：开</button><a class="play-guide-source" href="https://images-cdn.fantasyflightgames.com/filer_public/88/53/88538d11-5274-4b4a-ac8c-e8d758f71132/ahc01_learn_to_play_web.pdf#page=9" target="_blank" rel="noopener noreferrer">阶段规则参考：官方入门规则第 9 页；行动建议按本网页简化玩法</a></details>
+    <details id="playGuide" class="play-guide" open><summary>游玩指引 <span id="playGuideLabel"></span><small>点击收起／展开</small></summary><p id="playGuideText" aria-live="polite"></p><a class="play-guide-source" href="https://images-cdn.fantasyflightgames.com/filer_public/88/53/88538d11-5274-4b4a-ac8c-e8d758f71132/ahc01_learn_to_play_web.pdf#page=9" target="_blank" rel="noopener noreferrer">阶段规则参考：官方入门规则第 9 页；行动建议按本网页简化玩法</a></details>
 
     <div class="main">
       <!-- 左栏 -->
@@ -351,6 +352,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
   </div>
 </dialog>
 <div id="lossNotice" class="loss-notice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden><strong id="lossNoticeAmount"></strong><span id="lossNoticeSource"></span></div>
+<div id="nextStepTarget" class="next-step-target" aria-hidden="true" hidden></div>
 <div id="nextStepArrow" class="next-step-arrow" role="status" aria-live="polite" hidden><span id="nextStepLabel"></span><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#next"></use></svg></div>
 <dialog id="phaseAnnouncement" class="phase-announcement" aria-labelledby="phaseAnnouncementTitle" aria-describedby="phaseAnnouncementRule phaseAnnouncementHint">
   <div class="phase-announcement-shell"><p class="phase-announcement-kicker">ARKHAM / NEXT PHASE</p><p id="phaseAnnouncementRound" class="phase-announcement-round"></p><p class="phase-announcement-label">即将进入</p><h2 id="phaseAnnouncementTitle" tabindex="-1"></h2><p id="phaseAnnouncementRule"></p><p id="phaseAnnouncementCountdown" class="phase-announcement-countdown" aria-live="polite" aria-atomic="true">3</p><p id="phaseAnnouncementHint">停留 3 秒后自动继续，也可立即进入提示中的阶段</p><button id="phaseAnnouncementSkip" type="button" class="btn phase-announcement-skip">立即进入</button></div>
@@ -1095,7 +1097,7 @@ function move(){
     ${loc.conn.map(id=>{
       const l = LOCATIONS[id];
       const rev = S.revealed[id];
-      return `<button class="btn move-btn" style="margin:5px;display:block;width:100%;text-align:left" onclick="requestMove('${id}')"><span class="move-ico">${rev?(LOC_ICONS[id]||''):'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3a7 7 0 0 0-7 7c0 5 7 11 7 11s7-6 7-11a7 7 0 0 0-7-7z"/><circle cx="12" cy="10" r="2.4"/></svg>'}</span>${rev?l.name:'未揭示地点'} <span style="color:var(--dim);font-size:10px">${rev?'· 迷雾 '+l.shroud:''}</span></button>`;
+      return `<button class="btn move-btn" data-move-target="${id}" style="margin:5px;display:block;width:100%;text-align:left" onclick="requestMove('${id}')"><span class="move-ico">${rev?(LOC_ICONS[id]||''):'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3a7 7 0 0 0-7 7c0 5 7 11 7-11a7 7 0 0 0-7-7z"/><circle cx="12" cy="10" r="2.4"/></svg>'}</span>${rev?l.name:'未揭示地点'} <span style="color:var(--dim);font-size:10px">${rev?'· 迷雾 '+l.shroud:''}</span></button>`;
     }).join('')}
     <button class="btn" style="margin:5px;display:block;width:100%" onclick="closeModal()">${uiIcon('back')}返回</button>
   `);
@@ -1617,7 +1619,7 @@ function resolve(code, text){
 <script src="difficulty-dialog.js?v=token-art-1"></script>
 <script src="hand-dialog.js?v=action-confirm-1"></script>
 <script src="discard.js?v=character-deck-1"></script>
-<script src="next-step.js?v=arrow-1"></script>
+<script src="next-step.js?v=smart-guide-2"></script>
 <script src="prologue-narration.js?v=three-scenes-2"></script>
 <script src="prologue.js?v=three-scenes-2"></script>
 <script src="home-dialogs.js?v=four-dialogs-2"></script>

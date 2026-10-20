@@ -17,8 +17,9 @@
     for(const [source,gain]of ambientVoices){try{source.stop()}catch(_){}source.disconnect();gain.disconnect();}
     ambientVoices.clear();
   }
-  const clips={draw:'card-draw',card:'card-play',token:'chaos-token',hurt:'hurt',sanity:'sanity-alert',phase:'phase',move:'door',page:'page',attackMiss:'attack-miss',monster:'monster-appear',clue:'clue-found'};
-  const cueGains={sanity:.85,attackMiss:.75,monster:.7,clue:.8};
+  const clips=Object.fromEntries(Object.entries({draw:'card-draw',card:'card-play',token:'chaos-token',hurt:'hurt',sanity:'sanity-alert',phase:'phase',move:'door',page:'page',attackMiss:'attack-miss',monster:'monster-appear',clue:'clue-found'}).map(([name,file])=>[name,`assets/audio/kenney/${file}.mp3`]));
+  Object.assign(clips,{ghoul:'assets/audio/ghoul-servant-v1.mp3',ghoulHunter:'assets/audio/ghoul-hunter-v1.mp3'});
+  const cueGains={sanity:.85,attackMiss:.75,monster:.7,clue:.8,ghoul:.65,ghoulHunter:.65};
   const buffers=new Map(),oneShots=new Map();
   let sfxRevision=0;
   function stopSfx(){
@@ -29,7 +30,7 @@
   function bufferFor(name){
     if(!buffers.has(name)){
       const ctx=context;
-      const pending=fetch(`assets/audio/kenney/${clips[name]}.mp3`).then(response=>{
+      const pending=fetch(clips[name]).then(response=>{
         if(!response.ok)throw new Error('Audio file unavailable');return response.arrayBuffer();
       }).then(data=>ctx.decodeAudioData(data)).catch(error=>{buffers.delete(name);throw error});
       buffers.set(name,pending);

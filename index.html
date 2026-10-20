@@ -185,6 +185,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 
 </style>
 <link rel="stylesheet" href="noir.css">
+<link rel="stylesheet" href="home.css?v=grouped-menu-1">
 <link rel="stylesheet" href="atlas.css?v=action-confirm-1">
 <link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=asset-icons-1">
@@ -198,27 +199,46 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <body>
 
 <div id="startOverlay">
-  <div class="box">
-    <div class="start-intro">
+  <div class="box home-layout">
+    <main class="start-intro home-intro" aria-labelledby="homeTitle">
       <div class="start-kicker">ARKHAM / CASE FILE 001</div>
-      <h1>诡镇奇谭<span class="title-sub">聚会之夜</span></h1>
-      <p>1926 年，阿卡姆。熟悉的宅邸开始变得陌生，门后的低语，正指向阁楼里被掩埋的秘密。</p>
-      <p>扮演联邦探员罗兰·班克斯。收集线索、应对遭遇，在理智耗尽之前，完成这场调查。</p>
-      <div class="difficulty-picker"><label for="difficultySelect">调查难度</label><select id="difficultySelect" aria-describedby="difficultyPreview difficultyScope"><option value="easy">简单 / Easy</option><option value="standard" selected>标准 / Standard</option><option value="hard">困难 / Hard</option><option value="expert">专家 / Expert</option></select><p id="difficultyPreview" role="status" aria-live="polite"></p><button id="difficultyInfoButton" type="button" class="btn" aria-haspopup="dialog" aria-controls="difficultyInfo">查看混沌袋</button><details><summary>混沌袋与规则来源</summary><p id="difficultyBag"></p><p>简单／标准使用参考卡正面；困难／专家使用背面。难度开局锁定，返回菜单后可为新一局重选。</p><a href="https://images-cdn.fantasyflightgames.com/filer_public/8d/30/8d308b73-92f1-4b1e-aa7f-ce39e8d79786/night_of_the_zealot_campaign_guide.pdf#page=1" target="_blank" rel="noopener noreferrer">官方《狂热之夜》战役设置</a></details><p id="difficultyScope">按原版《狂热之夜》混沌袋及《聚会》参考卡实现难度；场景、牌组和其他玩法仍为本网页简化版，并非完整官方战役。</p></div>
+      <h1 id="homeTitle">诡镇奇谭<span class="title-sub">聚会之夜</span></h1>
+      <p class="home-tagline">门后的低语，正在等你靠近。</p>
       <button class="btn primary start-button" id="startButton" onclick="beginPrologue()"><span class="start-emblem"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#play"></use></svg></span><span>开始游戏<small>ENTER THE PROLOGUE</small></span></button>
-      <button class="btn learn-button" id="learnButton" type="button">第一次玩？新人指导</button>
-      <button class="btn atlas-entry" id="menuAtlasButton" type="button">卡牌图鉴 / 阅读卡牌</button>
-      <p class="start-note">单人卡牌游戏 · 每回合 3 次行动 · 无需登录</p>
-    </div>
-    <div class="case-file">
-      <div class="case-top"><span>聚会之夜 / THE GATHERING</span><span>待调查</span></div>
-      <div class="case-route">
-        <div class="case-stop"><span class="no">01</span><div><b>书房</b><small>从熟悉的地方开始，寻找第一条线索。</small></div></div>
-        <div class="case-stop"><span class="no">02</span><div><b>走廊</b><small>连接未知，也连接危险。</small></div></div>
-        <div class="case-stop"><span class="no">03</span><div><b>阁楼</b><small>所有异象，终将指向这里。</small></div></div>
+      <p class="home-current">单人调查 <span aria-hidden="true">/</span> <span id="homeDifficultyName">标准难度</span></p>
+      <div class="home-options">
+        <details id="homeSettings" class="home-group" name="home-panels">
+          <summary><span>游戏设置</span><small>难度 · 声音</small></summary>
+          <div class="home-group-body">
+            <div class="difficulty-picker home-difficulty"><label for="difficultySelect">调查难度</label><select id="difficultySelect" aria-describedby="difficultyPreview difficultyScope"><option value="easy">简单 / Easy</option><option value="standard" selected>标准 / Standard</option><option value="hard">困难 / Hard</option><option value="expert">专家 / Expert</option></select><p id="difficultyPreview" role="status" aria-live="polite"></p><button id="difficultyInfoButton" type="button" class="btn" aria-haspopup="dialog" aria-controls="difficultyInfo">查看混沌袋</button><details><summary>混沌袋与规则来源</summary><p id="difficultyBag"></p><p>简单／标准使用参考卡正面；困难／专家使用背面。难度开局锁定，返回菜单后可为新一局重选。</p><a href="https://images-cdn.fantasyflightgames.com/filer_public/8d/30/8d308b73-92f1-4b1e-aa7f-ce39e8d79786/night_of_the_zealot_campaign_guide.pdf#page=1" target="_blank" rel="noopener noreferrer">官方《狂热之夜》战役设置</a></details><p id="difficultyScope">按原版《狂热之夜》混沌袋及《聚会》参考卡实现难度；场景、牌组和其他玩法仍为本网页简化版，并非完整官方战役。</p></div>
+            <section class="home-audio" aria-labelledby="homeAudioTitle">
+              <h2 id="homeAudioTitle">声音</h2>
+              <div class="home-audio-buttons">
+                <button id="menuSoundToggle" class="btn" type="button" aria-pressed="true" onclick="document.getElementById('soundToggle').click()">音效：开</button>
+                <button id="menuAmbientToggle" class="btn" type="button" aria-pressed="true" onclick="document.getElementById('ambientToggle').click()">氛围：开</button>
+              </div>
+              <label for="menuSoundVolume">音效音量</label><input id="menuSoundVolume" type="range" min="0" max="100" value="18" oninput="document.getElementById('soundVolume').value=this.value;document.getElementById('soundVolume').dispatchEvent(new Event('input',{bubbles:true}))">
+              <p>旁白可在前序中单独暂停或关闭。</p>
+            </section>
+          </div>
+        </details>
+        <details id="homeHelp" class="home-group" name="home-panels">
+          <summary><span>游玩指南</span><small>教学 · 卡牌</small></summary>
+          <div class="home-group-body home-guide">
+            <p>扮演罗兰·班克斯，收集线索、应对遭遇，在理智耗尽之前找到真相。</p>
+            <button class="btn learn-button" id="learnButton" type="button">新人指导 · 边玩边学</button>
+            <button class="btn atlas-entry" id="menuAtlasButton" type="button">卡牌图鉴 · 效果与用法</button>
+            <p class="home-guide-note">每回合 3 次行动。初次游玩可选简单难度；普通开始不会自动开启教学。</p>
+          </div>
+        </details>
       </div>
-      <div class="case-bottom"><div><b>3</b><small>每回合行动</small></div><div><b>5</b><small>起始手牌</small></div><div><b>1</b><small>调查员</small></div></div>
-    </div>
+      <p class="start-note">无需登录 · 点击开始后进入故事前序</p>
+    </main>
+    <aside class="home-case" aria-hidden="true">
+      <span class="home-case-number">001</span>
+      <div class="home-case-seal">未结案</div>
+      <div class="home-case-caption"><span>THE GATHERING</span><span>阿卡姆 · 1926</span></div>
+    </aside>
   </div>
 </div>
 
@@ -472,6 +492,7 @@ function difficultySymbolText(key){
 }
 function updateDifficultyPreview(){
   const key=difficultyKey(document.getElementById('difficultySelect')?.value),d=DIFFICULTIES[key],bag=makeChaosBag(key);
+  const homeDifficulty=document.getElementById('homeDifficultyName');if(homeDifficulty)homeDifficulty.textContent=`${d.name}难度`;
   document.getElementById('difficultyPreview').textContent=`${d.description} ${bag.length} 枚指示物 · ${d.hard?'困难／专家':'简单／标准'}参考卡。`;
   document.getElementById('difficultyBag').textContent=bag.map(t=>t.label).join('、')+'\n\n'+difficultySymbolText(key);
 }
@@ -1569,7 +1590,7 @@ function resolve(code, text){
   `);
 }
 </script>
-<script src="ambience.js?v=test-result-cues-4"></script>
+<script src="ambience.js?v=menu-controls-5"></script>
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=guide-1"></script>
 <script src="phase-transition.js?v=skip-countdown-2"></script>

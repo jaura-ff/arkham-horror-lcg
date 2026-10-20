@@ -68,7 +68,10 @@
     status.textContent = ({ready:'进入游戏后播放',playing:ambientEnabled?'轻氛围与操作音效已开启':'仅播放操作音效',paused:'后台已暂停',muted:'全部音效已关闭',silent:'音量为零',error:'浏览器未允许播放，请点击重试',unsupported:'浏览器不支持音效'})[state];
     const prologue=document.getElementById('prologueSound');
     if(prologue){prologue.textContent=label;prologue.disabled=state==='unsupported';prologue.setAttribute('aria-pressed',String(enabled));}
-    for(const button of [ambientToggle,document.getElementById('prologueAmbient')]){
+    const menuSound=document.getElementById('menuSoundToggle'),menuVolume=document.getElementById('menuSoundVolume');
+    if(menuSound){menuSound.textContent=label;menuSound.disabled=state==='unsupported';menuSound.setAttribute('aria-pressed',String(enabled));}
+    if(menuVolume){menuVolume.value=String(Math.round(volume*100));menuVolume.disabled=state==='unsupported';}
+    for(const button of [ambientToggle,document.getElementById('prologueAmbient'),document.getElementById('menuAmbientToggle')]){
       if(button){button.textContent=`氛围：${ambientEnabled?'开':'关'}`;button.disabled=state==='unsupported';button.setAttribute('aria-pressed',String(ambientEnabled));}
     }
   }
@@ -166,6 +169,7 @@
     volume = Math.min(1, Math.max(0, next / 100));
     if(volume===0){stopSfx();stopAmbient();}
     save(); fadeVolume();
+    ui(toggle.dataset.audioState||'ready');
     if (context && context.state === 'running' && enabled && !document.hidden) {
       ui(volume === 0 ? 'silent' : 'playing'); schedule();
     }

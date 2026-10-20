@@ -16,7 +16,7 @@ function setup({saved=null,unsupported=false,rejectResume=false,brokenStorage=fa
   const contexts=[],timers=new Map(),nodes=new Map(),oscillators=[],gains=[]; let nextTimer=0;
   const fetches=[],played=[],pendingFetches=[];let decodes=0;
   function element(){return {value:'',dataset:{},textContent:'',listeners:{},setAttribute(k,v){this[k]=v},addEventListener(k,fn){this.listeners[k]=fn}}}
-  for(const id of ['startButton','soundToggle','soundVolume','soundStatus','ambientToggle','prologueAmbient'])nodes.set(id,element());
+  for(const id of ['startButton','soundToggle','soundVolume','soundStatus','ambientToggle','prologueAmbient','menuSoundToggle','menuAmbientToggle','menuSoundVolume'])nodes.set(id,element());
   const doc={hidden:false,listeners:{},getElementById:id=>nodes.get(id),addEventListener(k,fn){this.listeners[k]=fn}};
   function param(){return {value:0,events:[],cancelScheduledValues(){},setTargetAtTime(v){this.value=v},setValueAtTime(v,t){this.value=v;this.events.push([v,t])},linearRampToValueAtTime(v,t){this.value=v;this.events.push([v,t])},exponentialRampToValueAtTime(v,t){this.value=v;this.events.push([v,t])}}}
   function audioNode(){return {gain:param(),frequency:param(),Q:param(),threshold:param(),knee:param(),ratio:param(),attack:param(),release:param(),connect(){return this},disconnect(){},start(at){this.startedAt=at;if(this.buffer?.sample)played.push(this)},stop(at){if(at===undefined)this.stopped=true;else this.stopAt=at}}}
@@ -90,6 +90,10 @@ test('下载失败、解码失败、无音频支持和未知音效均安全降�
   for(const option of [{failFetch:true},{failDecode:true},{unsupported:true}]){const g=setup({samples:true,...option});if(!option.unsupported)await g.fire('startButton');await g.win.playGameSfx('card');assert.equal(g.played.length,0);}
   const g=setup({samples:true});await g.fire('startButton');await g.win.playGameSfx('../evil');await g.win.playGameSfx('constructor');assert.equal(g.played.length,0);
 });
+test('首页声音设置同步保存偏好，不在未开局时自动播放',async()=>{
+ const g=setup({saved:'{"enabled":false,"volume":0.35,"ambientEnabled":false}',samples:true});assert.equal(g.nodes.get('menuSoundVolume').value,'35');assert.equal(g.nodes.get('menuSoundToggle')['aria-pressed'],'false');assert.equal(g.nodes.get('menuAmbientToggle')['aria-pressed'],'false');assert.equal(g.contexts.length,0);await g.fire('soundToggle');assert.equal(g.nodes.get('menuSoundToggle')['aria-pressed'],'true');await g.fire('ambientToggle');assert.equal(g.nodes.get('menuAmbientToggle')['aria-pressed'],'true');g.nodes.get('soundVolume').value='42';await g.fire('soundVolume','input');assert.equal(g.nodes.get('menuSoundVolume').value,'42');assert.equal(g.saved().volume,.42);assert.equal(g.contexts.length,0);assert.equal(g.played.length,0);
+});
+
 test('打开页面不创建音频；点击进入后才播放，重复进入不叠加',async()=>{
   const g=setup();assert.equal(g.contexts.length,0);
   await g.fire('startButton');assert.equal(g.contexts.length,1);assert.equal(g.contexts[0].state,'running');assert.equal(g.timers.size,1);

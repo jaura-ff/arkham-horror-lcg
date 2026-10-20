@@ -4,9 +4,9 @@
   const byId=id=>document.getElementById(id),dialog=byId('prologueDialog');
   if(!dialog)return;
   const scenes=[
-    {title:'阿卡姆，夜色渐深',audio:'assets/audio/prologue-intro-rain-v1.mp3',text:'1926 年，阿卡姆。雨水沿窗玻璃缓缓滑落，街上的脚步声逐渐消失，只剩远处钟楼的回响。\n\n你是联邦探员罗兰·班克斯。今晚，你留在自己的书房整理近来的调查记录。一些看似毫不相关的线索，让你迟迟无法合上卷宗。'},
+    {title:'阿卡姆，夜色渐深',audio:'assets/audio/prologue-intro-soft-v2.mp3',text:'1926 年，阿卡姆。雨水沿窗玻璃缓缓滑落，街上的脚步声逐渐消失，只剩远处钟楼的回响。\n\n你是联邦探员罗兰·班克斯。今晚，你留在自己的书房整理近来的调查记录。一些看似毫不相关的线索，让你迟迟无法合上卷宗。'},
     {title:'熟悉的书房，陌生的声音',audio:'assets/audio/prologue-study-foley-v2.mp3',text:'台灯照着摊开的文件，旧木书架，在阴影里沉默。\n\n突然……地板下，传来一阵抓挠声。你停下笔……声音，却又消失了。\n\n可这栋房子里……本该……只有你，一个人。'},
-    {title:'从这里，开始调查',text:'你起身检查房间。桌边散落的纸张、门缝里透出的寒意，还有那再次响起的低语，都表明这不是普通的夜晚。\n\n先查清书房里发生了什么，再循着线索探索宅邸。危险可能就在下一扇门后；在体力与理智耗尽前，你必须找到这些异象的源头。'}
+    {title:'从这里，开始调查',audio:'assets/audio/prologue-investigation-v10-rats-v2.mp3',text:'你起身检查房间。桌边散落的纸张、门缝里透出的寒意，还有那再次响起的低语，都表明这不是普通的夜晚。\n\n先查清书房里发生了什么，再循着线索探索宅邸。危险可能就在下一扇门后；在体力与理智耗尽前，你必须找到这些异象的源头。'}
   ];
   const motionPreference=window.matchMedia?.('(prefers-reduced-motion: reduce)');
   let page=0,forceTutorial=false,difficulty='standard',savedOverflow='',paused=false;

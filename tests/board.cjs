@@ -19,7 +19,7 @@ test('电脑、手机横屏、竖屏和极短窗口，桌面几何尺寸均不�
  const g=setup();g.start();
  for(const [width,height] of [[1920,1080],[1366,768],[1024,600],[844,390],[667,320],[390,844],[320,240]]){
   Object.assign(g.win.visualViewport,{width,height});g.visualEvents.resize();const style=g.nodes.get('game').style,s=Number(style['--board-scale']);
-  assert.ok(s>0&&s<=1);assert.ok(parseFloat(style.width)>=1000-1e-8);assert.ok(parseFloat(style.height)>=620-1e-8);
+  assert.ok(s>0&&s<=1);assert.ok(parseFloat(style.width)>=1000-1e-8);assert.ok(parseFloat(style.height)>=720-1e-8);
   assert.ok(Math.abs(parseFloat(style.width)*s-width)<1e-6);assert.ok(Math.abs(parseFloat(style.height)*s-height)<1e-6);
  }
 });
@@ -43,8 +43,31 @@ test('教学或游戏弹窗打开时不叠加记录弹窗，菜单关闭已开�
 });
 test('一屏布局覆盖旧高度，所有主区域都有固定网格位置，不靠截断整个页面',()=>{
  for(const region of ['#investigator','.command-panel','.goal-panel','.scene-panel','.enemy-panel','.equipment-panel','.hand-panel','.log-panel'])assert.ok(css.includes(region+'{'),region);
- assert.match(css,/grid-template-rows:170px minmax\(0,1fr\) 62px 140px/);assert.match(css,/\.game-fit #game \.scene-panel\{[^}]*min-height:0/);assert.match(css,/\.game-fit #game \.hand\{min-height:0;height:100%/);assert.match(css,/overflow-x:auto;overflow-y:hidden/);assert.match(css,/#playGuide\[open\]\{position:absolute/);
- assert.match(html,/board.css\?v=one-screen-1/);assert.match(html,/board.js\?v=one-screen-1/);
+ assert.match(css,/grid-template-rows:170px minmax\(0,1fr\) 140px/);assert.match(css,/\.game-fit #game \.scene-panel\{[^}]*min-height:0/);assert.match(css,/\.game-fit #game \.hand\{min-height:0;height:100%/);assert.match(css,/overflow-x:auto;overflow-y:hidden/);assert.match(css,/#playGuide\[open\]\{position:absolute/);
+ assert.match(html,/board.css\?v=original-columns-2/);assert.match(html,/board.js\?v=original-columns-2/);
  for(const id of ['boardLogButton','boardLogDialog','boardLogClose','boardLogContent','handPrevious','handNext'])assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
  assert.match(html,/aria-label="上一组手牌"/);assert.match(html,/aria-label="下一组手牌"/);assert.doesNotMatch(source,/\bS\s*[.=]|requestAction\(|startGame\(|beginPrologue\(/);
+});
+
+test('恢复原有三栏与面板顺序，不再把目标和敌人移到记录栏',()=>{
+ assert.doesNotMatch(css,/display:contents/);
+ assert.match(css,/\.col-left\{display:grid;[^}]*grid-template-rows:170px minmax\(0,1fr\) 140px/);
+ assert.match(css,/\.col-center\{display:grid;[^}]*grid-template-rows:minmax\(0,1fr\) auto 62px 140px/);
+ assert.match(css,/\.goal-panel\{grid-column:1;grid-row:3\}/);
+ assert.match(css,/\.enemy-panel\{[^}]*grid-column:1;grid-row:2;height:70px/);
+ const left=html.split('<div class="col-left">')[1].split('<!-- 中央 -->')[0];
+ const center=html.split('<div class="col-center">')[1].split('<!-- 右栏 -->')[0];
+ assert.ok(left.indexOf('id="investigator"')<left.indexOf('id="commandPanel"'));
+ assert.ok(left.indexOf('id="commandPanel"')<left.indexOf('class="panel goal-panel"'));
+ for(const [a,b] of [['id="scenePanel"','class="panel enemy-panel"'],['class="panel enemy-panel"','class="panel equipment-panel"'],['class="panel equipment-panel"','class="panel hand-panel"']])assert.ok(center.indexOf(a)<center.indexOf(b));
+});
+
+test('阶段栏预留完整双语行高，不再把文字压进26像素窄条',()=>{
+ assert.match(css,/#wrap\{[^}]*grid-template-rows:50px 28px minmax\(0,1fr\)/);
+ assert.match(css,/#phasebar\{[^}]*height:50px;min-height:50px/);
+ assert.match(css,/\.phase\{[^}]*min-height:50px/);
+ assert.match(css,/\.phase \.nm\{font-size:13px;line-height:17px/);
+ assert.match(css,/\.phase \.en\{font-size:9px;line-height:12px/);
+ assert.ok(17+12+2+6*2<=50); // Both text lines, gap and vertical padding fit.
+ assert.match(css,/#playGuide\[open\]\{position:absolute;top:62px/);
 });

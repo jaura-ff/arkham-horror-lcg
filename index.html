@@ -197,6 +197,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="tutorial.css?v=standalone-outro-1">
 <link rel="stylesheet" href="board.css?v=icon-proportions-3">
 <link rel="stylesheet" href="test-learning.css?v=values-1">
+<link rel="stylesheet" href="game-header.css?v=spacious-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -259,19 +260,18 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
   <header class="topbar">
     <div class="brand"><span class="brand-mark" aria-hidden="true">A</span><div>诡镇奇谭<small>ARKHAM HORROR / 聚会之夜</small></div></div>
     <div class="topstats">
+      <nav class="header-actions" aria-label="游戏常用操作">
       <button type="button" class="btn icon-button" id="menuButton" aria-label="返回主菜单" title="返回主菜单" onclick="requestReturnMenu()"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#home"></use></svg></button>
       <button type="button" class="btn icon-button guide-button" id="guideButton" aria-label="重看新人指导" title="新人指导">?</button>
       <button type="button" class="btn" id="atlasButton">卡牌图鉴</button>
       <button type="button" id="nextStepToggle" class="btn next-step-toggle" aria-pressed="true" title="按局面给出短时动态提示；关闭后再开启，可重看当前提示">智能指导：开</button>
+      <button type="button" id="gameSettingsButton" class="btn" aria-haspopup="dialog" aria-controls="gameSettingsDialog"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#sound"></use></svg>声音设置</button>
+      </nav>
+      <div class="header-status" role="group" aria-label="当前回合、难度与资源">
       <span class="pill">回合 <b id="roundnum">1</b></span>
       <span class="pill">难度 <b id="currentDifficulty">标准</b></span>
       <span class="pill">资源 <b id="topres">5</b></span>
       <span class="pill">线索 <b id="topclue">0</b></span>
-      <div class="sound-controls" aria-label="环境音与操作音效设置">
-        <button type="button" class="btn" id="ambientToggle" aria-pressed="true" title="仅开关背景氛围，不影响操作音效">氛围：开</button>
-        <button type="button" class="btn" id="soundToggle" aria-pressed="true" aria-describedby="soundStatus">环境音：开</button>
-        <label for="soundVolume">音量</label><input id="soundVolume" type="range" min="0" max="100" value="18" aria-label="环境音音量">
-        <span id="soundStatus" class="sound-status" role="status" aria-live="polite">进入游戏后播放</span>
       </div>
     </div>
   </header>
@@ -408,6 +408,15 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     <p class="atlas-source">图鉴只供查阅，不会打出卡牌、抽牌或消耗行动。按 Esc 或右上角关闭后继续原来的游戏。</p>
   </div>
 </dialog>
+<dialog id="gameSettingsDialog" class="home-dialog game-settings-dialog" aria-labelledby="gameSettingsTitle"><div class="home-dialog-shell"><header class="home-dialog-header"><h2 id="gameSettingsTitle">声音设置</h2></header>
+  <div class="sound-controls" aria-label="环境音与操作音效设置">
+    <button type="button" class="btn" id="ambientToggle" aria-pressed="true" title="仅开关背景氛围，不影响操作音效">氛围：开</button>
+    <button type="button" class="btn" id="soundToggle" aria-pressed="true" aria-describedby="soundStatus">环境音：开</button>
+    <label for="soundVolume">音量</label><input id="soundVolume" type="range" min="0" max="100" value="18" aria-label="环境音音量">
+    <span id="soundStatus" class="sound-status" role="status" aria-live="polite">进入游戏后播放</span>
+  </div>
+  <footer class="home-dialog-footer"><button id="gameSettingsClose" type="button" class="btn primary">返回游戏</button></footer>
+</div></dialog>
 <dialog id="boardLogDialog" class="home-dialog" aria-labelledby="boardLogTitle"><div class="home-dialog-shell"><header class="home-dialog-header"><h2 id="boardLogTitle">调查手记 · 全部记录</h2></header><div id="boardLogContent" class="board-log-content"></div><footer class="home-dialog-footer"><button id="boardLogClose" type="button" class="btn primary">返回游戏</button></footer></div></dialog>
 <div id="tutorial" class="tutorial-overlay" hidden>
   <div id="tutorialSpotlight" class="tutorial-spotlight" aria-hidden="true"></div>
@@ -1644,7 +1653,8 @@ function resolve(code, text){
 <script src="prologue-narration.js?v=three-scenes-2"></script>
 <script src="prologue.js?v=three-scenes-2"></script>
 <script src="home-dialogs.js?v=four-dialogs-2"></script>
-<script src="board.js?v=original-columns-2"></script>
+<script src="board.js?v=spacious-header-4"></script>
+<script src="game-header.js?v=spacious-1"></script>
 </body>
 </html>
 

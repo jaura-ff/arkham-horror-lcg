@@ -1,0 +1,20 @@
+/* Give the game chrome breathing room without relocating any board panel. */
+body.game-fit #game{padding: max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));grid-template-rows:96px minmax(0,1fr)}
+.game-fit #game .topbar{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;margin:0;padding:10px 18px;align-items:center;border:1px solid #6b5534;background:#19160fdf}
+.game-fit #game .brand{font-size:22px;gap:12px;letter-spacing:2px}
+.game-fit #game .topstats{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:44px 24px;gap:8px;justify-items:end;min-width:0;width:auto!important}
+.game-fit #game .header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0}
+.game-fit #game .header-actions .btn{min-height:44px;padding:8px 12px;font-size:12px;line-height:1.4;white-space:nowrap}
+.game-fit #game .header-actions .icon-button{width:44px;height:44px;padding:0;display:grid;place-items:center}
+.game-fit #game .header-actions .ui-icon{width:20px;height:20px;flex-shrink:0}
+.game-fit #game .header-actions .next-step-toggle{margin:0}
+.game-fit #game .header-status{display:flex;align-items:center;justify-content:flex-end;gap:22px;min-width:0}
+.game-fit #game .header-status .pill{display:flex;align-items:baseline;gap:7px;border:0;padding:0;background:none;font-size:12px;line-height:1.4;white-space:nowrap;color:var(--dim)}
+.game-fit #game .header-status .pill b{font-size:16px;line-height:1.3;color:var(--gold)}
+.game-settings-dialog .sound-controls{display:grid;gap:12px;max-width:none;width:100%;padding:6px 0;flex-basis:auto}
+.game-settings-dialog .sound-controls .btn{min-height:44px;padding:10px 12px;font-size:14px;text-align:left}
+.game-settings-dialog .sound-controls .ui-icon{width:20px;height:20px}
+.game-settings-dialog .sound-controls label,.game-settings-dialog .sound-status{position:static;width:auto;height:auto;clip-path:none;overflow:visible;font-size:12px;line-height:1.7}
+.game-settings-dialog .sound-controls input{width:100%;min-height:44px;accent-color:var(--gold)}
+.game-settings-dialog .sound-status{color:var(--dim)}
+@media(max-width:1100px){.game-fit #game .topbar{gap:18px;padding-inline:14px}.game-fit #game .brand{font-size:20px;letter-spacing:1px}.game-fit #game .header-actions{gap:8px}.game-fit #game .header-status{gap:18px}}

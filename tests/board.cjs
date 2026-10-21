@@ -19,15 +19,15 @@ test('电脑、手机横屏、竖屏和极短窗口，桌面几何尺寸均不�
  const g=setup();g.start();
  for(const [width,height] of [[1920,1080],[1366,768],[1024,600],[844,390],[667,320],[390,844],[320,240]]){
   Object.assign(g.win.visualViewport,{width,height});g.visualEvents.resize();const style=g.nodes.get('game').style,s=Number(style['--board-scale']);
-  assert.ok(s>0&&s<=1);assert.ok(parseFloat(style.width)>=1000-1e-8);assert.ok(parseFloat(style.height)>=720-1e-8);
+  assert.ok(s>0&&s<=1);assert.ok(parseFloat(style.width)>=1000-1e-8);assert.ok(parseFloat(style.height)>=800-1e-8);
   assert.ok(Math.abs(parseFloat(style.width)*s-width)<1e-6);assert.ok(Math.abs(parseFloat(style.height)*s-height)<1e-6);
  }
 });
 test('无visualViewport时窗口缩放仍适配，返回菜单后不改尺寸',()=>{
- const g=setup();g.start();g.win.visualViewport=null;g.win.innerWidth=800;g.win.innerHeight=600;g.winEvents.resize();assert.equal(Number(g.nodes.get('game').style['--board-scale']),.8);g.menu();const width=g.nodes.get('game').style.width;g.win.innerWidth=1600;g.winEvents.resize();assert.equal(g.nodes.get('game').style.width,width);
+ const g=setup();g.start();g.win.visualViewport=null;g.win.innerWidth=800;g.win.innerHeight=600;g.winEvents.resize();assert.equal(Number(g.nodes.get('game').style['--board-scale']),.75);g.menu();const width=g.nodes.get('game').style.width;g.win.innerWidth=1600;g.winEvents.resize();assert.equal(g.nodes.get('game').style.width,width);
 });
 test('用户双指放大不被自动适配抵消',()=>{
- const g=setup();g.start();Object.assign(g.win.visualViewport,{width:683,height:384,scale:2});g.visualEvents.resize();assert.equal(g.nodes.get('game').style['--board-scale'],'1');assert.equal(g.nodes.get('game').style.width,'1366px');
+ const g=setup();g.start();const style=g.nodes.get('game').style,originalScale=style['--board-scale'],originalWidth=style.width;Object.assign(g.win.visualViewport,{width:683,height:384,scale:2});g.visualEvents.resize();assert.equal(style['--board-scale'],originalScale);assert.equal(style.width,originalWidth);
 });
 test('游戏显示监听幂等，自己更新尺寸不会循环重置指引',()=>{
  const g=setup();g.nodes.get('game').style.display='block';g.observe();g.nodes.get('playGuide').open=true;g.observe();assert.equal(g.nodes.get('playGuide').open,true);g.nodes.get('game').style.display='none';g.observe();assert.equal(g.doc.body.classList.contains('game-fit'),false);
@@ -44,7 +44,7 @@ test('教学或游戏弹窗打开时不叠加记录弹窗，菜单关闭已开�
 test('一屏布局覆盖旧高度，所有主区域都有固定网格位置，不靠截断整个页面',()=>{
  for(const region of ['#investigator','.command-panel','.goal-panel','.scene-panel','.enemy-panel','.equipment-panel','.hand-panel','.log-panel'])assert.ok(css.includes(region+'{'),region);
  assert.match(css,/grid-template-rows:170px minmax\(0,1fr\) 140px/);assert.match(css,/\.game-fit #game \.scene-panel\{[^}]*min-height:0/);assert.match(css,/\.game-fit #game \.hand\{min-height:0;height:100%/);assert.match(css,/overflow-x:auto;overflow-y:hidden/);assert.match(css,/#playGuide\[open\]\{position:absolute/);
- assert.match(html,/board.css\?v=icon-proportions-3/);assert.match(html,/board.js\?v=original-columns-2/);
+ assert.match(html,/board.css\?v=icon-proportions-3/);assert.match(html,/board.js\?v=spacious-header-4/);
  for(const id of ['boardLogButton','boardLogDialog','boardLogClose','boardLogContent','handPrevious','handNext'])assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
  assert.match(html,/aria-label="上一组手牌"/);assert.match(html,/aria-label="下一组手牌"/);assert.doesNotMatch(source,/\bS\s*[.=]|requestAction\(|startGame\(|beginPrologue\(/);
 });

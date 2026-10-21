@@ -3,7 +3,7 @@
   'use strict';
   const byId=id=>document.getElementById(id),game=byId('game');
   if(!game)return;
-  const minimum={width:1000,height:720};
+  const minimum={width:1000,height:800};
   let active=false;
   function fit(){
     if(!active)return;

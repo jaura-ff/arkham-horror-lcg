@@ -12,12 +12,39 @@ function setup(reduced=false,options={}){
   class AudioMock{constructor(src){this.src=src;this.currentTime=0;this.plays=0;this.pauses=0;media.push(this)}play(){this.plays++;return options.blocked?Promise.reject(Error('blocked')):options.defer?new Promise(resolve=>this.resolve=resolve):Promise.resolve()}pause(){this.pauses++}removeAttribute(k){if(k==='src')this.src=''}load(){}}
   const ctx=vm.createContext({document,localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},...(options.audio?{Audio:AudioMock}:{}),matchMedia:()=>motion,Math:Object.create(Math),Event,CustomEvent:Event,startCalls:0,phaseCalls:0});ctx.window=ctx;
   const run=code=>vm.runInContext(code,ctx),get=code=>JSON.parse(run(`JSON.stringify(${code})`));
-  run(html.match(/<script>([\s\S]*?)<\/script>/)[1]);run(fs.readFileSync(path.join(root,'prologue-narration.js'),'utf8'));run(fs.readFileSync(path.join(root,'prologue.js'),'utf8'));
+  document.querySelector=()=>[...nodes.values()].find(node=>node.open)||null;
+  run(html.match(/<script>([\s\S]*?)<\/script>/)[1]);run(fs.readFileSync(path.join(root,'prologue-narration.js'),'utf8'));run(fs.readFileSync(path.join(root,'prologue.js'),'utf8'));run(fs.readFileSync(path.join(root,'start-tutorial.js'),'utf8'));
   run(`const originalStart=startGame;startGame=()=>{startCalls++;originalStart()};announcePhase=()=>{phaseCalls++;phaseTransitionActive=true}`);
   document.getElementById('game').style.display='none';document.getElementById('startOverlay').style.display='flex';document.getElementById('difficultySelect').value='standard';
   return{run,get,events,motion,media,storage,doc:document,el:id=>document.getElementById(id),click:id=>document.getElementById(id).listeners.click()};
 }
-test('开始按钮先进入前序，不创建游戏或随机发牌',()=>{
+test('开始按钮先询问教学，选择前不播放前序或创建游戏',()=>{
+  const g=setup();g.run(`Math.random=()=>{throw Error('unexpected shuffle')};requestGameStart();requestGameStart()`);
+  assert.equal(g.el('startTutorialDialog').open,true);assert.equal(g.el('prologueDialog').open,false);assert.equal(g.get('S'),null);assert.equal(g.get('startCalls'),0);assert.equal(g.doc.activeElement.id,'startWithTutorial');assert.equal(g.doc.body.style.overflow,'hidden');
+  assert.match(html,/<dialog id="startTutorialDialog" class="home-dialog" aria-labelledby="startTutorialTitle" aria-describedby="startTutorialDescription">/);
+});
+test('两个开始选择经过前序，只按选择传递教学请求，重复确认无效',()=>{
+  for(const tutorial of [true,false]){
+    const g=setup();g.el('difficultySelect').value='hard';g.run('requestGameStart()');g.click(tutorial?'startWithTutorial':'startWithoutTutorial');
+    assert.equal(g.el('startTutorialDialog').open,false);assert.equal(g.el('prologueDialog').open,true);assert.equal(g.get('S'),null);
+    g.click('startWithoutTutorial');g.el('startTutorialDialog').listeners.close();assert.equal(g.doc.body.style.overflow,'hidden');
+    g.click('prologueSkip');assert.equal(g.events.at(-1).detail.tutorial,tutorial);assert.equal(g.get('startCalls'),1);assert.equal(g.get('S.difficulty'),'hard');assert.equal(g.doc.body.style.overflow,'auto');
+    g.run('requestGameStart()');assert.equal(g.el('startTutorialDialog').open,false);
+  }
+});
+test('关闭或Escape取消开始，恢复焦点与滚动，下次仍可选择',()=>{
+  for(const escape of [true,false]){
+    const g=setup();g.run('requestGameStart()');
+    if(escape){let prevented=false;g.el('startTutorialDialog').listeners.cancel({preventDefault(){prevented=true}});assert.equal(prevented,true);}else g.click('startTutorialCancel');
+    assert.equal(g.el('startTutorialDialog').open,false);assert.equal(g.el('prologueDialog').open,false);assert.equal(g.get('S'),null);assert.equal(g.doc.activeElement.id,'startButton');assert.equal(g.doc.body.style.overflow,'auto');
+    g.run('requestGameStart()');assert.equal(g.el('startTutorialDialog').open,true);
+  }
+});
+test('开始选择不叠在其他弹窗或前序上',()=>{
+  const g=setup();g.el('homeTutorialDialog').open=true;g.run('requestGameStart()');assert.equal(g.el('startTutorialDialog').open,false);
+  g.el('homeTutorialDialog').open=false;g.run('beginPrologue(true);requestGameStart()');assert.equal(g.el('startTutorialDialog').open,false);g.click('prologueSkip');assert.equal(g.events.at(-1).detail.tutorial,true);
+});
+test('确认开始后先进入前序，不创建游戏或随机发牌',()=>{
   const g=setup();g.run(`Math.random=()=>{throw Error('unexpected shuffle')};beginPrologue()`);assert.equal(g.get('S'),null);assert.equal(g.get('startCalls'),0);assert.equal(g.get('phaseCalls'),0);assert.equal(g.el('game').style.display,'none');assert.equal(g.el('prologueDialog').open,true);assert.match(g.el('prologueProgress').textContent,/1 \/ 3/);assert.match(g.el('prologueText').textContent,/1926 年，阿卡姆/);assert.equal(g.doc.body.style.overflow,'hidden');assert.equal(g.el('prologuePrevious').disabled,true);
 });
 test('逐幕阅读环境背景，最后确认才发牌并开始阶段提示',()=>{
@@ -40,7 +67,7 @@ test('新局始终有前序，游戏进行中不能重开前序',()=>{
   const g=setup();g.run('beginPrologue()');g.click('prologueSkip');g.run('beginPrologue()');assert.equal(g.el('prologueDialog').open,false);assert.equal(g.get('startCalls'),1);g.run('phaseTransitionActive=false;requestReturnMenu();confirmReturnMenu();beginPrologue()');assert.equal(g.el('prologueDialog').open,true);assert.equal(g.get('S'),null);
 });
 test('前序有适配与语义标题，使用已有背景且明确改编身份',()=>{
-  assert.match(html,/id="startButton" onclick="beginPrologue\(\)"/);assert.match(html,/<dialog id="prologueDialog"[^>]*aria-labelledby="prologueTitle"/);assert.match(html,/本网页版剧情改编，非官方原文/);const css=fs.readFileSync(path.join(root,'prologue.css'),'utf8');assert.match(css,/noir-study.webp/);assert.match(css,/100dvh/);assert.match(css,/overflow:auto/);assert.match(css,/prefers-reduced-motion:reduce/);assert.match(css,/animation-play-state:paused/);for(const file of ['noir-study.webp','noir-rooms.webp'])assert.ok(fs.existsSync(path.join(root,'assets/images',file)));
+  assert.match(html,/id="startButton" onclick="requestGameStart\(\)"/);assert.match(html,/<dialog id="prologueDialog"[^>]*aria-labelledby="prologueTitle"/);assert.match(html,/本网页版剧情改编，非官方原文/);const css=fs.readFileSync(path.join(root,'prologue.css'),'utf8');assert.match(css,/noir-study.webp/);assert.match(css,/100dvh/);assert.match(css,/overflow:auto/);assert.match(css,/prefers-reduced-motion:reduce/);assert.match(css,/animation-play-state:paused/);for(const file of ['noir-study.webp','noir-rooms.webp'])assert.ok(fs.existsSync(path.join(root,'assets/images',file)));
 });
 
 test('三幕场景随手动翻页更新，暂停后文字完整且跨幕保持暂停',()=>{

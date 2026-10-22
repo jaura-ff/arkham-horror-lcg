@@ -200,6 +200,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="game-header.css?v=spacious-1">
 <link rel="stylesheet" href="phase-help.css?v=hover-1">
 <link rel="stylesheet" href="hand-hover.css?v=hover-1">
+<link rel="stylesheet" href="test-reveal.css?v=spin-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -1404,17 +1405,21 @@ function resolveTest(){
     checkDefeat();render();if(S.gameOver)return;
   }
   const choices=t.searchGhoul?availableGhouls().filter((c,i,a)=>a.findIndex(x=>x.id===c.id)===i):[];
+  const cluePreview=result && t.label==='调查' && S.locClues[S.location]>0;
   document.getElementById('modalBox').innerHTML = `
     <h3>检定结果</h3>
+    <div class="test-reveal">
     ${learningInfo}
-    <div class="chaos">${tokenHtml}</div>
-    <div class="center" style="font-size:15px">
+    <div class="chaos reveal-token"><span class="reveal-token-face">${tokenHtml}</span></div>
+    <div class="center test-reveal-summary" style="font-size:15px">
       ${testValueLabels(t).final}：<b>${total}</b> vs ${testValueLabels(t).target} ${t.difficulty}<br><br>
       <div class="test-feedback ${result?'test-success':'test-failure'}" role="status" aria-live="polite" aria-atomic="true">${result?'检定成功':'检定失败'}</div>
+      ${cluePreview?'<div class="test-clue-preview"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6M7 10h6m-3-3v6"/></svg><span>发现 1 条线索<small>点击继续后获得</small></span></div>':''}
     </div>
     ${t.searchGhoul?`<div class="ghoul-choice"><label for="ghoulSearchChoice">检定结束后寻找并抽取一名食尸鬼</label>${choices.length?`<select id="ghoulSearchChoice">${choices.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>`:'<p>遭遇牌组及弃牌堆中没有可选择的食尸鬼。</p>'}</div>`:''}
     <p class="action-confirm-note">指示物已抽取，不能返回重抽。</p>
     <div class="action-confirm-buttons"><button class="btn" disabled title="已抽取指示物，不能撤销">${uiIcon('back')}返回</button><button id="testResolveButton" class="btn primary" onclick="finishTest(${result})">${uiIcon('next')}继续 · 结算结果</button></div>
+    </div>
   `;
   S.testResult = result;
   if(typeof updatePlayGuide==='function')updatePlayGuide();

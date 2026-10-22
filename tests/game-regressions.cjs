@@ -710,3 +710,28 @@ test('五种可投入牌使用对应小图、牌名、属性加成和可访问�
  }
 });
 
+test('每种检定结果都有旋转揭晓标记，重复抽取不会重抽或重结算',()=>{
+ for(const [skill,label]of [['int','调查'],['combat','战斗'],['agility','闪避'],['will','抵抗恐惧低语']]){
+  const g=game();g.run(`startTest('${skill}',2,'${label}',()=>{});resolveTest()`);const box=g.document.getElementById('modalBox').innerHTML;
+  assert.match(box,/class="test-reveal"/);assert.match(box,/class="chaos reveal-token"><span class="reveal-token-face">0<\/span>/);assert.match(box,/class="center test-reveal-summary"/);
+  const before=g.get('S');g.run('resolveTest()');assert.deepEqual(g.get('S'),before);assert.equal(g.document.getElementById('modalBox').innerHTML,box);
+ }
+});
+
+test('线索动画仅用于成功且有线索的调查，点击继续前不发放，继续仅结算一次',()=>{
+ for(const empty of [false,true])for(const success of [false,true]){
+  const g=game();g.run(`S.locClues.study=${empty?0:2};S.chaos=[${success?"{label:'0',mod:0}":"{label:'自动失败',autofail:true}"}];requestAction('investigate');${empty?'confirmAction();':''}resolveTest()`);
+  const box=g.document.getElementById('modalBox').innerHTML;assert.equal(box.includes('class="test-clue-preview"'),success&&!empty);assert.equal(g.get('S.clues'),0);
+  if(success&&!empty){assert.match(box,/发现 1 条线索/);assert.match(box,/点击继续后获得/);}
+  g.run('finishTest(S.testResult);finishTest(true)');assert.equal(g.get('S.clues'),success&&!empty?1:0);assert.equal(g.get('S.locClues.study'),empty?0:success?1:2);
+ }
+ const g=game();g.run("startTest('combat',0,'战斗',()=>{});resolveTest()");assert.doesNotMatch(g.document.getElementById('modalBox').innerHTML,/test-clue-preview/);
+});
+
+test('旋转、结果和线索依次呈现，减少动态偏好立即展示，不引入阻塞或额外抽取',()=>{
+ const css=fs.readFileSync(path.join(__dirname,'..','test-reveal.css'),'utf8');assert.match(html,/test-reveal.css\?v=spin-1/);
+ assert.match(css,/chaos-token-spin 700ms/);assert.match(css,/chaos-token-face 180ms ease-out 650ms/);assert.match(css,/chaos-result-reveal 220ms ease-out 820ms/);assert.match(css,/chaos-clue-rise 320ms ease-out 1000ms/);assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);assert.match(css,/animation:none;opacity:1;transform:none/);assert.doesNotMatch(css,/infinite|position:fixed/);
+ for(const line of css.split('\n').filter(line=>line.startsWith('@keyframes')))assert.doesNotMatch(line,/(?:width|height|top|left|margin|padding):/);
+ const g=game();g.run("requestAction('investigate');resolveTest();finishTest(S.testResult)");assert.equal(g.get('S.test'),null);assert.equal(g.get('S.clues'),1);
+});
+

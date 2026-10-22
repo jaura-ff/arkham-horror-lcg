@@ -1,0 +1,19 @@
+/* One short visual reveal per resolved check; no timers or game-state writes. */
+.test-reveal .reveal-token{position:relative;isolation:isolate}
+.test-reveal .reveal-token::before{content:'';position:absolute;inset:5px;border:2px dashed #a68b4d;border-top-color:#efdbac;border-radius:50%;pointer-events:none;animation:chaos-token-spin 700ms cubic-bezier(.16,1,.3,1) both}
+.test-reveal .reveal-token::after{content:'?';position:absolute;inset:0;display:grid;place-items:center;color:#dac183;pointer-events:none;animation:chaos-token-cover 700ms linear both}
+.test-reveal .reveal-token-face{display:block;max-width:100%;overflow-wrap:anywhere;animation:chaos-token-face 180ms ease-out 650ms both}
+.test-reveal .test-learning-outcome,.test-reveal .test-reveal-summary,.test-reveal .ghoul-choice{animation:chaos-result-reveal 220ms ease-out 820ms both}
+.test-reveal .test-feedback.test-success,.test-reveal .test-feedback.test-failure{animation-delay:820ms;animation-fill-mode:both}
+.test-reveal .test-clue-preview{display:flex;align-items:center;justify-content:center;gap:9px;color:#e3c688;font-size:14px;line-height:1.4;margin:10px auto 0;animation:chaos-clue-rise 320ms ease-out 1000ms both}
+.test-reveal .test-clue-preview svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.5;flex:0 0 28px}
+.test-reveal .test-clue-preview small{display:block;color:var(--dim);font-size:10px}
+@keyframes chaos-token-spin{0%{opacity:1;transform:rotate(-640deg) scale(.86)}75%{opacity:1}100%{opacity:0;transform:rotate(0) scale(1)}}
+@keyframes chaos-token-cover{0%,86%{opacity:1}100%{opacity:0}}
+@keyframes chaos-token-face{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+@keyframes chaos-result-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes chaos-clue-rise{from{opacity:0;transform:translateY(10px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){
+ .test-reveal .reveal-token::before,.test-reveal .reveal-token::after{display:none;animation:none}
+ .test-reveal .reveal-token-face,.test-reveal .test-learning-outcome,.test-reveal .test-reveal-summary,.test-reveal .ghoul-choice,.test-reveal .test-feedback.test-success,.test-reveal .test-feedback.test-failure,.test-reveal .test-clue-preview{animation:none;opacity:1;transform:none}
+}

@@ -1244,21 +1244,27 @@ function startTest(skill, difficulty, label, onDone, bonus=0,actionExempt=null,o
   renderActions();
 }
 
+function testValueLabels(t){
+  const investigating=t.label.startsWith('调查');
+  return {target:investigating?'遮蔽值':'难度',current:investigating?'当前调查能力':'当前合计',before:investigating?'当前调查能力':'抽取前合计',final:investigating?'最终调查能力':'最终技能值'};
+}
+
 function testLearningInfo(t,token=null){
   const skill=SKILL[t.skill],base=skillValue(t.skill);
+  const labels=testValueLabels(t);
   const committed=S.committed.reduce((sum,card)=>sum+commitBonus(card),0);
   const before=base+t.bonus+committed;
   const difficultySource=t.label.startsWith('调查')?'地点的「遮蔽值」':t.label.startsWith('战斗')?'敌人的「战斗值」':t.label.startsWith('闪避')?'敌人的「闪避值」':'当前效果要求的难度';
-  let outcome='<p class="test-learning-note">再抽混沌指示物，把修正加进去。最终值 ≥ 难度就成功，平手也算；自动失败除外。</p>';
+  let outcome=`<p class="test-learning-note">再抽混沌指示物，把修正加进去。最终值 ≥ ${labels.target}就成功，平手也算；自动失败除外。</p>`;
   if(token){
-    if(token.autofail)outcome='<p class="test-learning-outcome">抽到「自动失败」：不比较数值，本次直接失败；最终技能值显示为 0。</p>';
+    if(token.autofail)outcome=`<p class="test-learning-outcome">抽到「自动失败」：不比较数值，本次直接失败；${labels.final}显示为 0。</p>`;
     else {
       const raw=before+token.mod,final=Math.max(0,raw),passed=final>=t.difficulty;
-      outcome=`<p class="test-learning-outcome">${before}（抽取前） ${token.mod>=0?'+':'−'} ${Math.abs(token.mod)}（混沌修正） = ${raw}${raw<0?'，最低按 0 计算':''}。<br>最终 ${final} ${passed?'≥':'＜'} 难度 ${t.difficulty}：${passed?'成功':'失败'}。</p>`;
+      outcome=`<p class="test-learning-outcome">${before}（抽取前） ${token.mod>=0?'+':'−'} ${Math.abs(token.mod)}（混沌修正） = ${raw}${raw<0?'，最低按 0 计算':''}。<br>最终 ${final} ${passed?'≥':'＜'} ${labels.target} ${t.difficulty}：${passed?'成功':'失败'}。</p>`;
     }
   }
   return `<section class="test-learning" aria-label="检定数值讲解"><h4>本次用什么检定？</h4><p>用人物牌上的「${skill}」对比${difficultySource} ${t.difficulty}。</p>
-    <div class="test-learning-formula" aria-label="抽取前数值组成"><span data-part="base">基础${skill}<b>${base}</b></span><i>+</i><span data-part="bonus">装备／效果<b>${t.bonus}</b></span><i>+</i><span data-part="committed">投入卡牌<b>${committed}</b></span><i>=</i><span data-part="before">抽取前合计<b>${before}</b></span></div>${outcome}</section>`;
+    <div class="test-learning-formula" aria-label="抽取前数值组成"><span data-part="base">基础${skill}<b>${base}</b></span><i>+</i><span data-part="bonus">装备／效果<b>${t.bonus}</b></span><i>+</i><span data-part="committed">投入卡牌<b>${committed}</b></span><i>=</i><span data-part="before">${labels.before}<b>${before}</b></span></div>${outcome}</section>`;
 }
 
 function openTestModal(){
@@ -1272,7 +1278,7 @@ function openTestModal(){
     <div class="skilltest">
       <div class="testinfo">
         ${SKILL_ICON[t.skill]} 属性：<b>${sk}</b>（基础 ${base}）<br>
-        难度：<b>${t.difficulty}</b>　当前合计：<b>${total}</b>
+        ${testValueLabels(t).target}：<b>${t.difficulty}</b>　${testValueLabels(t).current}：<b>${total}</b>
         ${total>=t.difficulty?' <span class="result-good">(抽取前足够，尚未结算)</span>':' <span class="result-bad">(抽取前不足)</span>'}
       </div>
       ${testLearningInfo(t)}
@@ -1396,7 +1402,7 @@ function resolveTest(){
     ${learningInfo}
     <div class="chaos">${tokenHtml}</div>
     <div class="center" style="font-size:15px">
-      最终技能值：<b>${total}</b> vs 难度 ${t.difficulty}<br><br>
+      ${testValueLabels(t).final}：<b>${total}</b> vs ${testValueLabels(t).target} ${t.difficulty}<br><br>
       <div class="test-feedback ${result?'test-success':'test-failure'}" role="status" aria-live="polite" aria-atomic="true">${result?'检定成功':'检定失败'}</div>
     </div>
     ${t.searchGhoul?`<div class="ghoul-choice"><label for="ghoulSearchChoice">检定结束后寻找并抽取一名食尸鬼</label>${choices.length?`<select id="ghoulSearchChoice">${choices.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>`:'<p>遭遇牌组及弃牌堆中没有可选择的食尸鬼。</p>'}</div>`:''}

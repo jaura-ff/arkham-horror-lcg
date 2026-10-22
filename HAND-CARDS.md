@@ -1,5 +1,7 @@
 # Hand inspection and explicit play confirmation
 
+Update: the common central inspection layer now opens this existing hand dialog on the first click/activation. Click static card content or the backdrop to collapse it; explicit play confirmation remains required. The two-activation handler described below remains the standalone fallback when the common layer is absent. See BOARD-INSPECTION.md.
+
 Hovering a bottom hand card now opens a read-only tooltip with the existing local illustration, type/cost, effect and shared `CARD_USAGE` instructions. Keyboard focus also shows it. The tooltip sits outside the scaled board, prefers space above the card, and clamps to the viewport without resizing the hand. Moving into it allows reading/scrolling; leaving or Escape dismisses it. Native dialogs, teaching/inert mode, phase announcements, menu navigation, card removal and hand-index replacement clear stale help. The original `handInteractionHint` description is preserved and restored. No click/double-click handlers are added, and no gameplay state is modified.
 
 Single click selects the physical card and shows a selection outline, without mutating game state. A second click on the same card within 500ms (including quick touch taps), or an OS double-click, opens an explanation. Keyboard button activation (`detail=0`, e.g. Enter/Space) opens it directly. The native modal contains the existing illustration, effect, shared `CARD_USAGE` explanation, action/resource cost and any opportunity-attack warning.

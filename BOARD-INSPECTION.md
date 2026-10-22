@@ -1,0 +1,11 @@
+# Central board inspection
+
+`board-inspect.js` delegates inspection clicks at the game root in capture phase. Investigator, current scene, all map locations, act/agenda, enemies, equipped assets and panel backgrounds open a native centered read-only dialog. Static investigator and act/agenda entries support keyboard Enter/Space. Text is escaped and existing local artwork is reused. Unrevealed locations expose only their already-visible name and unrevealed status, not hidden stats, description or art.
+
+Ordinary action buttons, navigation buttons, links, inputs, selects and disclosure summaries are not intercepted. Map clicks inspect instead of moving immediately; an explicit Move button closes inspection and calls the existing move-confirmation entry point. Eligible act inspections offer an explicit Advance button using the existing action confirmation. The underlying state, origin and eligibility are rechecked. Merely opening/closing an inspection never executes a game action.
+
+Hand clicks reuse the existing native hand explanation and explicit play confirmation, now opening on the first activation. The older standalone hand handler remains as fallback. No direct card play is introduced. Clicking the static card content or backdrop closes it; play/cancel/close controls retain their own behavior. Existing hand hovering remains read-only. Asset icons show their actual artwork and current equipment status in the common inspection.
+
+Click static enlarged content or the backdrop, use Close, or press native Escape to collapse. Selected text is not dismissed so it can be copied. Native dialogs contain focus; close restores the original target without scrolling unless another modal has opened or the game is hidden/inert. The menu closes inspection. Existing mandatory tests, action confirmations, teaching, phase announcements and other native dialogs block stacking.
+
+The dialog is outside the zoomed board and viewport-clamped with internal overflow for long content. Original board dimensions and column order are untouched. Entrance uses a 180ms opacity/scale animation with reduced-motion opt-out. Verification uses Node VM interaction tests and the full regression suite; browser visual checks were not performed.

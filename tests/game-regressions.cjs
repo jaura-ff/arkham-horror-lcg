@@ -222,9 +222,9 @@ test('人物牌外部统一显示资源、线索、行动和位置，检定时�
   assert.doesNotMatch(summary,/点击查看/);
 });
 
-test('人物牌不再是按钮，详情弹窗已删除，受伤后外部状态同步',()=>{
+test('人物状态仍在外部显示，支持键盘放大查阅，受伤后同步',()=>{
   const actor=html.match(/<section[^>]+id="investigator"[^>]*>/)[0];
-  assert.doesNotMatch(actor,/onclick|onkeydown|tabindex|role="button"/);
+  assert.doesNotMatch(actor,/onclick|onkeydown|role="button"/);assert.match(actor,/tabindex="0"/);assert.match(actor,/aria-haspopup="dialog"/);
   assert.doesNotMatch(html,/function openInvestigatorModal/);
   const g=game();g.enemy();g.run(`S.hp=1;resource()`);
   assert.equal(g.get('S.gameOver'),true);

@@ -1,0 +1,11 @@
+/* Read-only help, outside the scaled board so text stays legible. */
+#phasebar .phase{appearance:none;font:inherit;color:var(--muted);background:transparent;cursor:help;text-align:left;border-radius:0}
+#phasebar .phase.active{color:var(--gold);background:#a17a3526}
+#phasebar .phase:hover{background:#a17a3538}
+#phasebar .phase:focus-visible{outline:2px solid var(--gold);outline-offset:-3px}
+#phasebar .phase-text{min-width:0;display:flex;flex-direction:column;gap:2px;justify-content:center}
+#phaseHelp[hidden]{display:none}
+#phaseHelp{position:fixed;z-index:1500;box-sizing:border-box;width:340px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;margin:0;padding:18px 20px;border:1px solid #a68b4d;background:#211e16;color:#e6dcc4;box-shadow:0 10px 32px #100e0bcc;font-size:14px;line-height:1.85;letter-spacing:.2px}
+#phaseHelp strong{display:block;color:#dac183;font-size:17px;font-weight:500;letter-spacing:2px}
+#phaseHelp p{margin:10px 0;white-space:pre-line}
+#phaseHelp small{display:block;border-top:1px solid #a68b4d55;padding-top:9px;color:#b6aa8d;font-size:11px}

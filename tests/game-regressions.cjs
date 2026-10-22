@@ -615,7 +615,7 @@ test('上古印记按当前地点线索加值，不保证成功且不回血',()=
 
 test('自动失败即使难度零也失败，负技能值最低为零',()=>{
   const g=game();g.run(`S.chaos=[{label:'自动失败',autofail:true}];startTest('int',0,'测试',()=>{});resolveTest()`);assert.equal(g.get('S.testResult'),false);
-  assert.match(g.document.getElementById('modalBox').innerHTML,/最终技能值：<b>0<\/b>/);
+  assert.match(g.document.getElementById('modalBox').innerHTML,/最终智慧能力：<b>0<\/b>/);
   const h=game();h.run(`S.chaos=[{label:'-8',mod:-8}];startTest('int',0,'测试',()=>{});resolveTest()`);assert.equal(h.get('S.testResult'),true);
 });
 
@@ -654,7 +654,7 @@ test('首关调查说明用基础智慧对比遮蔽，抽取前达标不等于�
 test('四种属性的说明来自实际人物值，遭遇难度不会误称地点遮蔽',()=>{
  for(const [skill,name,value]of [['will','意志',3],['int','智慧',3],['combat','战斗',4],['agility','敏捷',2]]){
   const g=game();g.run(`startTest('${skill}',4,'遭遇检定',()=>{})`);const lesson=testLesson(g);
-  assert.ok(lesson.includes(`基础${name}<b>${value}</b>`));assert.match(lesson,/对比当前效果要求的难度 4/);assert.doesNotMatch(lesson,/地点的「遮蔽值」/);
+  assert.ok(lesson.includes(`基础${name}<b>${value}</b>`));assert.match(lesson,/对比当前效果要求的「检定目标值」 4/);assert.doesNotMatch(lesson,/地点的「遮蔽值」/);
  }
 });
 test('投入和取消投入实时更新卡牌加成，不提前消耗卡牌或行动',()=>{
@@ -663,7 +663,7 @@ test('投入和取消投入实时更新卡牌加成，不提前消耗卡牌或�
  g.run('toggleCommit(0)');assert.match(testLesson(g),/data-part="committed">投入卡牌<b>0<\/b>/);assert.equal(g.get('S.hand.length'),1);assert.equal(g.get('S.actions'),3);
 });
 test('装备战斗加成和闪避效果分别展示，后者消耗后结果仍显示本次真实加成',()=>{
- const g=game();g.enemy();g.run("S.assets=[{card:{...INVESTIGATOR.deck.find(c=>c.id==='p45')},exhausted:false}];requestAction('fight')");assert.match(testLesson(g),/对比敌人的「战斗值」 2/);assert.match(testLesson(g),/data-part="bonus">装备／效果<b>1<\/b>/);assert.match(testLesson(g),/data-part="before">抽取前合计<b>5<\/b>/);
+ const g=game();g.enemy();g.run("S.assets=[{card:{...INVESTIGATOR.deck.find(c=>c.id==='p45')},exhausted:false}];requestAction('fight')");assert.match(testLesson(g),/对比敌人的「战斗值」 2/);assert.match(testLesson(g),/data-part="bonus">装备／效果<b>1<\/b>/);assert.match(testLesson(g),/data-part="before">当前战斗能力<b>5<\/b>/);
  const h=game();h.enemy();h.run("S.evadeBonus=2;requestAction('evade');resolveTest()");assert.equal(h.get('S.evadeBonus'),0);assert.match(testLesson(h),/对比敌人的「闪避值」 2/);assert.match(testLesson(h),/data-part="bonus">装备／效果<b>2<\/b>/);assert.match(testLesson(h),/4（抽取前） \+ 0（混沌修正） = 4/);
 });
 test('抽取后展示完整算式和比较，平手成功且投入已弃置仍保留加成解释',()=>{
@@ -680,16 +680,33 @@ test('符号指示物展示实际结算修正，包含上古印记和困难连�
 });
 test('检定讲解只读，不改变随机和游戏状态，样式只作用于弹窗内说明',()=>{
  const g=game();g.run("requestAction('investigate');Math.random=()=>{throw Error('must not draw')}");const before=g.get('S');g.run("testLearningInfo(S.test);testLearningInfo(S.test,{mod:-1,autofail:false})");assert.deepEqual(g.get('S'),before);
- assert.match(html,/test-learning.css\?v=values-1/);const css=fs.readFileSync(path.join(__dirname,'..','test-learning.css'),'utf8');assert.match(css,/flex-wrap:wrap/);assert.match(css,/orientation:landscape/);assert.doesNotMatch(css,/#game|#wrap|body\s*\{|\.main\s*\{/);
+ assert.match(html,/test-learning.css\?v=mini-commits-2/);const css=fs.readFileSync(path.join(__dirname,'..','test-learning.css'),'utf8');assert.match(css,/flex-wrap:wrap/);assert.match(css,/orientation:landscape/);assert.doesNotMatch(css,/#game|#wrap|body\s*\{|\.main\s*\{/);
 });
 
-test('调查准备、投入后和结果统一使用遮蔽值与调查能力，其他检定名称不变',()=>{
+test('调查准备、投入后和结果统一使用遮蔽值与调查能力',()=>{
  const g=game();g.run("S.hand=[{...INVESTIGATOR.deck.find(c=>c.id==='percep')}];requestAction('investigate')");
  let box=g.document.getElementById('modalBox').innerHTML;
  assert.match(box,/遮蔽值：<b>2<\/b>　当前调查能力：<b>3<\/b>/);assert.doesNotMatch(box,/难度|当前合计|抽取前合计/);
  g.run('toggleCommit(0)');assert.match(g.document.getElementById('modalBox').innerHTML,/当前调查能力：<b>5<\/b>/);
  g.run('resolveTest()');box=g.document.getElementById('modalBox').innerHTML;
  assert.match(box,/最终调查能力：<b>5<\/b> vs 遮蔽值 2/);assert.doesNotMatch(box,/难度|当前合计|抽取前合计/);
- for(const label of ['战斗','闪避','遭遇检定']){const h=game();h.run(`startTest('int',2,'${label}',()=>{})`);assert.match(h.document.getElementById('modalBox').innerHTML,/难度：<b>2<\/b>　当前合计：<b>3<\/b>/);}
+});
+
+test('战斗闪避和遭遇检定按实际属性显示目标值与当前能力，结果用语一致',()=>{
+ for(const [skill,label,target,ability,value]of [['combat','战斗 手枪','敌人战斗值','战斗',4],['agility','闪避','敌人闪避值','闪避',2],['will','抵抗恐惧低语','检定目标值','意志',3],['int','遭遇检定','检定目标值','智慧',3]]){
+  const g=game();g.run(`startTest('${skill}',2,'${label}',()=>{})`);let box=g.document.getElementById('modalBox').innerHTML;
+  assert.ok(box.includes(`${target}：<b>2</b>　当前${ability}能力：<b>${value}</b>`));assert.ok(testLesson(g).includes(`当前${ability}能力<b>${value}</b>`));assert.doesNotMatch(box,/难度|当前合计|抽取前合计/);
+  g.run('resolveTest()');box=g.document.getElementById('modalBox').innerHTML;assert.ok(box.includes(`最终${ability}能力：<b>${value}</b> vs ${target} 2`));assert.doesNotMatch(box,/难度|当前合计|抽取前合计/);
+ }
+});
+
+test('五种可投入牌使用对应小图、牌名、属性加成和可访问选中按钮，投入取消不消耗行动资源',()=>{
+ for(const [id,skill]of [['percep','int'],['courage','combat'],['guts','will'],['manual','agility'],['dodge','agility']]){
+  const g=game();g.run(`S.hand=[{...INVESTIGATOR.deck.find(c=>c.id==='${id}')}];startTest('${skill}',2,'检定',()=>{})`);
+  let box=g.document.getElementById('modalBox').innerHTML;const art=g.get(`CARD_ART.${id}`),name=g.get('S.hand[0].name');
+  assert.match(box,/<button type="button" id="commitCard0" class="commit-card /);assert.match(box,/aria-pressed="false"/);assert.ok(box.includes(`--art-x:${art[0]}%;--art-y:${art[1]}%`));assert.ok(box.includes(`<b>${name}</b>`));assert.match(box,/class="commit-bonus">.* \+2/);
+  const before=g.get('[S.resources,S.actions,S.hand.length]');g.run('toggleCommit(0)');box=g.document.getElementById('modalBox').innerHTML;assert.match(box,/aria-pressed="true"/);assert.match(box,/已投入 · 点击取消/);assert.equal(g.get('S.committed.length'),1);assert.deepEqual(g.get('[S.resources,S.actions,S.hand.length]'),before);
+  g.run('toggleCommit(0)');assert.equal(g.get('S.committed.length'),0);assert.deepEqual(g.get('[S.resources,S.actions,S.hand.length]'),before);
+ }
 });
 

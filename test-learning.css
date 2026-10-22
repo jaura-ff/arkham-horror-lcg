@@ -8,4 +8,17 @@
 .test-learning-formula i{font-style:normal;font-size:15px;color:var(--gold)}
 .test-learning .test-learning-note{font-size:11px;color:var(--dim)}
 .test-learning .test-learning-outcome{padding-top:5px;border-top:1px solid #695335;font-size:12px;color:var(--text)}
+/* Compact illustrated commit buttons, not full-size cards. */
+.skilltest .commits{gap:8px}
+.skilltest .commit-card{box-sizing:border-box;display:flex;align-items:center;gap:9px;width:160px;max-width:100%;min-height:76px;padding:8px;text-align:left;font:inherit;font-size:11px;line-height:1.5;color:var(--text);border:1px solid #695335;background:#2d251a;transition:background-color 150ms ease}
+.skilltest .commit-card:hover{border-color:var(--gold)}
+.skilltest .commit-card.sel{border-color:var(--gold);background:#493a23}
+.skilltest .commit-card:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.skilltest .commit-art{display:block;flex:0 0 48px;width:48px;height:48px;border:3px double #a68b4d;box-sizing:content-box}
+.skilltest .commit-fallback{display:grid;place-items:center;background:#211c14;color:var(--gold);font-size:20px}
+.skilltest .commit-copy{min-width:0;display:flex;flex-direction:column;gap:2px}
+.skilltest .commit-copy b{font-size:12px;overflow-wrap:anywhere}
+.skilltest .commit-bonus{color:var(--gold)}
+.skilltest .commit-copy small{font-size:10px;color:var(--dim)}
+@media(prefers-reduced-motion:reduce){.skilltest .commit-card{transition:none}}
 @media(orientation:landscape) and (max-height:440px){.test-learning{margin-bottom:10px;padding:7px 10px;font-size:11px;line-height:1.6}.test-learning-formula{margin:6px 0;gap:3px 6px}.test-learning-formula>span{padding:2px 5px}.test-learning-formula b{font-size:17px}}

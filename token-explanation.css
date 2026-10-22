@@ -1,0 +1,13 @@
+/* Draw-specific symbol rules, reusing the menu's local token artwork. */
+.token-explanation{margin:12px 0;padding:12px;border:1px solid #75603c;background:#292217;color:#e6dcc4;font-size:12px;line-height:1.7;text-align:left}
+.token-explanation h4{margin:0;color:#dac183;font-size:13px;font-weight:500}
+.token-explanation .token-explanation-side{margin:2px 0 10px;color:var(--dim);font-size:10px}
+.token-explanation-row{display:flex;align-items:flex-start;gap:10px;margin:9px 0}
+.token-explanation-row img{flex:0 0 42px;width:42px;height:42px}
+.token-explanation-row>div{min-width:0;overflow-wrap:anywhere}
+.token-explanation-row h5{margin:0 0 2px;font-size:12px;color:#dac183}
+.token-explanation-row p{margin:0}
+.token-explanation-row small{display:block;margin-top:3px;font-size:11px;color:#c3b18e}
+.token-explanation .token-explanation-total{margin:10px 0 0;padding-top:8px;border-top:1px solid #75603c;font-size:11px}
+.test-reveal .token-explanation{animation:chaos-result-reveal 220ms ease-out 820ms both}
+@media(prefers-reduced-motion:reduce){.test-reveal .token-explanation{animation:none}}

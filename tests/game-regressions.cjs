@@ -735,3 +735,46 @@ test('旋转、结果和线索依次呈现，减少动态偏好立即展示，�
  const g=game();g.run("requestAction('investigate');resolveTest();finishTest(S.testResult)");assert.equal(g.get('S.test'),null);assert.equal(g.get('S.clues'),1);
 });
 
+function symbolLesson(g){return g.document.getElementById('modalBox').innerHTML.match(/<section class="token-explanation"[\s\S]*?<\/section>/)?.[0]||'';}
+test('骷髅说明按同地点食尸鬼数量解释实际修正，而非自动失败',()=>{
+ for(const count of [0,1,2]){
+  const g=game();g.run(`S.enemies=Array.from({length:${count}},()=>({card:{...ENCOUNTER[0]},hp:2,location:'study',engaged:false,exhausted:false}));S.enemies.push({card:{...ENCOUNTER[0]},location:'hallway'});S.chaos=[{label:'骷髅',symbol:'skull'}];startTest('int',2,'调查',()=>{});resolveTest()`);
+  const lesson=symbolLesson(g);assert.match(lesson,/不是自动失败/);assert.ok(lesson.includes(`本地点有 ${count} 名食尸鬼，本枚修正 ${count===0?0:-count}`));assert.match(lesson,/assets\/tokens\/skull.svg/);assert.equal(g.get('S.testResult'),count<=1);
+ }
+});
+test('困难骷髅说明区分成功与失败，不提前抽取食尸鬼',()=>{
+ for(const passed of [true,false]){
+  const g=game();g.run(`S.difficulty='hard';S.chaos=[{label:'骷髅',symbol:'skull'}];startTest('int',${passed?1:2},'调查',()=>{});resolveTest()`);
+  const lesson=symbolLesson(g);assert.match(lesson,/困难／专家/);assert.match(lesson,/修正 −2/);assert.match(lesson,passed?/本次成功，不触发/:/点击继续结算后处理寻找食尸鬼/);assert.equal(g.get('S.enemies.length'),0);
+ }
+});
+test('异教徒说明展示最终失败恐惧，困难连抽逐枚解释并保留实际顺序',()=>{
+ for(const passed of [true,false]){
+  const g=game();g.run(`S.chaos=[{label:'异教徒',symbol:'cultist'}];startTest('int',${passed?2:3},'调查',()=>{});resolveTest()`);assert.match(symbolLesson(g),/修正 −1/);assert.match(symbolLesson(g),passed?/不承受这枚的失败恐惧/:/这枚造成 1 点恐惧（已结算）/);assert.equal(g.get('S.sanity'),passed?5:4);
+ }
+ const g=game();g.run("S.difficulty='hard';S.chaos=[{label:'异教徒',symbol:'cultist'},{label:'异教徒',symbol:'cultist'},{label:'-4',mod:-4}];Math.random=()=>0;startTest('int',2,'调查',()=>{});resolveTest()");
+ const lesson=symbolLesson(g);assert.match(lesson,/1\. 异教徒/);assert.match(lesson,/2\. 异教徒/);assert.match(lesson,/3\. -4/);assert.match(lesson,/继续抽取另一枚/);assert.equal((lesson.match(/这枚造成 2 点恐惧（已结算）/g)||[]).length,2);assert.match(lesson,/本次累计修正：-4/);assert.equal(g.get('S.sanity'),1);
+});
+test('石板说明区分难度与同地点食尸鬼条件，额外伤害与成功无关',()=>{
+ for(const hard of [false,true])for(const local of [false,true]){
+  const g=game();if(local)g.enemy();g.run(`S.difficulty='${hard?'hard':'standard'}';S.chaos=[{label:'石板',symbol:'tablet'}];startTest('combat',0,'战斗',()=>{});resolveTest()`);
+  const lesson=symbolLesson(g);assert.match(lesson,hard?/修正 −4/:/修正 −2/);assert.match(lesson,/与成功失败无关/);assert.match(lesson,local?/1 伤害/:/没有食尸鬼，不触发/);assert.equal(g.get('S.hp'),local?8:9);assert.equal(g.get('S.sanity'),local&&hard?4:5);assert.equal(g.get('S.testResult'),true);
+ }
+});
+test('上古印记说明使用罗兰抽取时的地点线索，自动失败说明不比较数值',()=>{
+ for(const clues of [0,2]){
+  const g=game();g.run(`S.locClues.study=${clues};S.chaos=[{label:'上古印记',elder:true}];startTest('int',5,'调查',()=>{});resolveTest()`);assert.match(symbolLesson(g),/不是自动成功/);assert.ok(symbolLesson(g).includes(`有 ${clues} 条线索，本枚修正 ${clues?'+'+clues:0}`));assert.equal(g.get('S.testResult'),clues===2);
+ }
+ const g=game();g.run("S.chaos=[{label:'自动失败',autofail:true}];startTest('int',0,'调查',()=>{});resolveTest()");assert.match(symbolLesson(g),/无论能力多高、目标值多低/);assert.match(symbolLesson(g),/其他指示物的加值也不能抵消/);assert.equal(g.get('S.testResult'),false);
+});
+test('符号说明只读、使用抽取快照，不额外随机或改动牌袋；普通数字不加冗余说明',()=>{
+ const g=game();g.enemy();g.run("S.chaos=[{label:'骷髅',symbol:'skull'}];const captured=resolveChaosTokens();S.enemies=[];Math.random=()=>{throw Error('no redraw')}");
+ const before=g.get('S'),lesson=g.run('chaosTokenExplanation(captured,true)');assert.match(lesson,/本地点有 1 名食尸鬼，本枚修正 -1/);assert.deepEqual(g.get('S'),before);
+ const h=game();h.run("startTest('int',2,'调查',()=>{});resolveTest()");assert.equal(symbolLesson(h),'');
+ for(const art of ['skull','cultist','tablet','elder','autofail','minus4'])assert.ok(fs.existsSync(path.join(__dirname,'..','assets','tokens',art+'.svg')));
+ assert.match(html,/token-explanation.css\?v=symbols-1/);
+});
+test('符号伤害致死时保留失败界面并附上符号原因，不覆盖为普通检定结果',()=>{
+ const g=game();g.enemy();g.run("S.hp=1;S.chaos=[{label:'石板',symbol:'tablet'}];startTest('int',0,'调查',()=>{});resolveTest()");assert.equal(g.get('S.gameOver'),true);assert.match(g.document.getElementById('modalBox').innerHTML,/调查失败/);assert.match(symbolLesson(g),/石板/);assert.match(symbolLesson(g),/1 伤害已结算/);assert.doesNotMatch(g.document.getElementById('modalBox').innerHTML,/class="test-reveal"/);
+});
+

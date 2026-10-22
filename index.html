@@ -198,6 +198,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="board.css?v=icon-proportions-3">
 <link rel="stylesheet" href="test-learning.css?v=values-1">
 <link rel="stylesheet" href="game-header.css?v=spacious-1">
+<link rel="stylesheet" href="phase-help.css?v=hover-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -354,6 +355,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 </dialog>
 <div id="lossNotice" class="loss-notice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden><strong id="lossNoticeAmount"></strong><span id="lossNoticeSource"></span></div>
 <div id="nextStepTarget" class="next-step-target" aria-hidden="true" hidden></div>
+<aside id="phaseHelp" role="tooltip" hidden><strong id="phaseHelpTitle"></strong><p id="phaseHelpText"></p><small>阶段说明 · 不会切换阶段</small></aside>
 <div id="nextStepArrow" class="next-step-arrow" role="status" aria-live="polite" hidden><span id="nextStepLabel"></span><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg?v=guide-pointer-1#guide-pointer"></use></svg></div>
 <dialog id="phaseAnnouncement" class="phase-announcement" aria-labelledby="phaseAnnouncementTitle" aria-describedby="phaseAnnouncementRule phaseAnnouncementHint">
   <div class="phase-announcement-shell"><p class="phase-announcement-kicker">ARKHAM / NEXT PHASE</p><p id="phaseAnnouncementRound" class="phase-announcement-round"></p><p class="phase-announcement-label">即将进入</p><h2 id="phaseAnnouncementTitle" tabindex="-1"></h2><p id="phaseAnnouncementRule"></p><p id="phaseAnnouncementCountdown" class="phase-announcement-countdown" aria-live="polite" aria-atomic="true">3</p><p id="phaseAnnouncementHint">停留 3 秒后自动继续，也可立即进入提示中的阶段</p><button id="phaseAnnouncementSkip" type="button" class="btn phase-announcement-skip">立即进入</button></div>
@@ -714,7 +716,7 @@ function renderPhaseBar(){
   ];
   document.getElementById('phasebar').innerHTML = phases.map((p, index)=>{
     const active = (S.phase===p.id)?'active':'';
-    return `<div class="phase ${active}" ${active?'aria-current="step"':''}><span class="step">${String(index+1).padStart(2, '0')}</span><div><div class="nm">${p.nm}阶段</div><div class="en">${p.en}</div></div></div>`;
+    return `<button type="button" class="phase ${active}" data-phase="${p.id}" aria-label="${p.nm}阶段，查看说明" ${active?'aria-current="step"':''}><span class="step">${String(index+1).padStart(2, '0')}</span><span class="phase-text"><span class="nm">${p.nm}阶段</span><span class="en">${p.en}</span></span></button>`;
   }).join('');
 }
 
@@ -1655,6 +1657,7 @@ function resolve(code, text){
 <script src="home-dialogs.js?v=four-dialogs-2"></script>
 <script src="board.js?v=spacious-header-4"></script>
 <script src="game-header.js?v=spacious-1"></script>
+<script src="phase-help.js?v=hover-1"></script>
 </body>
 </html>
 

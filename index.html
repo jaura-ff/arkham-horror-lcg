@@ -202,6 +202,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="hand-hover.css?v=hover-1">
 <link rel="stylesheet" href="test-reveal.css?v=spin-1">
 <link rel="stylesheet" href="token-explanation.css?v=symbols-1">
+<link rel="stylesheet" href="board-inspect.css?v=center-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -287,7 +288,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     <div class="main">
       <!-- 左栏 -->
       <div class="col-left">
-        <section class="panel inv-card" id="investigator" aria-label="调查员与当前状态"></section>
+        <section class="panel inv-card" id="investigator" aria-label="调查员与当前状态，点击放大查看" tabindex="0" aria-haspopup="dialog"></section>
         <div class="panel command-panel" id="commandPanel">
           <h2>行动 <span class="cnt" id="actioncount"></span></h2>
           <div class="actions" id="actions"></div>
@@ -296,8 +297,8 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
         <div class="panel goal-panel">
           <h2>目标进度</h2>
           <div class="aa">
-            <div class="side act"><h3>幕 Act</h3><div class="txt" id="act"></div></div>
-            <div class="side agenda"><h3>议程 Agenda <span class="doom" id="doomcount"></span></h3><div class="txt" id="agenda"></div></div>
+            <div class="side act" tabindex="0" aria-label="幕进度，点击放大查看" aria-haspopup="dialog"><h3>幕 Act</h3><div class="txt" id="act"></div></div>
+            <div class="side agenda" tabindex="0" aria-label="议程进度，点击放大查看" aria-haspopup="dialog"><h3>议程 Agenda <span class="doom" id="doomcount"></span></h3><div class="txt" id="agenda"></div></div>
           </div>
         </div>
       </div>
@@ -323,7 +324,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
         <div class="bottom">
           <div class="panel hand-panel">
             <h2>手牌 <span class="cnt" id="handcount"></span></h2>
-            <p class="hand-interaction-hint" id="handInteractionHint">单击选中 · 双击／快速连点两次查看效果 · 弹窗确认后才出牌</p>
+            <p class="hand-interaction-hint" id="handInteractionHint">单击放大查看 · 再点卡面收起 · 弹窗确认后才出牌（也支持双击／快速连点两次）</p>
             <div class="hand" id="hand"></div>
             <div class="board-hand-nav" aria-label="切换手牌"><button id="handPrevious" type="button" class="btn" aria-label="上一组手牌"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#back"></use></svg></button><button id="handNext" type="button" class="btn" aria-label="下一组手牌"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#next"></use></svg></button></div>
             <button id="discardPileButton" type="button" class="btn discard-pile-button" aria-haspopup="dialog" aria-controls="discardDialog"><span class="pile-stack" aria-hidden="true"><i></i><i></i><i></i></span><span><strong>弃牌区 / 出牌记录</strong><small id="discardPileSummary">弃牌 0 张 · 已打出 0 次</small></span><span aria-hidden="true">查看 ›</span></button>
@@ -345,6 +346,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 </div>
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="游戏操作"><div class="modal-box" id="modalBox"></div></div>
+<dialog id="boardInspectDialog" class="board-inspect" aria-labelledby="boardInspectTitle" aria-describedby="boardInspectHint"><header><h2 id="boardInspectTitle"></h2><button id="boardInspectClose" type="button" class="btn icon-button" aria-label="收起放大查看" autofocus>×</button></header><div id="boardInspectContent"></div><footer><p id="boardInspectHint">仅放大查看，不消耗行动。再点内容或空白处收起，也可按 Esc。</p><button id="boardInspectAction" type="button" class="btn primary" hidden></button></footer></dialog>
 <dialog id="prologueDialog" class="prologue-dialog" aria-labelledby="prologueTitle" aria-describedby="prologueText">
   <div class="prologue-shell">
     <div class="prologue-stage" aria-hidden="true"><div class="prologue-camera"></div><div class="prologue-rain"></div><div class="prologue-lamp"></div><div class="prologue-shadow"></div><div class="prologue-mist"></div><div class="prologue-veil"></div></div>
@@ -359,7 +361,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <div id="lossNotice" class="loss-notice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden><strong id="lossNoticeAmount"></strong><span id="lossNoticeSource"></span></div>
 <div id="nextStepTarget" class="next-step-target" aria-hidden="true" hidden></div>
 <aside id="phaseHelp" role="tooltip" hidden><strong id="phaseHelpTitle"></strong><p id="phaseHelpText"></p><small>阶段说明 · 不会切换阶段</small></aside>
-<aside id="handHover" role="tooltip" hidden><header><span id="handHoverArt" class="art" aria-hidden="true"></span><div><small id="handHoverType"></small><strong id="handHoverTitle"></strong></div></header><h4>卡牌效果</h4><p id="handHoverEffect"></p><h4>如何使用</h4><p id="handHoverUsage"></p><small class="hand-hover-hint">仅查看，不消耗行动或资源。双击手牌打开详情，再确认出牌。</small></aside>
+<aside id="handHover" role="tooltip" hidden><header><span id="handHoverArt" class="art" aria-hidden="true"></span><div><small id="handHoverType"></small><strong id="handHoverTitle"></strong></div></header><h4>卡牌效果</h4><p id="handHoverEffect"></p><h4>如何使用</h4><p id="handHoverUsage"></p><small class="hand-hover-hint">仅查看，不消耗行动或资源。单击手牌放大，再确认出牌。</small></aside>
 <div id="nextStepArrow" class="next-step-arrow" role="status" aria-live="polite" hidden><span id="nextStepLabel"></span><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg?v=guide-pointer-1#guide-pointer"></use></svg></div>
 <dialog id="phaseAnnouncement" class="phase-announcement" aria-labelledby="phaseAnnouncementTitle" aria-describedby="phaseAnnouncementRule phaseAnnouncementHint">
   <div class="phase-announcement-shell"><p class="phase-announcement-kicker">ARKHAM / NEXT PHASE</p><p id="phaseAnnouncementRound" class="phase-announcement-round"></p><p class="phase-announcement-label">即将进入</p><h2 id="phaseAnnouncementTitle" tabindex="-1"></h2><p id="phaseAnnouncementRule"></p><p id="phaseAnnouncementCountdown" class="phase-announcement-countdown" aria-live="polite" aria-atomic="true">3</p><p id="phaseAnnouncementHint">停留 3 秒后自动继续，也可立即进入提示中的阶段</p><button id="phaseAnnouncementSkip" type="button" class="btn phase-announcement-skip">立即进入</button></div>
@@ -777,7 +779,7 @@ function renderHand(){
     const iconStr = skillIcons(c);
     const disabled = S.gameOver || !!S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive;
     const art = CARD_ART[c.id] || [0,0];
-    return `<button id="hand-card-${i}" data-hand-index="${i}" type="button" class="card ${c.type} ${selectedHandCard===c?'is-selected':''}" aria-pressed="${selectedHandCard===c}" aria-haspopup="dialog" aria-describedby="handInteractionHint" aria-label="${c.name}，${typeLabel}，费用 ${c.cost}。${c.text} 双击查看效果并确认出牌。" ${disabled?'disabled':''} onclick="inspectHandCard(${i},event)">
+    return `<button id="hand-card-${i}" data-hand-index="${i}" type="button" class="card ${c.type} ${selectedHandCard===c?'is-selected':''}" aria-pressed="${selectedHandCard===c}" aria-haspopup="dialog" aria-describedby="handInteractionHint" aria-label="${c.name}，${typeLabel}，费用 ${c.cost}。${c.text} 单击放大查看，再确认出牌。" ${disabled?'disabled':''} onclick="inspectHandCard(${i},event)">
       <span class="ccost">${c.cost>0?c.cost:'—'}</span>
       <div class="ctype">${typeLabel}</div>
       <div class="cname">${c.name}</div>
@@ -1716,6 +1718,7 @@ function resolve(code, text){
 <script src="game-header.js?v=spacious-1"></script>
 <script src="phase-help.js?v=hover-1"></script>
 <script src="hand-hover.js?v=hover-1"></script>
+<script src="board-inspect.js?v=center-1"></script>
 </body>
 </html>
 

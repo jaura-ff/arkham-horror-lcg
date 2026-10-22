@@ -1,0 +1,25 @@
+/* Central read-only inspections stay outside the scaled game board. */
+.board-inspect{position:fixed;inset:0;box-sizing:border-box;margin:auto;width:min(620px,calc(100vw - 28px));height:fit-content;max-height:calc(100dvh - 28px);padding:22px;border:1px solid #b7955b;background:#211d16;color:#e6dcc4;overflow:auto;overscroll-behavior:contain;box-shadow:0 20px 70px #100e0bb3}
+.board-inspect[open]{animation:board-inspect-in 180ms ease-out}
+.board-inspect::backdrop{background:#100e0bd9}
+.board-inspect>header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+.board-inspect h2{margin:0;color:#dac183;font-size:25px;letter-spacing:2px;font-weight:500}
+.board-inspect .icon-button{flex:0 0 44px;width:44px;height:44px;font-size:24px}
+#boardInspectContent{cursor:zoom-out;font-size:16px;line-height:1.9;overflow-wrap:anywhere}
+#boardInspectContent p{margin:12px 0}
+#boardInspectContent .inspect-text{white-space:pre-line}
+#boardInspectContent .inspect-art{width:min(220px,65%);aspect-ratio:1;margin:0 auto 18px;border:1px solid #a68b4d}
+#boardInspectContent .inspect-scene{height:210px;border:1px solid #a68b4d;background:url('assets/images/noir-study.webp') center/cover}
+#boardInspectContent .inspect-scene[data-room=hallway],#boardInspectContent .inspect-scene[data-room=attic]{background-image:url('assets/images/noir-rooms.webp');background-size:200% 100%;background-position:left center}
+#boardInspectContent .inspect-scene[data-room=attic]{background-position:right center}
+.board-inspect footer{margin-top:16px;border-top:1px solid #75603c;padding-top:12px}
+#boardInspectHint{margin:0 0 12px;font-size:12px;color:#b6aa8d}
+#boardInspectAction[hidden]{display:none}
+.board-inspect button:focus-visible,#game #investigator:focus-visible,#game .side:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+#game .panel,#game .side,#game .enemy{cursor:zoom-in}
+#game .panel button,#game .panel a{cursor:pointer}
+#handCardDialog[open],#assetInfoDialog[open]{animation:board-inspect-in 180ms ease-out}
+#handCardDialog .hand-card-layout,#assetInfoDialog>div>p{cursor:zoom-out}
+@keyframes board-inspect-in{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:scale(1)}}
+@media(orientation:landscape) and (max-height:500px){.board-inspect{padding:16px}.board-inspect h2{font-size:21px}#boardInspectContent .inspect-scene{height:140px}#boardInspectContent .inspect-art{width:130px}}
+@media(prefers-reduced-motion:reduce){.board-inspect[open],#handCardDialog[open],#assetInfoDialog[open]{animation:none}}

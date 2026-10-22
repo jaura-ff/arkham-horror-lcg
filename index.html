@@ -199,6 +199,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="test-learning.css?v=mini-commits-2">
 <link rel="stylesheet" href="game-header.css?v=spacious-1">
 <link rel="stylesheet" href="phase-help.css?v=hover-1">
+<link rel="stylesheet" href="hand-hover.css?v=hover-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -356,6 +357,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <div id="lossNotice" class="loss-notice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden><strong id="lossNoticeAmount"></strong><span id="lossNoticeSource"></span></div>
 <div id="nextStepTarget" class="next-step-target" aria-hidden="true" hidden></div>
 <aside id="phaseHelp" role="tooltip" hidden><strong id="phaseHelpTitle"></strong><p id="phaseHelpText"></p><small>阶段说明 · 不会切换阶段</small></aside>
+<aside id="handHover" role="tooltip" hidden><header><span id="handHoverArt" class="art" aria-hidden="true"></span><div><small id="handHoverType"></small><strong id="handHoverTitle"></strong></div></header><h4>卡牌效果</h4><p id="handHoverEffect"></p><h4>如何使用</h4><p id="handHoverUsage"></p><small class="hand-hover-hint">仅查看，不消耗行动或资源。双击手牌打开详情，再确认出牌。</small></aside>
 <div id="nextStepArrow" class="next-step-arrow" role="status" aria-live="polite" hidden><span id="nextStepLabel"></span><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg?v=guide-pointer-1#guide-pointer"></use></svg></div>
 <dialog id="phaseAnnouncement" class="phase-announcement" aria-labelledby="phaseAnnouncementTitle" aria-describedby="phaseAnnouncementRule phaseAnnouncementHint">
   <div class="phase-announcement-shell"><p class="phase-announcement-kicker">ARKHAM / NEXT PHASE</p><p id="phaseAnnouncementRound" class="phase-announcement-round"></p><p class="phase-announcement-label">即将进入</p><h2 id="phaseAnnouncementTitle" tabindex="-1"></h2><p id="phaseAnnouncementRule"></p><p id="phaseAnnouncementCountdown" class="phase-announcement-countdown" aria-live="polite" aria-atomic="true">3</p><p id="phaseAnnouncementHint">停留 3 秒后自动继续，也可立即进入提示中的阶段</p><button id="phaseAnnouncementSkip" type="button" class="btn phase-announcement-skip">立即进入</button></div>
@@ -773,7 +775,7 @@ function renderHand(){
     const iconStr = skillIcons(c);
     const disabled = S.gameOver || !!S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive;
     const art = CARD_ART[c.id] || [0,0];
-    return `<button id="hand-card-${i}" type="button" class="card ${c.type} ${selectedHandCard===c?'is-selected':''}" aria-pressed="${selectedHandCard===c}" aria-haspopup="dialog" aria-describedby="handInteractionHint" aria-label="${c.name}，${typeLabel}，费用 ${c.cost}。${c.text} 双击查看效果并确认出牌。" ${disabled?'disabled':''} onclick="inspectHandCard(${i},event)">
+    return `<button id="hand-card-${i}" data-hand-index="${i}" type="button" class="card ${c.type} ${selectedHandCard===c?'is-selected':''}" aria-pressed="${selectedHandCard===c}" aria-haspopup="dialog" aria-describedby="handInteractionHint" aria-label="${c.name}，${typeLabel}，费用 ${c.cost}。${c.text} 双击查看效果并确认出牌。" ${disabled?'disabled':''} onclick="inspectHandCard(${i},event)">
       <span class="ccost">${c.cost>0?c.cost:'—'}</span>
       <div class="ctype">${typeLabel}</div>
       <div class="cname">${c.name}</div>
@@ -1669,6 +1671,7 @@ function resolve(code, text){
 <script src="board.js?v=spacious-header-4"></script>
 <script src="game-header.js?v=spacious-1"></script>
 <script src="phase-help.js?v=hover-1"></script>
+<script src="hand-hover.js?v=hover-1"></script>
 </body>
 </html>
 

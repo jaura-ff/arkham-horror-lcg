@@ -1,0 +1,11 @@
+/* Outside the zoomed board: readable help without changing hand dimensions. */
+#handHover[hidden]{display:none}
+#handHover{position:fixed;z-index:1500;box-sizing:border-box;width:350px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;margin:0;padding:16px 18px;border:1px solid #a68b4d;background:#211e16;color:#e6dcc4;box-shadow:0 10px 32px #100e0bcc;font-size:13px;line-height:1.75;text-align:left}
+#handHover header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+#handHoverArt{display:block;width:52px;height:52px;flex:0 0 52px;border:1px solid #a68b4d}
+#handHover header div{min-width:0}
+#handHoverType{color:#b6aa8d;font-size:11px}
+#handHoverTitle{display:block;color:#dac183;font-size:18px;font-weight:500;overflow-wrap:anywhere}
+#handHover h4{margin:10px 0 3px;font-size:12px;font-weight:500;color:#dac183}
+#handHover p{margin:0;overflow-wrap:anywhere}
+#handHover .hand-hover-hint{display:block;margin-top:12px;padding-top:9px;border-top:1px solid #a68b4d55;color:#b6aa8d;font-size:11px}

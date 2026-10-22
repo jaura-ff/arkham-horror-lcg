@@ -196,7 +196,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="prologue.css?v=narration-1">
 <link rel="stylesheet" href="tutorial.css?v=standalone-outro-1">
 <link rel="stylesheet" href="board.css?v=icon-proportions-3">
-<link rel="stylesheet" href="test-learning.css?v=values-1">
+<link rel="stylesheet" href="test-learning.css?v=mini-commits-2">
 <link rel="stylesheet" href="game-header.css?v=spacious-1">
 <link rel="stylesheet" href="phase-help.css?v=hover-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
@@ -1245,8 +1245,10 @@ function startTest(skill, difficulty, label, onDone, bonus=0,actionExempt=null,o
 }
 
 function testValueLabels(t){
-  const investigating=t.label.startsWith('调查');
-  return {target:investigating?'遮蔽值':'难度',current:investigating?'当前调查能力':'当前合计',before:investigating?'当前调查能力':'抽取前合计',final:investigating?'最终调查能力':'最终技能值'};
+  const mode=t.label.startsWith('调查')?'investigate':t.label.startsWith('战斗')?'fight':t.label.startsWith('闪避')?'evade':'effect';
+  const target={investigate:'遮蔽值',fight:'敌人战斗值',evade:'敌人闪避值',effect:'检定目标值'}[mode];
+  const ability={investigate:'调查',fight:'战斗',evade:'闪避',effect:SKILL[t.skill]}[mode];
+  return {target,current:`当前${ability}能力`,before:`当前${ability}能力`,final:`最终${ability}能力`};
 }
 
 function testLearningInfo(t,token=null){
@@ -1254,7 +1256,7 @@ function testLearningInfo(t,token=null){
   const labels=testValueLabels(t);
   const committed=S.committed.reduce((sum,card)=>sum+commitBonus(card),0);
   const before=base+t.bonus+committed;
-  const difficultySource=t.label.startsWith('调查')?'地点的「遮蔽值」':t.label.startsWith('战斗')?'敌人的「战斗值」':t.label.startsWith('闪避')?'敌人的「闪避值」':'当前效果要求的难度';
+  const difficultySource=t.label.startsWith('调查')?'地点的「遮蔽值」':t.label.startsWith('战斗')?'敌人的「战斗值」':t.label.startsWith('闪避')?'敌人的「闪避值」':'当前效果要求的「检定目标值」';
   let outcome=`<p class="test-learning-note">再抽混沌指示物，把修正加进去。最终值 ≥ ${labels.target}就成功，平手也算；自动失败除外。</p>`;
   if(token){
     if(token.autofail)outcome=`<p class="test-learning-outcome">抽到「自动失败」：不比较数值，本次直接失败；${labels.final}显示为 0。</p>`;
@@ -1287,10 +1289,12 @@ function openTestModal(){
         ${committable.length===0?'<div style="color:var(--dim);font-size:11px">没有可投入的牌</div>':committable.map((c)=>{
           const origIdx = S.hand.indexOf(c);
           const sel = S.committed.includes(c);
-          return `<div class="commit-card ${sel?'sel':''}" onclick="toggleCommit(${origIdx})">
-            <div style="font-weight:bold">${c.name}</div>
-            <div style="color:var(--gold)">+${commitBonus(c)}</div>
-          </div>`;
+          const art=CARD_ART[c.id];
+          const name=String(c.name).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+          return `<button type="button" id="commitCard${origIdx}" class="commit-card ${sel?'sel':''}" aria-pressed="${sel}" aria-label="${name}，${sk}加 ${commitBonus(c)}，${sel?'已投入，点击取消':'点击投入'}" onclick="toggleCommit(${origIdx})">
+            ${art?`<span class="commit-art art" aria-hidden="true" style="--art-x:${art[0]}%;--art-y:${art[1]}%"></span>`:`<span class="commit-art commit-fallback" aria-hidden="true">${SKILL_ICON[t.skill]}</span>`}
+            <span class="commit-copy"><b>${name}</b><span class="commit-bonus">${sk} +${commitBonus(c)}</span><small>${sel?'已投入 · 点击取消':'点击投入'}</small></span>
+          </button>`;
         }).join('')}
       </div>
       <p class="action-confirm-note">${t.actionExempt!==null?'继续消耗 1 次行动并抽取指示物；返回不消耗行动或投入牌。':'这是已触发的强制检定，不能取消。'}${t.actionExempt===false?' '+actionRisk():''}</p>
@@ -1327,6 +1331,7 @@ function toggleCommit(idx){
     S.committed.push(c);
   }
   openTestModal();
+  document.getElementById(`commitCard${idx}`)?.focus?.({preventScroll:true});
 }
 
 function isGhoul(c){return c.type==='enemy' && (c.traits?.includes('Ghoul') || c.name?.startsWith('食尸鬼'));}

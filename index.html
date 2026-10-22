@@ -201,6 +201,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="phase-help.css?v=hover-1">
 <link rel="stylesheet" href="hand-hover.css?v=hover-1">
 <link rel="stylesheet" href="test-reveal.css?v=spin-1">
+<link rel="stylesheet" href="token-explanation.css?v=symbols-1">
 <link rel="preload" as="image" href="assets/images/noir-study.webp">
 </head>
 <body>
@@ -1353,12 +1354,13 @@ function drawSearchedGhoul(id){
 function resolveChaosTokens(){
   const hard=DIFFICULTIES[difficultyKey(S.difficulty)].hard;
   const localGhouls=S.enemies.filter(e=>e.location===S.location && isGhoul(e.card)).length;
-  const available=S.chaos.slice(),labels=[];
+  const available=S.chaos.slice(),labels=[],drawn=[];
   let mod=0,autofail=false,failHorror=0,damage=0,horror=0,searchGhoul=false;
   // Revealed tokens stay out of the bag until this test ends, including chained draws.
   while(available.length){
     const [token]=available.splice(Math.floor(Math.random()*available.length),1);
     labels.push(token.label);
+    drawn.push({...token});
     if(token.autofail)autofail=true;
     else if(token.elder)mod+=S.locClues[S.location]||0;
     else if(token.symbol==='skull'){
@@ -1373,8 +1375,43 @@ function resolveChaosTokens(){
     }else mod+=token.mod||0;
     break;
   }
-  return {mod,autofail,failHorror,damage,horror,searchGhoul,label:labels.join(' → ')};
+  return {mod,autofail,failHorror,damage,horror,searchGhoul,label:labels.join(' → '),drawn,context:{hard,localGhouls,localClues:S.locClues[S.location]||0}};
 }
+
+function chaosTokenExplanation(token,passed){
+  const drawn=token.drawn||[];
+  if(!drawn.some(t=>t.autofail||t.elder||['skull','cultist','tablet'].includes(t.symbol)))return '';
+  const {hard,localGhouls,localClues}=token.context;
+  const esc=value=>String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const signed=n=>n>0?'+'+n:String(n===0?0:n);
+  const rows=drawn.map((t,index)=>{
+    let art='',name='',rule='',actual='';
+    if(t.autofail){
+      art='autofail';name='自动失败';rule='无论能力多高、目标值多低，本次检定都失败。';actual='本次最终能力按 0 显示，其他指示物的加值也不能抵消自动失败。';
+    }else if(t.elder){
+      art='elder';name='上古印记';rule='使用当前调查员的上古印记能力，不是自动成功。';actual=`罗兰按当前地点每条线索 +1：抽取时有 ${localClues} 条线索，本枚修正 ${signed(localClues)}。`;
+    }else if(t.symbol==='skull'){
+      art='skull';name='骷髅';
+      rule=hard?'修正 −2，不是自动失败；若检定失败，结算后从遭遇牌堆或弃牌堆寻找并抽取 1 名食尸鬼。':'修正 −X，X 为与你同地点的食尸鬼数量；不是自动失败。';
+      actual=hard?(passed?'本次成功，不触发寻找食尸鬼。':'本次失败：点击继续结算后处理寻找食尸鬼；无可选食尸鬼则不抽取。'):`本地点有 ${localGhouls} 名食尸鬼，本枚修正 ${signed(-localGhouls)}。`;
+    }else if(t.symbol==='cultist'){
+      art='cultist';name='异教徒';
+      rule=hard?'本枚不直接扣值，继续抽取另一枚；若最终失败，每枚异教徒额外造成 2 点恐惧。':'修正 −1；若检定失败，额外承受 1 点恐惧。';
+      actual=hard?'已继续抽取，下面按实际抽取顺序逐枚显示。':'';
+      actual+=(passed?'本次成功，不承受这枚的失败恐惧。':`本次失败，这枚造成 ${hard?2:1} 点恐惧（已结算）。`);
+    }else if(t.symbol==='tablet'){
+      art='tablet';name='石板';rule=hard?'修正 −4；同地点有食尸鬼时，承受 1 伤害和 1 恐惧，与成功失败无关。':'修正 −2；同地点有食尸鬼时，承受 1 伤害，与成功失败无关。';
+      actual=localGhouls?`本地点有食尸鬼：1 伤害${hard?'、1 恐惧':''}已结算。`:'本地点没有食尸鬼，不触发额外伤害或恐惧。';
+    }else{
+      name=t.label;rule=`数字指示物：把 ${signed(t.mod||0)} 加入本次能力值。`;actual='与前面已抽到的指示物一起累计。';
+      const key=(t.mod||0)>0?'plus1':(t.mod||0)===0?'zero':'minus'+Math.abs(t.mod);
+      if(['plus1','zero','minus1','minus2','minus3','minus4','minus5','minus6','minus8'].includes(key))art=key;
+    }
+    return `<div class="token-explanation-row">${art?`<img src="assets/tokens/${art}.svg" width="42" height="42" alt="" aria-hidden="true">`:''}<div><h5>${drawn.length>1?`${index+1}. `:''}${esc(name)}</h5><p>${esc(rule)}</p><small>${esc(actual)}</small></div></div>`;
+  }).join('');
+  return `<section class="token-explanation" aria-label="本次混沌指示物说明"><h4>这个指示物是什么意思？</h4><p class="token-explanation-side">《聚会》· ${hard?'困难／专家':'简单／标准'}符号规则 · 按本网页版实现</p>${rows}<p class="token-explanation-total">本次累计修正：${signed(token.mod)}。${token.autofail?'抽到了自动失败，本次直接失败。':'符号本身不代表成功或失败，仍比较最终能力与目标值。'}</p></section>`;
+}
+
 function resolveTest(){
   const t = S.test;
   if(!t || t.resolved || S.gameOver) return;
@@ -1391,6 +1428,7 @@ function resolveTest(){
   gameSfx('token');
   total=token.autofail?0:Math.max(0,total+token.mod);
   const result=!token.autofail && total>=t.difficulty;
+  const tokenInfo=chaosTokenExplanation(token,result);
   gameSfx(result?'testSuccess':'testFailure');
   const tokenHtml=token.label;
   t.searchGhoul=token.searchGhoul && !result;
@@ -1402,7 +1440,7 @@ function resolveTest(){
   if(damage||horror){
     applyPlayerLoss(damage,horror,'混沌符号效果');
     log(`混沌符号效果：承受 ${damage} 伤害、${horror} 恐惧。`,'bad');
-    checkDefeat();render();if(S.gameOver)return;
+    checkDefeat();render();if(S.gameOver){document.getElementById('modalBox').innerHTML+=tokenInfo;return;}
   }
   const choices=t.searchGhoul?availableGhouls().filter((c,i,a)=>a.findIndex(x=>x.id===c.id)===i):[];
   const cluePreview=result && t.label==='调查' && S.locClues[S.location]>0;
@@ -1411,6 +1449,7 @@ function resolveTest(){
     <div class="test-reveal">
     ${learningInfo}
     <div class="chaos reveal-token"><span class="reveal-token-face">${tokenHtml}</span></div>
+    ${tokenInfo}
     <div class="center test-reveal-summary" style="font-size:15px">
       ${testValueLabels(t).final}：<b>${total}</b> vs ${testValueLabels(t).target} ${t.difficulty}<br><br>
       <div class="test-feedback ${result?'test-success':'test-failure'}" role="status" aria-live="polite" aria-atomic="true">${result?'检定成功':'检定失败'}</div>

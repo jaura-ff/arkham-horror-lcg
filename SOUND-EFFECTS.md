@@ -1,5 +1,9 @@
 # Locally hosted CC0 sound effects
 
+## Selected ending sound and narration (2026-10-22)
+
+The latest ending replaces the temporary reused success cue below with the user-selected original `assets/audio/victory-cheerful-v1.wav`, and adds the approved natural-emphasis v2 narration. These two assets are not Kenney CC0 recordings. See ENDING-AUDIO.md for provenance, exact hashes, timing and controls. The previously blocked generation connection was restored; that older blocker is now historical. Ordinary skill-test success audio and all earlier scene narration are unchanged.
+
 ## Victory ending cue (2026-10-22)
 
 The first actual `R1` victory resolution plays the existing local `testSuccess` cue once when the ending modal opens. The existing game-over guard prevents repeated resolution/re-render playback. Failure endings do not play a victory cue. This reuses the CC0 confirmation derivative and existing caching, volume, mute, background and menu cleanup without new downloads or runtime services.

@@ -1,5 +1,11 @@
 # Locally hosted CC0 sound effects
 
+## Victory ending cue (2026-10-22)
+
+The first actual `R1` victory resolution plays the existing local `testSuccess` cue once when the ending modal opens. The existing game-over guard prevents repeated resolution/re-render playback. Failure endings do not play a victory cue. This reuses the CC0 confirmation derivative and existing caching, volume, mute, background and menu cleanup without new downloads or runtime services.
+
+The requested narration of the ending paragraph is **not yet implemented**: the connected generation service repeatedly returned an authentication request, including after accepted authorization and on a read-only connection check. No speech or new generated SFX task was successfully submitted, no narration file exists, and no system-speech fallback or placeholder asset was installed. The approved previous Ragnar narration files remain untouched. Resume generation with that preset and Chinese delivery once connection authorization is restored.
+
 ## Universal test-result feedback (2026-10-20)
 
 Every resolved skill test now plays exactly one `testSuccess` or `testFailure` cue when its actual chaos-token result is determined, covering all four skills, optional actions and forced encounter tests. Cancelled previews and fatal opportunity attacks before a draw have no result cue; duplicate draw/result clicks do not replay it. Existing clue discovery, attack miss, loss and monster cues remain separate effects at their real resolution points. The game logic and success threshold are unchanged.

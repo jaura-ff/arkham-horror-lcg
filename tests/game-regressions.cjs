@@ -778,3 +778,9 @@ test('符号伤害致死时保留失败界面并附上符号原因，不覆盖�
  const g=game();g.enemy();g.run("S.hp=1;S.chaos=[{label:'石板',symbol:'tablet'}];startTest('int',0,'调查',()=>{});resolveTest()");assert.equal(g.get('S.gameOver'),true);assert.match(g.document.getElementById('modalBox').innerHTML,/调查失败/);assert.match(symbolLesson(g),/石板/);assert.match(symbolLesson(g),/1 伤害已结算/);assert.doesNotMatch(g.document.getElementById('modalBox').innerHTML,/class="test-reveal"/);
 });
 
+test('调查胜利结局响一次成功提示，重复结算和重绘不重播，失败不播放成功音',()=>{
+ const g=game();g.run("let endingCues=[];playGameSfx=name=>endingCues.push(name);resolve('R1','你在阁楼的旧箱中找到了真相——这场聚会背后的邪恶仪式。你决定阻止它。');resolve('R1','重复');render()");
+ assert.deepEqual(g.get('endingCues'),['testSuccess']);assert.match(g.document.getElementById('modalBox').innerHTML,/你决定阻止它/);assert.match(g.document.getElementById('modalBox').innerHTML,/调查成功/);
+ const h=game();h.run("let endingCues=[];playGameSfx=name=>endingCues.push(name);resolve('R2','失败结局')");assert.deepEqual(h.get('endingCues'),[]);
+});
+

@@ -2,6 +2,8 @@
 
 The existing test modal now explains the values for the current check, without another popup or changes to the game board.
 
+Each resolved check has a short CSS reveal: a dashed token ring rotates for 700ms, the actual token appears from 650ms, the numerical outcome and result follow at 820ms. A successful investigation with remaining location clues shows a small clue preview from 1000ms, explicitly stating it is gained after Continue. This preview never awards clues; the existing investigation callback does that once. Failed/empty investigations and other checks have no clue reward preview. Reduced-motion preference reveals everything immediately. Continue remains usable to bypass the visual wait, with no timer, extra draw, focus change or animation completion callback involved. Existing audio timing is unchanged.
+
 Value labels are contextual throughout preview, formula and results: investigation uses 遮蔽值 / 当前调查能力; fighting uses 敌人战斗值 / 当前战斗能力; evasion uses 敌人闪避值 / 当前闪避能力. Encounter/effect checks use 检定目标值 and the actual attribute (e.g. 当前意志能力). Final results use 最终…能力, retaining the pre-token explanation separately.
 
 Eligible commit cards are compact native toggle buttons with their existing local atlas illustration, card name, attribute bonus and explicit selected/cancel text. `aria-pressed` exposes selection; keyboard focus is restored to the same card after the preview rerenders. All five supported commit cards reuse the same art mapping as the hand/atlas. No external images, new assets or game-rule changes are involved.

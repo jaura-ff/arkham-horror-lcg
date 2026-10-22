@@ -213,7 +213,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <div class="start-kicker">ARKHAM / CASE FILE 001</div>
       <h1 id="homeTitle">诡镇奇谭<span class="title-sub">聚会之夜</span></h1>
       <p class="home-tagline">门后的低语，正在等你靠近。</p>
-      <button class="btn primary start-button" id="startButton" onclick="beginPrologue()"><span class="start-emblem"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#play"></use></svg></span><span>开始游戏<small>ENTER THE PROLOGUE</small></span></button>
+      <button class="btn primary start-button" id="startButton" onclick="requestGameStart()"><span class="start-emblem"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#play"></use></svg></span><span>开始游戏<small>ENTER THE PROLOGUE</small></span></button>
       <p class="home-current">单人调查 <span aria-hidden="true">/</span> <span id="homeDifficultyName">标准难度</span></p>
       <nav class="home-options" aria-label="首页功能">
         <button id="menuDifficultyButton" type="button" class="home-tile" aria-haspopup="dialog" aria-controls="homeDifficultyDialog"><span>难度设置</span><small>挑战与混沌袋</small></button>
@@ -256,8 +256,17 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <dialog id="homeTutorialDialog" class="home-dialog" aria-labelledby="homeTutorialDialogTitle">
   <div class="home-dialog-shell">
     <header class="home-dialog-header"><h2 id="homeTutorialDialogTitle">新手教学</h2><button type="button" class="btn icon-button" data-home-close aria-label="关闭新手教学">×</button></header>
-    <p>5 步图解，快速了解调查、行动、手牌、敌人与回合。</p><p class="home-dialog-note">点击开始教学后进入故事前序，再进入带指引的新一局。普通开始游戏不会自动开启教学。</p>
+    <p>5 步图解，快速了解调查、行动、手牌、敌人与回合。</p><p class="home-dialog-note">点击开始教学后进入故事前序，再进入带指引的新一局。点击开始游戏时，也可以选择是否开启新人指导。</p>
     <footer class="home-dialog-footer"><button type="button" class="btn" data-home-close>返回</button><button class="btn primary learn-button" id="learnButton" type="button">开始教学</button></footer>
+  </div>
+</dialog>
+
+<dialog id="startTutorialDialog" class="home-dialog" aria-labelledby="startTutorialTitle" aria-describedby="startTutorialDescription">
+  <div class="home-dialog-shell">
+    <header class="home-dialog-header"><h2 id="startTutorialTitle">是否开启新人指导？</h2><button id="startTutorialCancel" type="button" class="btn icon-button" aria-label="返回菜单">×</button></header>
+    <p id="startTutorialDescription">第一次来到诡镇？可以先用 5 步图解了解玩法，再开始调查。</p>
+    <p class="home-dialog-note">两种选择都会先播放故事前序。选择直接开始后，不会自动弹出教学；需要时仍可从游戏内打开。</p>
+    <footer class="home-dialog-footer"><button id="startWithoutTutorial" type="button" class="btn">直接开始</button><button id="startWithTutorial" type="button" class="btn primary">开启指导</button></footer>
   </div>
 </dialog>
 
@@ -1723,6 +1732,7 @@ function resolve(code, text){
 <script src="phase-help.js?v=hover-1"></script>
 <script src="hand-hover.js?v=hover-1"></script>
 <script src="board-inspect.js?v=center-1"></script>
+<script src="start-tutorial.js?v=choice-1"></script>
 </body>
 </html>
 

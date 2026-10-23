@@ -191,7 +191,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=asset-icons-1">
 <link rel="stylesheet" href="phase-transition.css?v=skip-countdown-2">
-<link rel="stylesheet" href="loss-notices.css?v=loss-1">
+<link rel="stylesheet" href="loss-notices.css?v=impact-2">
 <link rel="stylesheet" href="play-guide.css?v=guide-1">
 <link rel="stylesheet" href="next-step.css?v=animated-cue-3">
 <link rel="stylesheet" href="prologue.css?v=narration-1">
@@ -386,7 +386,11 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <div class="prologue-nav"><button id="prologuePrevious" type="button" class="btn">上一幕</button><button id="prologueNext" type="button" class="btn primary">继续阅读</button></div><div class="prologue-meta"><span id="prologueDifficulty"></span><button id="prologueSkip" type="button" class="btn">跳过前序，直接调查</button></div></footer>
   </div>
 </dialog>
-<div id="lossNotice" class="loss-notice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden><strong id="lossNoticeAmount"></strong><span id="lossNoticeSource"></span></div>
+<div id="lossNotice" class="loss-notice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden>
+  <div class="loss-portrait" aria-hidden="true"><svg class="loss-heart" viewBox="0 0 64 64" fill="none"><path d="M32 53 10 31C-4 15 17 1 32 18 47 1 68 15 54 31Z"/><path class="loss-crack" d="m34 13-8 15 12 6-9 17"/></svg><svg class="loss-mind" viewBox="0 0 64 64" fill="none"><path d="M5 32S15 14 32 14 59 32 59 32 49 50 32 50 5 32 5 32Z"/><circle cx="32" cy="32" r="10"/><path d="m35 14-8 12 10 7-7 17"/></svg></div>
+  <div class="loss-copy"><small id="lossNoticeTitle"></small><strong id="lossNoticeAmount"></strong><span id="lossNoticeSource"></span><span id="lossNoticeRemaining"></span></div>
+  <div class="loss-time" aria-hidden="true"></div>
+</div>
 <div id="nextStepTarget" class="next-step-target" aria-hidden="true" hidden></div>
 <aside id="phaseHelp" role="tooltip" hidden><strong id="phaseHelpTitle"></strong><p id="phaseHelpText"></p><small>阶段说明 · 不会切换阶段</small></aside>
 <aside id="handHover" role="tooltip" hidden><header><span id="handHoverArt" class="art" aria-hidden="true"></span><div><small id="handHoverType"></small><strong id="handHoverTitle"></strong></div></header><h4>卡牌效果</h4><p id="handHoverEffect"></p><h4>如何使用</h4><p id="handHoverUsage"></p><small class="hand-hover-hint">仅查看，不消耗行动或资源。单击手牌放大，再确认出牌。</small></aside>
@@ -787,11 +791,11 @@ function renderInvestigator(){
       <div class="stat combat">战斗<div class="v">${INVESTIGATOR.combat}</div></div>
       <div class="stat agility">敏捷<div class="v">${INVESTIGATOR.agility}</div></div>
     </div>
-    <div class="gauge">
+    <div class="gauge" data-vital="hp">
       <div class="grow"><span>生命</span><b>${S.hp}/${INVESTIGATOR.maxHp}<small class="gauge-percent">${Math.round(hpPct)}%</small></b></div>
       <div class="bar"><div class="fill hp" style="width:${hpPct}%"></div></div>
     </div>
-    <div class="gauge">
+    <div class="gauge" data-vital="sanity">
       <div class="grow"><span>理智</span><b>${S.sanity}/${INVESTIGATOR.maxSanity}<small class="gauge-percent">${Math.round(sanPct)}%</small></b></div>
       <div class="bar"><div class="fill sanity" style="width:${sanPct}%"></div></div>
     </div>
@@ -1792,7 +1796,7 @@ function resolve(code, text){
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=chapter-2"></script>
 <script src="phase-transition.js?v=skip-countdown-2"></script>
-<script src="loss-notices.js?v=loss-1"></script>
+<script src="loss-notices.js?v=impact-2"></script>
 <script src="tutorial.js?v=standalone-outro-1"></script>
 <script src="atlas.js?v=chapter-2"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>

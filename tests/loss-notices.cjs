@@ -66,5 +66,38 @@ test('Popover调用抛错不影响实际扣血、后续渲染和通知清理',()
 test('视觉反馈居中放大、带图标，支持减少动态效果且不拦截操作',()=>{
  const css=fs.readFileSync(path.join(root,'loss-notices.css'),'utf8');assert.match(css,/left:50%/);assert.match(css,/prefers-reduced-motion:reduce/);assert.match(css,/pointer-events:none/);
  assert.match(html,/class="loss-heart"/);assert.match(html,/class="loss-mind"/);assert.match(html,/data-vital="hp"/);assert.match(html,/data-vital="sanity"/);
- assert.match(html,/loss-notices.js\?v=impact-2/);assert.match(html,/loss-notices.css\?v=impact-2/);
+ assert.match(html,/loss-notices.js\?v=return-trail-3/);assert.match(html,/loss-notices.css\?v=return-trail-3/);
+});
+function motion(g,{reduced=false,fail=false}={}){
+ const animations=[],ghosts=[],targets=[];g.run('window.matchMedia=()=>({matches:false})');if(reduced)g.run('window.matchMedia=()=>({matches:true})');
+ const animate=(frames,options)=>{if(fail)throw Error('animation unavailable');const a={frames,options,cancelled:false,cancel(){this.cancelled=true}};animations.push(a);return a;};
+ const rect={left:400,top:100,width:360,height:150};g.el('lossNotice').getBoundingClientRect=()=>rect;g.el('lossNotice').animate=animate;
+ const panel=g.el('investigator');panel.getBoundingClientRect=()=>({left:20,top:120,width:180,height:240});panel.animate=animate;
+ panel.querySelector=selector=>{targets.push(selector);return {getBoundingClientRect:()=>({left:30,top:selector.includes('hp')?220:260,width:160,height:20}),animate}};
+ g.doc.body={appendChild(ghost){ghosts.push(ghost)}};
+ g.el('lossNotice').cloneNode=()=>({classList:{add(){}},hidden:false,setAttribute(){},removeAttribute(){},querySelectorAll:()=>[],showPopover(){},hidePopover(){},animate,removed:false,remove(){this.removed=true}});
+ return {animations,ghosts,targets};
+}
+test('停留三秒后沿弧线收拢飞向状态条，三道延迟拖尾和本体全部清理',()=>{
+ const g=setup(),m=motion(g);g.run("applyPlayerLoss(2,0,'攻击')");const state=g.get('S');g.tick(3000);
+ assert.equal(g.el('lossNotice').hidden,false);assert.ok(g.el('lossNotice').classList.contains('loss-flying'));assert.deepEqual(m.targets,['[data-vital="hp"]']);
+ assert.equal(m.ghosts.length,3);assert.equal(m.animations.length,4);assert.equal(m.animations[3].options.duration,720);assert.ok(m.animations[0].options.delay>0);
+ assert.match(m.animations[3].frames.at(-1).transform,/-470px/);g.tick(839);assert.equal(g.el('lossNotice').hidden,false);g.tick(1);
+ assert.equal(g.el('lossNotice').hidden,true);assert.ok(m.ghosts.every(x=>x.removed));assert.ok(m.animations.slice(0,4).every(a=>a.cancelled));assert.equal(m.animations.length,5);assert.deepEqual(g.get('S'),state);
+});
+test('理智损失落向理智条，同时受损汇入人物牌，排队期间不会抢占当前飞行',()=>{
+ for(const [hp,sanity,selector]of [[0,1,'[data-vital="sanity"]'],[1,1,null]]){
+  const g=setup(),m=motion(g);g.run(`applyPlayerLoss(${hp},${sanity});applyPlayerLoss(1,0,'后续攻击')`);g.tick(3000);
+  assert.deepEqual(m.targets,selector?[selector]:[]);assert.notEqual(g.el('lossNoticeSource').textContent,'后续攻击');g.tick(840);assert.equal(g.el('lossNoticeSource').textContent,'后续攻击');assert.equal(g.timers.size,1);
+ }
+});
+test('新游戏取消飞行和拖尾，旧退场回调不能隐藏新通知',()=>{
+ const g=setup(),m=motion(g);g.run('applyPlayerLoss(1,0)');g.tick(3000);const old=[...g.timers.values()][0].fn;
+ g.run("startGame();applyPlayerLoss(0,1,'新局')");old();assert.equal(g.amount(),'理智 −1');assert.equal(g.el('lossNoticeSource').textContent,'新局');assert.equal(g.el('lossNotice').hidden,false);
+ assert.ok(m.ghosts.every(x=>x.removed));assert.ok(m.animations.every(x=>x.cancelled));assert.equal(g.timers.size,1);
+});
+test('减少动态效果或动画API报错时安全退场，不留下幽灵节点',()=>{
+ for(const config of [{reduced:true},{fail:true}]){
+  const g=setup(),m=motion(g,config);g.run('applyPlayerLoss(1,0)');g.tick(3000);assert.equal(g.el('lossNotice').hidden,true);assert.equal(g.timers.size,0);assert.ok(m.ghosts.every(x=>x.removed));
+ }
 });

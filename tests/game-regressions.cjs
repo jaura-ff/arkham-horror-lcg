@@ -98,7 +98,7 @@ test('四属性与遭遇检定成功失败均有对应音效和视觉反馈，�
 });
 
 test('取消与致命借机攻击不误播结果，减少动态效果时关闭结果动画',()=>{
- const g=game();g.enemy();g.run(`let cues=[];playGameSfx=name=>cues.push(name);requestAction('investigate');cancelTest();S.hp=1;requestAction('investigate');resolveTest()`);assert.deepEqual(g.get('cues'),['hurt','sanity']);assert.equal(g.get('S.gameOver'),true);assert.match(html,/@media\(prefers-reduced-motion:reduce\)\{\.test-feedback.test-success,\.test-feedback.test-failure\{animation:none\}\}/);
+ const g=game();g.enemy();g.run(`let cues=[];playGameSfx=name=>cues.push(name);requestAction('investigate');cancelTest();S.hp=1;requestAction('investigate');resolveTest()`);assert.deepEqual(g.get('cues'),['hurt','sanity','ghoulHunter']);assert.equal(g.get('S.gameOver'),true);assert.match(html,/@media\(prefers-reduced-motion:reduce\)\{\.test-feedback.test-success,\.test-feedback.test-failure\{animation:none\}\}/);
 });
 
 test('实际生命理智损失触发对应音效，零伤害及失效音频不阻断游戏',()=>{
@@ -831,6 +831,6 @@ test('符号伤害致死时保留失败界面并附上符号原因，不覆盖�
 test('调查胜利结局响一次成功提示，重复结算和重绘不重播，失败不播放成功音',()=>{
  const g=game();g.run("let endingCues=[];playGameSfx=name=>endingCues.push(name);resolve('R1','你在阁楼的旧箱中找到了真相——这场聚会背后的邪恶仪式。你决定阻止它。');resolve('R1','重复');render()");
  assert.deepEqual(g.get('endingCues'),['victory']);assert.match(g.document.getElementById('modalBox').innerHTML,/你决定阻止它/);assert.match(g.document.getElementById('modalBox').innerHTML,/调查成功/);
- const h=game();h.run("let endingCues=[];playGameSfx=name=>endingCues.push(name);resolve('R2','失败结局')");assert.deepEqual(h.get('endingCues'),[]);
+ const h=game();h.run("let endingCues=[];playGameSfx=name=>endingCues.push(name);resolve('R2','失败结局');resolve('R2','重复')");assert.deepEqual(h.get('endingCues'),['ghoulHunter']);
 });
 

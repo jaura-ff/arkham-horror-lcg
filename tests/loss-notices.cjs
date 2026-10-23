@@ -2,7 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 function setup({popover=true}={}){
   const nodes=new Map(),timers=new Map();let now=0,seq=0;
-  const doc={activeElement:{id:'original'},getElementById(id){if(!nodes.has(id))nodes.set(id,node(id));return nodes.get(id)},createElement:()=>node('')};
+  const doc={activeElement:{id:'original'},listeners:{},addEventListener(k,fn,capture){this.listeners[k]={fn,capture}},getElementById(id){if(!nodes.has(id))nodes.set(id,node(id));return nodes.get(id)},createElement:()=>node('')};
   function node(id){const classes=new Set(),n={id,hidden:id==='lossNotice',innerHTML:'',textContent:'',style:{},dataset:{},classList:{add:c=>classes.add(c),remove:c=>classes.delete(c),contains:c=>classes.has(c)},appendChild(){}};if(popover){n.showPopover=()=>{n.showing=true};n.hidePopover=()=>{n.showing=false}}return n;}
   const context=vm.createContext({document:doc,Math:Object.create(Math),setTimeout(fn,delay){const id=++seq;timers.set(id,{fn,at:now+delay});return id},clearTimeout:id=>timers.delete(id)});context.window=context;
   const run=code=>vm.runInContext(code,context),get=code=>JSON.parse(run(`JSON.stringify(${code})`));
@@ -66,7 +66,7 @@ test('Popover调用抛错不影响实际扣血、后续渲染和通知清理',()
 test('视觉反馈居中放大、带图标，支持减少动态效果且不拦截操作',()=>{
  const css=fs.readFileSync(path.join(root,'loss-notices.css'),'utf8');assert.match(css,/left:50%/);assert.match(css,/prefers-reduced-motion:reduce/);assert.match(css,/pointer-events:none/);
  assert.match(html,/class="loss-heart"/);assert.match(html,/class="loss-mind"/);assert.match(html,/data-vital="hp"/);assert.match(html,/data-vital="sanity"/);
- assert.match(html,/loss-notices.js\?v=return-trail-3/);assert.match(html,/loss-notices.css\?v=return-trail-3/);
+ assert.match(html,/loss-notices.js\?v=continue-dismiss-4/);assert.match(html,/loss-notices.css\?v=return-trail-3/);
 });
 function motion(g,{reduced=false,fail=false}={}){
  const animations=[],ghosts=[],targets=[];g.run('window.matchMedia=()=>({matches:false})');if(reduced)g.run('window.matchMedia=()=>({matches:true})');
@@ -100,4 +100,33 @@ test('减少动态效果或动画API报错时安全退场，不留下幽灵节�
  for(const config of [{reduced:true},{fail:true}]){
   const g=setup(),m=motion(g,config);g.run('applyPlayerLoss(1,0)');g.tick(3000);assert.equal(g.el('lossNotice').hidden,true);assert.equal(g.timers.size,0);assert.ok(m.ghosts.every(x=>x.removed));
  }
+});
+
+test('点击继续可在三秒前收起伤害提示，保留人物状态条拖尾',()=>{
+ const g=setup(),m=motion(g);g.run('applyPlayerLoss(1,1)');g.tick(200);const state=g.get('S');
+ assert.equal(g.doc.listeners.click.capture,true);g.doc.listeners.click.fn({target:{closest:()=>({disabled:false})}});
+ assert.ok(g.el('lossNotice').classList.contains('loss-flying'));assert.equal(m.ghosts.length,3);assert.equal(g.timers.size,1);
+ g.tick(840);assert.equal(g.el('lossNotice').hidden,true);assert.ok(m.ghosts.every(n=>n.removed));assert.deepEqual(g.get('S'),state);
+});
+
+test('重复点击继续不重播拖尾，旧三秒回调不能干扰下一条提示',()=>{
+ const g=setup(),m=motion(g);g.run("applyPlayerLoss(1,0,'第一击');applyPlayerLoss(0,1,'第二击')");const old=[...g.timers.values()][0].fn;
+ g.run('dismissPlayerLoss();dismissPlayerLoss()');assert.equal(m.ghosts.length,3);old();assert.equal(m.ghosts.length,3);
+ g.tick(840);assert.equal(g.el('lossNoticeSource').textContent,'第二击');old();assert.equal(g.el('lossNoticeSource').textContent,'第二击');assert.equal(g.el('lossNotice').classList.contains('loss-flying'),false);assert.equal(g.timers.size,1);
+});
+
+test('无关或禁用按钮不收起，键盘触发的继续点击也可收起',()=>{
+ const g=setup();g.run('applyPlayerLoss(1,0)');const click=g.doc.listeners.click.fn;
+ click({target:{closest:()=>null}});click({target:{closest:()=>({disabled:true})}});assert.equal(g.el('lossNotice').hidden,false);
+ click({detail:0,target:{closest:()=>({disabled:false})}});assert.equal(g.el('lossNotice').hidden,true);assert.equal(g.timers.size,0);
+});
+
+test('先收起当前提示后，本次继续造成的新伤害仍正常显示',()=>{
+ const g=setup();g.run("applyPlayerLoss(1,0,'旧伤害')");g.doc.listeners.click.fn({target:{closest:()=>({disabled:false})}});
+ g.run("applyPlayerLoss(0,2,'继续后的伤害')");assert.equal(g.el('lossNoticeSource').textContent,'继续后的伤害');assert.equal(g.amount(),'理智 −2');assert.equal(g.el('lossNotice').hidden,false);g.tick(2999);assert.equal(g.el('lossNotice').hidden,false);g.tick(1);assert.equal(g.el('lossNotice').hidden,true);
+});
+
+test('减少动态效果时点击继续直接收起，重开后不受旧回调影响',()=>{
+ const g=setup();motion(g,{reduced:true});g.run('applyPlayerLoss(1,0)');const old=[...g.timers.values()][0].fn;g.run('dismissPlayerLoss()');assert.equal(g.el('lossNotice').hidden,true);
+ g.run("startGame();applyPlayerLoss(0,1,'新局')");old();assert.equal(g.el('lossNoticeSource').textContent,'新局');assert.equal(g.el('lossNotice').hidden,false);assert.equal(g.timers.size,1);
 });

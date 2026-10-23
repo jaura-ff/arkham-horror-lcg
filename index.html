@@ -199,7 +199,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="next-step.css?v=animated-cue-3">
 <link rel="stylesheet" href="prologue.css?v=narration-1">
 <link rel="stylesheet" href="tutorial.css?v=standalone-outro-1">
-<link rel="stylesheet" href="board.css?v=icon-proportions-3">
+<link rel="stylesheet" href="board.css?v=sidebar-priority-4">
 <link rel="stylesheet" href="test-learning.css?v=mini-commits-2">
 <link rel="stylesheet" href="game-header.css?v=spacious-1">
 <link rel="stylesheet" href="phase-help.css?v=hover-1">
@@ -320,17 +320,17 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <!-- 左栏 -->
       <div class="col-left">
         <section class="panel inv-card" id="investigator" aria-label="调查员与当前状态，点击放大查看" tabindex="0" aria-haspopup="dialog"></section>
+        <div class="panel goal-panel">
+          <h2>当前目标 <span class="cnt" id="goalStage"></span></h2>
+          <div class="aa">
+            <div class="side act" tabindex="0" aria-label="幕进度，点击放大查看" aria-haspopup="dialog"><h3>调查目标</h3><div class="txt" id="act"></div><div id="goalProgress"></div></div>
+            <div class="side agenda" tabindex="0" aria-label="议程进度，点击放大查看" aria-haspopup="dialog"><h3>危机 · 末日 <span class="doom" id="doomcount"></span></h3><div class="txt" id="agenda"></div></div>
+          </div>
+        </div>
         <div class="panel command-panel" id="commandPanel">
           <h2>行动 <span class="cnt" id="actioncount"></span></h2>
           <div class="actions" id="actions"></div>
           <div id="controls"></div>
-        </div>
-        <div class="panel goal-panel">
-          <h2>目标进度</h2>
-          <div class="aa">
-            <div class="side act" tabindex="0" aria-label="幕进度，点击放大查看" aria-haspopup="dialog"><h3>幕 Act</h3><div class="txt" id="act"></div></div>
-            <div class="side agenda" tabindex="0" aria-label="议程进度，点击放大查看" aria-haspopup="dialog"><h3>议程 Agenda <span class="doom" id="doomcount"></span></h3><div class="txt" id="agenda"></div></div>
-          </div>
         </div>
       </div>
 
@@ -1011,8 +1011,16 @@ function renderEnemies(){
 function renderActAgenda(){
   const act = ACT_DECK[S.actIdx];
   const agenda = AGENDA_DECK[S.agendaIdx];
-  document.getElementById('act').innerHTML = `<b>${act.id}</b> · ${act.text}`;
-  document.getElementById('agenda').innerHTML = `<b>${agenda.id}</b> · ${agenda.text}`;
+  const goal=[
+    {text:'收集线索，花费 3 条线索推进幕。',count:Math.min(3,Math.max(0,S.clues)),total:3,label:S.clues>=3?'线索已齐 · 可执行推进幕':`已持有 ${S.clues} / 3 条线索`},
+    {text:'前往阁楼，执行「完成调查」。',count:S.location==='attic'?1:0,total:1,label:S.location==='attic'?'已抵达阁楼 · 可完成调查':'下一站：阁楼'},
+    {text:'收集线索，花费 2 条线索辨认封印。',count:Math.min(2,Math.max(0,S.clues)),total:2,label:S.clues>=2?'线索已齐 · 可辨认封印':`已持有 ${S.clues} / 2 条线索`},
+    {text:'前往祭坛，执行「封印裂隙」。',count:S.location==='altar'?1:0,total:1,label:S.location==='altar'?(hasEngagedReadyEnemy()?'先摆脱交缠敌人，再封印':'已抵达祭坛 · 可尝试封印'):'下一站：仪式祭坛'}
+  ][S.actIdx];
+  document.getElementById('goalStage').textContent=`幕 ${act.id}`;
+  document.getElementById('act').textContent=goal.text;
+  document.getElementById('goalProgress').innerHTML=`<p class="goal-progress-label">${goal.label}</p><div class="goal-progress-track" role="progressbar" aria-label="${goal.label}" aria-valuemin="0" aria-valuemax="${goal.total}" aria-valuenow="${goal.count}"><span style="width:${goal.count/goal.total*100}%"></span></div>`;
+  document.getElementById('agenda').textContent=agenda.threshold>0?`达到 ${agenda.threshold} 点将推进危机。`:agenda.text;
   document.getElementById('doomcount').textContent = agenda.threshold>0 ? ` ${S.doom}/${agenda.threshold}` : '';
 }
 
@@ -1031,10 +1039,10 @@ function renderActions(){
   if(S.phase==='investigation'){
     const canTakeAction = canAct();
     cnt.textContent = `剩余 ${S.actions}/3`;
+    actions.push(btn(' 调查','investigate',canTakeAction,S.locClues[S.location]>0?'智慧 vs 迷雾':'此处无剩余线索'));
     actions.push(btn(' 抽牌','draw',canTakeAction,'抽 1 张牌'));
     actions.push(btn(' 资源','resource',canTakeAction,'+1 资源'));
     actions.push(btn(' 移动','move',canTakeAction,'到相邻地点'));
-    actions.push(btn(' 调查','investigate',canTakeAction,S.locClues[S.location]>0?'智慧 vs 迷雾':'此处无剩余线索'));
     actions.push(btn(' 战斗','fight',canTakeAction&&hasLocalEnemy(),'战斗 vs 敌人'));
     actions.push(btn(' 闪避','evade',canTakeAction&&hasEngagedReadyEnemy(),'敏捷 vs 闪避'));
     if(S.actIdx===0 && S.clues>=3){

@@ -48,3 +48,23 @@ test('新游戏和返回菜单清理通知队列，旧回调不会影响新提�
 test('原因文字以纯文本显示，不解析HTML',()=>{
   const g=setup();g.run(`applyPlayerLoss(1,0,'<img src=x onerror=alert(1)>')`);assert.equal(g.el('lossNoticeSource').textContent,'<img src=x onerror=alert(1)>');assert.equal(g.el('lossNoticeSource').innerHTML,'');
 });
+test('生命、理智与同时受损使用不同图示类型，对应状态条高亮',()=>{
+ for(const [hp,sanity,kind,title] of [[1,0,'hp','遭受伤害'],[0,1,'sanity','精神受创'],[1,1,'both','生命与理智受损']]){
+  const g=setup();g.run(`applyPlayerLoss(${hp},${sanity},'测试')`);assert.equal(g.el('lossNotice').dataset.kind,kind);assert.equal(g.el('lossNoticeTitle').textContent,title);
+  assert.equal(g.el('investigator').classList.contains('is-loss-hp'),hp>0);assert.equal(g.el('investigator').classList.contains('is-loss-sanity'),sanity>0);
+  assert.ok(g.el('lossNotice').classList.contains('loss-enter'));g.tick(3000);assert.equal(g.el('investigator').classList.contains('is-loss-hp'),false);assert.equal(g.el('investigator').classList.contains('is-loss-sanity'),false);
+ }
+});
+test('连续伤害使用每次扣除后的剩余值快照，不被后续扣血或治疗覆盖',()=>{
+ const g=setup();g.run("applyPlayerLoss(2,0,'第一击');applyPlayerLoss(1,1,'第二击');S.hp=9;S.sanity=5");
+ assert.equal(g.el('lossNoticeRemaining').textContent,'剩余生命 7');g.tick(3000);assert.equal(g.el('lossNoticeRemaining').textContent,'剩余生命 6　/　剩余理智 4');
+});
+test('Popover调用抛错不影响实际扣血、后续渲染和通知清理',()=>{
+ const g=setup();g.el('lossNotice').showPopover=()=>{throw Error('unavailable')};g.el('lossNotice').hidePopover=()=>{throw Error('unavailable')};
+ g.run('applyPlayerLoss(1,0);render()');assert.equal(g.get('S.hp'),8);assert.equal(g.el('lossNotice').hidden,false);g.run('resetLossNotices()');assert.equal(g.el('lossNotice').hidden,true);assert.equal(g.timers.size,0);
+});
+test('视觉反馈居中放大、带图标，支持减少动态效果且不拦截操作',()=>{
+ const css=fs.readFileSync(path.join(root,'loss-notices.css'),'utf8');assert.match(css,/left:50%/);assert.match(css,/prefers-reduced-motion:reduce/);assert.match(css,/pointer-events:none/);
+ assert.match(html,/class="loss-heart"/);assert.match(html,/class="loss-mind"/);assert.match(html,/data-vital="hp"/);assert.match(html,/data-vital="sanity"/);
+ assert.match(html,/loss-notices.js\?v=impact-2/);assert.match(html,/loss-notices.css\?v=impact-2/);
+});

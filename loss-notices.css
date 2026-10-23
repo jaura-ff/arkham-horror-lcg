@@ -1,3 +1,26 @@
-.loss-notice{position:fixed;inset:auto;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));width:max-content;max-width:min(320px,calc(100vw - 32px));margin:0;padding:12px 16px;border:1px solid #a67c4d;border-left:3px solid #b77c65;background:#251b16;color:#efd5bb;box-shadow:0 8px 26px #15131199;z-index:200;pointer-events:none;overflow-wrap:anywhere}
-.loss-notice[hidden]{display:none}.loss-notice strong{display:block;font-size:17px;line-height:1.6;font-variant-numeric:tabular-nums;font-weight:600}.loss-notice span{display:block;font-size:11px;line-height:1.6;margin-top:3px;color:#cbb89c}
-@media(orientation:landscape) and (max-height:440px){.loss-notice{top:max(8px,env(safe-area-inset-top));padding:8px 12px}.loss-notice strong{font-size:15px}}
+.loss-notice{position:fixed;inset:auto;top:clamp(76px,17vh,170px);left:50%;right:auto;transform:translateX(-50%);display:grid;grid-template-columns:66px minmax(0,1fr);gap:18px;align-items:center;width:min(390px,calc(100vw - 32px));max-width:calc(100vw - 32px);margin:0;padding:20px 24px;border:1px solid #c98e70;border-top:3px solid #dca083;background:#241a16f7;color:#f4d6bd;box-shadow:0 18px 70px #151311b3,inset 0 0 0 5px #be815b15;z-index:200;pointer-events:none;overflow:hidden;overflow-wrap:anywhere}
+.loss-notice[hidden]{display:none}
+.loss-portrait{display:grid;place-items:center;width:66px;height:72px;color:#e7a084;border:1px solid #a36b4b;background:#4d292044;transform:rotate(-5deg)}
+.loss-portrait svg{grid-area:1/1;width:48px;height:48px;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.loss-heart{fill:#a44c3333}.loss-crack{stroke:#f7d2ab}
+.loss-notice[data-kind=hp] .loss-mind,.loss-notice[data-kind=sanity] .loss-heart{display:none}
+.loss-notice[data-kind=both] .loss-heart{width:36px;height:36px;transform:translate(-10px,-13px)}
+.loss-notice[data-kind=both] .loss-mind{width:35px;height:35px;transform:translate(10px,15px);background:#241a16}
+.loss-notice[data-kind=sanity]{border-color:#bca873;color:#efe1b7;background:#201e18f7}
+.loss-notice[data-kind=sanity] .loss-portrait{color:#dfcd95;border-color:#a59361;background:#6b603522}
+.loss-notice .loss-copy{min-width:0}
+.loss-notice small{display:block;font-size:11px;letter-spacing:3px;margin-bottom:4px;color:inherit}
+.loss-notice strong{display:block;font-size:26px;line-height:1.5;font-variant-numeric:tabular-nums;font-weight:700;letter-spacing:1px}
+.loss-notice[data-kind=both] strong{font-size:21px}
+.loss-notice span{display:block;font-size:12px;line-height:1.7;margin-top:4px;color:#d3bea6}
+.loss-notice #lossNoticeRemaining{font-size:11px;color:#f0d8ad;margin-top:8px}
+.loss-time{position:absolute;bottom:0;left:0;right:0;height:3px;background:currentColor;opacity:.65;transform-origin:left}
+.loss-enter{animation:loss-arrive .38s ease-out both}.loss-enter .loss-time{animation:loss-drain 3s linear forwards}
+@keyframes loss-arrive{from{opacity:0;transform:translate(-50%,-14px) scale(.9)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes loss-drain{to{transform:scaleX(0)}}
+#investigator.is-loss-hp [data-vital=hp],#investigator.is-loss-sanity [data-vital=sanity]{outline:2px solid #e2a88a;outline-offset:3px;animation:vital-impact .6s ease-out 3}
+#investigator.is-loss-sanity [data-vital=sanity]{outline-color:#dfcd95}
+@keyframes vital-impact{0%,100%{filter:brightness(1)}45%{filter:brightness(1.9)}}
+@media(max-width:440px){.loss-notice{grid-template-columns:48px minmax(0,1fr);gap:12px;padding:16px}.loss-portrait{width:48px;height:62px}.loss-portrait svg{width:38px;height:38px}.loss-notice strong{font-size:23px}.loss-notice[data-kind=both] strong{font-size:19px}}
+@media(orientation:landscape) and (max-height:440px){.loss-notice{top:max(58px,env(safe-area-inset-top));padding:12px 18px;grid-template-columns:44px minmax(0,1fr)}.loss-portrait{width:44px;height:48px}.loss-notice strong{font-size:21px}.loss-notice #lossNoticeRemaining{margin-top:3px}}
+@media(prefers-reduced-motion:reduce){.loss-enter,.loss-enter .loss-time,#investigator.is-loss-hp [data-vital=hp],#investigator.is-loss-sanity [data-vital=sanity]{animation:none}.loss-notice{transform:translateX(-50%)}.loss-time{display:none}}

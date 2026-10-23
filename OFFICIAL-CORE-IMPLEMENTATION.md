@@ -5,6 +5,37 @@ the existing ten-card adapted deck or parallel investigators.
 
 ## Implemented and tested, not enabled in the live game
 
+- `official-session.js`: executable independent player setup, opening draw,
+  once-only mulligan with held-out cards, atomic cost payments, physical uses,
+  exhaustion, slot validation/replacement, simultaneous asset loss assignment,
+  direct loss, defeat guards and empty-supply asset removal.
+- `official-weaknesses.js`: executable draw/revelation queue, real Amnesia choice,
+  signature threat counters, Dark Memory end-turn horror, debt limits, basic
+  weakness enemy spawning, discard removal, deck exhaustion, forced-loss chains
+  and once-only end-scenario trauma/XP penalties. Choice hooks still need UI.
+- `official-tests.js`: executable independent test windows, icon commitment,
+  token holding/chained draws, paid Wendy cancellation before effects, five elder
+  signs, Detective blanking, Lucky and committed skill aftermath. Scene symbol
+  consequences require an explicit callback; unresolved effects return to queue.
+- No new module has been wired to `index.html`. Do not claim any of these are
+  available through the public game or that all 76 cards are playable yet.
+
+- Latest instruction (2026-10-23): deploy the work completed so far. This
+  supersedes the earlier request to wait until every character was playable.
+  Deployment publishes the inactive modules and tests only; it does not enable
+  new characters or imply that the full official-rules integration is complete.
+  Update PR #66 with all current work before merging; do not release its old
+  foundation-only snapshot.
+- `official-cards.js`: factual metadata for all 68 distinct starter cards plus
+  the eight Core basic weaknesses (76 definitions); source is
+  `zzorba/arkhamdb-json-data/pack/core/core.json`, read 2026-10-23.
+- `official-card-rules.js`: explicit declarative effect/timing/cost recipes for
+  every definition, including fast/reaction/forced/replacement windows. These
+  are NOT executable integration handlers and must not be presented as playable.
+- `official-decks.js`: builds each 33-card physical deck, normalizes skill icons,
+  initializes uses, chooses a real random basic weakness from Core quantities,
+  and blocks release if any execution handler is absent.
+
 - `official-core.js`: standard five-investigator stats, independent FFG v2.0
   starter manifests, 30 ordinary cards + signature + signature weakness + one
   randomly selected basic weakness per investigator.
@@ -21,7 +52,8 @@ loads this module. The website still truthfully lists only Roland as playable.
 
 ## Remaining before any playable release
 
-1. Complete official card definitions for all manifest codes and basic weaknesses.
+1. Audit all declarative card recipes against printed text and implement their
+   execution handlers. Metadata and deck assembly are now present for all codes.
 2. Integrate a choice/resolution queue for reaction windows and optional effects;
    do not auto-select a player's paid ability, target, discard or asset soak.
 3. Implement action/fast/reaction timing, printed costs, uses (ammo/charges),

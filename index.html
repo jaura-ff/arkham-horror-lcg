@@ -469,6 +469,9 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     <button type="button" class="btn" id="soundToggle" aria-pressed="true" aria-describedby="soundStatus">环境音：开</button>
     <label for="soundVolume">音量</label><input id="soundVolume" type="range" min="0" max="100" value="18" aria-label="环境音音量">
     <span id="soundStatus" class="sound-status" role="status" aria-live="polite">进入游戏后播放</span>
+    <button type="button" class="btn" id="sceneNarrationToggle" aria-pressed="true">场景旁白：开</button>
+    <button type="button" class="btn" id="sceneNarrationStop">停止当前旁白</button>
+    <span id="sceneNarrationStatus" class="sound-status" role="status" aria-live="polite">进入新地点时播放场景配音</span>
   </div>
   <footer class="home-dialog-footer"><button id="gameSettingsClose" type="button" class="btn primary">返回游戏</button></footer>
 </div></dialog>
@@ -635,6 +638,7 @@ function beginPrologue(tutorial=false){
   if(typeof document.dispatchEvent==='function')document.dispatchEvent(new CustomEvent('arkham:game-started',{detail:{tutorial}}));
 }
 function startGame(){
+  if(typeof gameNarrator!=='undefined')gameNarrator.reset();
   if(typeof resetEnemyEngagement==='function')resetEnemyEngagement();
   if(typeof resetClueFlight==='function')resetClueFlight();
   if(typeof resetFailureTransition==='function')resetFailureTransition();
@@ -682,6 +686,7 @@ function startGame(){
   log(`调查难度：${DIFFICULTIES[difficulty].name}；混沌袋 ${S.chaos.length} 枚。`,'gold');
   render();
   if(typeof announcePhase==='function')announcePhase('investigation',()=>{});
+  if(typeof gameNarrator!=='undefined')gameNarrator.enter('study');
 }
 
 function drawOpeningHand(){
@@ -1219,6 +1224,7 @@ function doMove(id){
     log('窖室守门者从木桶后扑出，与你交缠。你可以战斗或闪避它。','bad');
   }
   render();
+  if(typeof gameNarrator!=='undefined')gameNarrator.enter(id);
 }
 
 function investigate(preview=false,emptyConfirmed=false){
@@ -1580,6 +1586,7 @@ function cancelTest(){
 }
 function closeModal(){
   if(S && S.test && !S.gameOver) return;
+  if(typeof gameNarrator!=='undefined')gameNarrator.closeIntro();
   if(typeof resetFailureTransition==='function')resetFailureTransition();
   if(typeof stopEndingNarration==='function')stopEndingNarration();
   if(S) S.pendingMove = false;
@@ -1782,6 +1789,7 @@ function applyEvent(c){
 /* ============ 结算 ============ */
 function continueChapter(){
   if(!S||!S.gameOver||!S.canContinue||S.chapter!==1)return;
+  if(typeof gameNarrator!=='undefined')gameNarrator.stop();
   S.canContinue=false;
   if(typeof resetPhaseAnnouncement==='function')resetPhaseAnnouncement();
   phaseTransitionActive=false;pendingNavigation=false;pendingAction=null;selectedHandCard=null;
@@ -1796,15 +1804,18 @@ function continueChapter(){
   log('状态、资源、手牌、牌堆与装备全部保留。本幕末日重新计时；收集 2 条线索辨认封印，再前往祭坛封印裂隙。','gold');
   S.chapterIntro=true;
   render();gameSfx('move');
-  openModal(`<h3>第二幕 · 地板之下</h3><p style="line-height:1.9;margin:18px 0">暗门在身后合拢。石阶尽头的烛光忽明忽暗，门后的低语如今就在脚下。<br><br>前往地下窖室，收集两条线索并辨认封印，再到仪式祭坛封印裂隙。小心守门者；封印失败会损失 1 点理智，但可以重试。</p><p style="font-size:12px;color:var(--dim)">本网页版改编续幕。当前状态、手牌、装备与所选难度保留；新幕末日重新计时。</p><div class="center mb"><button class="btn primary" onclick="beginChapter()">沿石阶向下 · 开始调查</button></div>`);
+  openModal(`<h3>第二幕 · 地板之下</h3><span id="chapterNarrationAnchor" hidden></span><p style="line-height:1.9;margin:18px 0">暗门在身后合拢。石阶尽头的烛光忽明忽暗，门后的低语如今就在脚下。<br><br>前往地下窖室，收集两条线索并辨认封印，再到仪式祭坛封印裂隙。小心守门者；封印失败会损失 1 点理智，但可以重试。</p><p style="font-size:12px;color:var(--dim)">本网页版改编续幕。当前状态、手牌、装备与所选难度保留；新幕末日重新计时。</p><div class="center mb"><button class="btn primary" onclick="beginChapter()">沿石阶向下 · 开始调查</button></div>`);
+  if(typeof gameNarrator!=='undefined')gameNarrator.intro();
 }
 function beginChapter(){
   if(!S||S.gameOver||S.chapter!==2||!S.chapterIntro)return;
   S.chapterIntro=false;closeModal();render();
   if(typeof announcePhase==='function')announcePhase('investigation',()=>{});
+  if(typeof gameNarrator!=='undefined')gameNarrator.enter('stairs');
 }
 function resolve(code, text){
   if(S.gameOver) return;
+  if(typeof gameNarrator!=='undefined')gameNarrator.stop();
   if(typeof resetEnemyEngagement==='function')resetEnemyEngagement();
   S.gameOver = true;
   S.test = null;
@@ -1835,6 +1846,7 @@ function resolve(code, text){
 </script>
 <script src="ambience.js?v=ending-victory-6"></script>
 <script src="ending-narration.js?v=text-voice-2"></script>
+<script src="scene-narration.js?v=minimax-1"></script>
 <script src="failure-transition.js?v=2"></script>
 <script src="clue-flight.js?v=1"></script>
 <script src="enemy-engagement.js?v=1"></script>

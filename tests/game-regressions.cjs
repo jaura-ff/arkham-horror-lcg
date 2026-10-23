@@ -6,6 +6,28 @@ const path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
+test('左栏目标线索进度随持有量更新，超过门槛不会溢出，不消耗资源与行动',()=>{
+ for(const [idx,total]of [[0,3],[2,2]])for(const clues of [0,1,total,total+3]){
+  const g=game();g.run(`S.actIdx=${idx};S.clues=${clues}`);const state=g.get('S');g.run('renderActAgenda()');
+  const bar=g.document.getElementById('goalProgress').innerHTML;
+  assert.match(bar,new RegExp('aria-valuenow="'+Math.min(clues,total)+'"'));assert.match(bar,new RegExp('aria-valuemax="'+total+'"'));
+  if(clues>=total){assert.match(bar,/width:100%/);assert.match(bar,/线索已齐/);}else assert.match(bar,new RegExp('已持有 '+clues+' / '+total));
+  assert.deepEqual(g.get('S'),state);
+ }
+});
+
+test('阁楼与祭坛目标显示目的地进度，不误报不存在的交缠敌人',()=>{
+ const g=game();g.run("S.actIdx=1;S.location='hallway';renderActAgenda()");assert.match(g.document.getElementById('goalProgress').innerHTML,/下一站：阁楼/);
+ g.run("S.location='attic';renderActAgenda()");assert.match(g.document.getElementById('goalProgress').innerHTML,/已抵达阁楼/);
+ g.run("S.actIdx=3;S.location='altar';S.enemies=[];renderActAgenda()");assert.match(g.document.getElementById('goalProgress').innerHTML,/可尝试封印/);assert.doesNotMatch(g.document.getElementById('goalProgress').innerHTML,/先摆脱/);
+ g.run("S.enemies=[{card:ENCOUNTER[0],engaged:true,exhausted:false,location:'altar'}];renderActAgenda()");assert.match(g.document.getElementById('goalProgress').innerHTML,/先摆脱交缠敌人/);
+});
+
+test('调查成功确认后同步目标进度，取消检定不增加进度',()=>{
+ const g=game();g.run("requestAction('investigate');cancelTest();renderActAgenda()");assert.match(g.document.getElementById('goalProgress').innerHTML,/已持有 0 \/ 3/);
+ g.run('investigate();resolveTest();finishTest(true)');assert.equal(g.get('S.clues'),1);assert.match(g.document.getElementById('goalProgress').innerHTML,/已持有 1 \/ 3/);
+});
+
 function basement(){const g=game();g.run("S.actIdx=1;S.location='attic';finish();continueChapter();beginChapter()");return g;}
 test('新幕先阅读背景，确认后才允许行动，入口重复确认不重复倒计时',()=>{
  const g=game();g.run("S.actIdx=1;S.location='attic';finish();continueChapter();let announcements=0;announcePhase=()=>{announcements++};requestAction('draw');requestReturnMenu()");

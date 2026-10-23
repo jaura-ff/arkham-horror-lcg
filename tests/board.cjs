@@ -43,22 +43,24 @@ test('教学或游戏弹窗打开时不叠加记录弹窗，菜单关闭已开�
 });
 test('一屏布局覆盖旧高度，所有主区域都有固定网格位置，不靠截断整个页面',()=>{
  for(const region of ['#investigator','.command-panel','.goal-panel','.scene-panel','.enemy-panel','.equipment-panel','.hand-panel','.log-panel'])assert.ok(css.includes(region+'{'),region);
- assert.match(css,/grid-template-rows:170px minmax\(0,1fr\) 140px/);assert.match(css,/\.game-fit #game \.scene-panel\{[^}]*min-height:0/);assert.match(css,/\.game-fit #game \.hand\{min-height:0;height:100%/);assert.match(css,/overflow-x:auto;overflow-y:hidden/);assert.match(css,/#playGuide\[open\]\{position:absolute/);
- assert.match(html,/board.css\?v=icon-proportions-3/);assert.match(html,/board.js\?v=spacious-header-4/);
+ assert.match(css,/grid-template-rows:auto auto auto;align-content:start/);assert.match(css,/\.game-fit #game \.scene-panel\{[^}]*min-height:0/);assert.match(css,/\.game-fit #game \.hand\{min-height:0;height:100%/);assert.match(css,/overflow-x:auto;overflow-y:hidden/);assert.match(css,/#playGuide\[open\]\{position:absolute/);
+ assert.match(html,/board.css\?v=sidebar-priority-4/);assert.match(html,/board.js\?v=spacious-header-4/);
  for(const id of ['boardLogButton','boardLogDialog','boardLogClose','boardLogContent','handPrevious','handNext'])assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
  assert.match(html,/aria-label="上一组手牌"/);assert.match(html,/aria-label="下一组手牌"/);assert.doesNotMatch(source,/\bS\s*[.=]|requestAction\(|startGame\(|beginPrologue\(/);
 });
 
-test('恢复原有三栏与面板顺序，不再把目标和敌人移到记录栏',()=>{
+test('保留原有三栏，目标上移到人物与行动之间，行动不再占满剩余高度',()=>{
  assert.doesNotMatch(css,/display:contents/);
- assert.match(css,/\.col-left\{display:grid;[^}]*grid-template-rows:170px minmax\(0,1fr\) 140px/);
+ assert.match(css,/\.col-left\{display:grid;[^}]*grid-template-rows:auto auto auto;align-content:start/);
  assert.match(css,/\.col-center\{display:grid;[^}]*grid-template-rows:minmax\(0,1fr\) auto 62px 140px/);
- assert.match(css,/\.goal-panel\{grid-column:1;grid-row:3\}/);
+ assert.match(css,/\.goal-panel\{grid-column:1;grid-row:2;/);
+ assert.match(css,/\.command-panel\{grid-column:1;grid-row:3;[^}]*align-self:start/);
+ assert.match(css,/#controls\{margin-top:8px/);
  assert.match(css,/\.enemy-panel\{[^}]*grid-column:1;grid-row:2;height:70px/);
  const left=html.split('<div class="col-left">')[1].split('<!-- 中央 -->')[0];
  const center=html.split('<div class="col-center">')[1].split('<!-- 右栏 -->')[0];
- assert.ok(left.indexOf('id="investigator"')<left.indexOf('id="commandPanel"'));
- assert.ok(left.indexOf('id="commandPanel"')<left.indexOf('class="panel goal-panel"'));
+ assert.ok(left.indexOf('id="investigator"')<left.indexOf('class="panel goal-panel"'));
+ assert.ok(left.indexOf('class="panel goal-panel"')<left.indexOf('id="commandPanel"'));
  for(const [a,b] of [['id="scenePanel"','class="panel enemy-panel"'],['class="panel enemy-panel"','class="panel equipment-panel"'],['class="panel equipment-panel"','class="panel hand-panel"']])assert.ok(center.indexOf(a)<center.indexOf(b));
 });
 
@@ -70,6 +72,24 @@ test('阶段栏预留完整双语行高，不再把文字压进26像素窄条',(
  assert.match(css,/\.phase \.en\{font-size:9px;line-height:12px/);
  assert.ok(17+12+2+6*2<=50); // Both text lines, gap and vertical padding fit.
  assert.match(css,/#playGuide\[open\]\{position:absolute;top:62px/);
+});
+
+test('资源线索放大，位置使用独立字号，原状态栏和拖尾锚点保持不变',()=>{
+ assert.match(css,/\.status-pair>b\{font-size:22px/);
+ assert.match(css,/\.status-pair>\[data-status=actions\]\{font-size:19px/);
+ assert.match(css,/\.status-pair>\[data-status=location\]\{font-size:13px/);
+ assert.match(css,/status-pair:has\(\[data-status=clues\]\)/);
+ for(const key of ['resources','clues','actions','location'])assert.equal((html.match(new RegExp('data-status="'+key+'"','g'))||[]).length,1);
+ assert.match(css,/\.investigate-btn\{grid-column:auto;grid-row:auto/);
+ assert.doesNotMatch(css,/\.col-left\{[^}]*minmax\(0,1fr\) (?:140|150)px/);
+});
+
+test('目标进度使用可访问的只读进度条，完整幕说明仍可点击查看',()=>{
+ assert.match(html,/id="goalProgress"/);assert.match(html,/role="progressbar" aria-label=/);assert.match(html,/aria-valuemin="0" aria-valuemax=/);
+ assert.match(html,/class="side act"[^>]*aria-haspopup="dialog"/);
+ const inspection=fs.readFileSync(path.join(root,'board-inspect.js'),'utf8');assert.match(inspection,/ACT_DECK\[index\]/);assert.match(inspection,/paragraph\(card.text\)/);
+ assert.match(css,/\.goal-progress-track\{height:4px/);
+ assert.doesNotMatch(css,/\.goal-progress-track\{[^}]*border:/);
 });
 
 test('人物、卡图、怪物和地图人物标记保持方形，含大屏覆盖规则',()=>{

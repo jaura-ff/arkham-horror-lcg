@@ -1724,14 +1724,14 @@ function resolve(code, text){
   openModal(`
     <h3>${win?' 调查成功！':' 调查失败……'}</h3>
     <div class="center" style="font-size:13px;line-height:1.8">${text}</div>
-    ${win?'<div class="ending-voice" style="margin:16px 0"><audio id="endingNarration" controls preload="auto" src="assets/audio/ending-narration-natural-v2.mp3" aria-label="结局旁白，可暂停、调节音量或拖回重播" style="display:block;width:100%;height:40px"></audio><p id="endingVoiceStatus" role="status" aria-live="polite" style="margin:6px 0;font-size:11px;color:var(--dim)">成功音效后播放旁白；可使用上方控件暂停或重播。</p></div>':''}
+    ${win?'<div class="ending-voice"><audio id="endingNarration" hidden preload="auto" src="assets/audio/ending-narration-natural-v2.mp3"></audio><p id="endingVoiceStatus" hidden role="status" aria-live="polite" style="margin:12px 0;font-size:11px;color:var(--dim)"></p></div>':''}
     <div class="center mb"><button class="btn primary" onclick="closeModal()">${uiIcon('close')}关闭</button></div>
   `);
   if(win){gameSfx('victory');if(typeof beginEndingNarration==='function')beginEndingNarration();}
 }
 </script>
 <script src="ambience.js?v=ending-victory-6"></script>
-<script src="ending-narration.js?v=natural-v2-1"></script>
+<script src="ending-narration.js?v=text-voice-2"></script>
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=guide-1"></script>
 <script src="phase-transition.js?v=skip-countdown-2"></script>

@@ -25,9 +25,9 @@ function setup(){
 }
 test('菜单可直接阅读全部卡牌而不开始游戏，含官方来源和简化说明',()=>{
   const g=setup();g.click('menuAtlasButton');assert.equal(g.run('S'),null);assert.equal(g.node('cardAtlas').open,true);
-  assert.match(g.node('atlasCount').textContent,/23 \/ 23/);
+  assert.match(g.node('atlasCount').textContent,/29 \/ 29/);
   assert.match(html,/附录 IV，第 28–31 页/);assert.match(html,/不等同|不是官方完整卡库/);
-  assert.match(html,/atlas.css/);assert.ok(html.includes('src="atlas.js?v=confirm-close-2"'));
+  assert.match(html,/atlas.css/);assert.ok(html.includes('src="atlas.js?v=chapter-2"'));
 });
 test('图鉴确定按钮关闭并回到首页图鉴入口，不开局',()=>{
  const g=setup();g.click('menuAtlasButton');g.click('atlasConfirm');assert.equal(g.node('cardAtlas').open,false);assert.equal(g.doc.activeElement.id,'menuAtlasButton');assert.equal(g.doc.body.style.overflow,'auto');assert.equal(g.run('S'),null);
@@ -35,7 +35,7 @@ test('图鉴确定按钮关闭并回到首页图鉴入口，不开局',()=>{
 
 test('卡牌来自游戏定义，同名遭遇去重，覆盖所有分类',()=>{
   const g=setup();g.click('atlasButton');
-  for(const [type,count] of Object.entries({investigator:1,asset:2,event:3,skill:4,weak:1,enemy:2,treachery:2,location:3,act:2,agenda:3})){
+  for(const [type,count] of Object.entries({investigator:1,asset:2,event:3,skill:4,weak:1,enemy:3,treachery:2,location:6,act:4,agenda:3})){
     const content=g.query('',type);assert.equal((content.match(/class="atlas-card"/g)||[]).length,count,type);
   }
   g.run(`INVESTIGATOR.deck[0].cost=8`); // Catalogue snapshot remains read-only.

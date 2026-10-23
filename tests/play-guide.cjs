@@ -7,6 +7,10 @@ function setup(){
   run(html.match(/<script>([\s\S]*?)<\/script>/)[1]);run(fs.readFileSync(path.join(root,'play-guide.js'),'utf8'));run('startGame()');
   return{run,get,el:id=>document.getElementById(id),text:()=>document.getElementById('playGuideText').textContent};
 }
+test('第二幕目标说明不会继续要求前往阁楼',()=>{
+ const g=setup();g.run("S.actIdx=1;S.location='attic';finish();continueChapter();beginChapter();renderActions()");assert.match(g.text(),/2 条线索/);
+ g.run("S.actIdx=3;renderActions()");assert.match(g.text(),/祭坛/);assert.doesNotMatch(g.text(),/前往阁楼/);
+});
 test('首回合实时指引明确跳过神话而非敌人阶段',()=>{
   const g=setup();assert.match(g.text(),/首回合开局跳过神话阶段/);assert.match(g.text(),/敌人阶段仍会进行/);g.run('S.round=2;renderActions()');assert.doesNotMatch(g.text(),/首回合/);assert.match(g.text(),/3 次行动/);
 });
@@ -30,6 +34,6 @@ test('指引只读且不重开用户收起的面板，不影响随机或行动�
   const g=setup(),before=g.get('S');g.el('playGuide').open=false;g.run(`Math.random=()=>{throw Error('unexpected random')};updatePlayGuide();renderActions();phaseGuideText('enemy',true);phaseGuideText('upkeep',true)`);assert.deepEqual(g.get('S'),before);assert.equal(g.el('playGuide').open,false);
 });
 test('指引有本地脚本、收起入口及官方来源，阶段弹窗读取同一规则说明',()=>{
-  assert.match(html,/<details id="playGuide"[^>]*open>/);assert.match(html,/playGuideText" aria-live="polite"/);assert.match(html,/ahc01_learn_to_play_web.pdf#page=9/);assert.match(html,/play-guide.js\?v=guide-1/);assert.match(html,/phaseAnnouncementRule/);
+  assert.match(html,/<details id="playGuide"[^>]*open>/);assert.match(html,/playGuideText" aria-live="polite"/);assert.match(html,/ahc01_learn_to_play_web.pdf#page=9/);assert.match(html,/play-guide.js\?v=chapter-2/);assert.match(html,/phaseAnnouncementRule/);
   const phase=fs.readFileSync(path.join(root,'phase-transition.js'),'utf8');assert.match(phase,/phaseGuideText\(phase,true\)/);
 });

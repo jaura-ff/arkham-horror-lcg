@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>诡镇奇谭：卡牌版 · 基础单场景</title>
+<title>诡镇奇谭：卡牌版 · 宅邸与地板之下</title>
 <style>
 :root{
   --bg:#10171c;--panel:#192329;--panel2:#202d34;--border:#314149;
@@ -186,6 +186,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 </style>
 <link rel="stylesheet" href="noir.css">
 <link rel="stylesheet" href="home.css?v=character-1">
+<link rel="stylesheet" href="chapter-two.css?v=basement-1">
 <link rel="stylesheet" href="atlas.css?v=action-confirm-1">
 <link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=asset-icons-1">
@@ -333,7 +334,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <!-- 中央 -->
       <div class="col-center">
         <div class="panel scene-panel" id="scenePanel" data-location="study">
-          <div class="scene-readout"><span class="scene-kicker">THE GATHERING / 探索宅邸</span><h2 id="sceneTitle">书房</h2><p id="sceneDescription"></p><div id="sceneClues"></div></div>
+          <div class="scene-readout"><span class="scene-kicker" id="sceneKicker">THE GATHERING / 探索宅邸</span><h2 id="sceneTitle">书房</h2><p id="sceneDescription"></p><div id="sceneClues"></div></div>
           <div class="scene-route">
             <h2 class="route-label">宅邸路线 <span class="cnt" id="locationhint"></span></h2>
             <div class="map-wrap" id="mapwrap"></div>
@@ -503,7 +504,11 @@ const LOCATIONS = {
   study:{name:'书房', shroud:2, clues:2, desc:'你熟悉的书房，书页被风吹得哗哗作响。', conn:['hallway']},
   hallway:{name:'走廊', shroud:2, clues:1, desc:'昏暗的走廊，尽头似乎有脚步声。', conn:['study','attic']},
   attic:{name:'阁楼', shroud:3, clues:2, desc:'吱呀作响的木梯通向一片黑暗。', conn:['hallway']},
+  stairs:{name:'石阶入口',shroud:2,clues:1,desc:'旧箱里的钥匙打开了地板暗门。潮湿石阶向下延伸，墙内的抓挠声越来越近。',conn:['cellar']},
+  cellar:{name:'地下窖室',shroud:3,clues:2,desc:'腐烂木桶之间留着新鲜拖痕。一个蜷缩的人影挡住了通往祭坛的窄门。',conn:['stairs','altar']},
+  altar:{name:'仪式祭坛',shroud:4,clues:0,desc:'烛火围住一道仍在渗血的裂缝。先用两条线索辨认封印，再以意志抵抗门后的低语。',conn:['cellar']},
 };
+const CELLAR_GUARD={id:'cellar-keeper',name:'窖室守门者',type:'enemy',traits:['Ghoul'],fight:2,hp:2,evade:2,dmg:1,horror:1,hunter:true,victory:0};
 
 // 地点图标（金色线条 SVG）
 const LOC_ICONS = {
@@ -515,7 +520,9 @@ const LOC_ICONS = {
 // 幕牌组
 const ACT_DECK = [
   {id:'1a', text:'在宅邸各处收集 3 个线索，然后花费 3 线索推进本幕。'},
-  {id:'1b', text:'前往阁楼，执行「完成调查」行动以结束调查。'},
+  {id:'1b', text:'前往阁楼，执行「完成调查」，然后可以继续进入地下室的下一幕。'},
+  {id:'2a',text:'地板之下：收集至少 2 条线索，花费 2 线索和 1 行动辨认封印。此前获得的线索仍可使用。'},
+  {id:'2b',text:'前往仪式祭坛，摆脱就绪且交缠的敌人，执行「封印裂隙」：意志对抗目标值 3。失败可重试。'},
 ];
 
 // 议程牌组
@@ -573,7 +580,7 @@ function uiIcon(name){
 }
 
 function requestReturnMenu(){
-  if(!S || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive) return;
+  if(!S || S.chapterIntro || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive) return;
   pendingNavigation = true;
   render();
   openModal(`<h3>${uiIcon('home')} 返回主菜单？</h3>
@@ -616,6 +623,7 @@ function startGame(){
   const difficulty=difficultyKey(document.getElementById('difficultySelect')?.value);
   document.getElementById('log').innerHTML = '';
   S = {
+    chapter:1,canContinue:false,
     phase:'investigation',
     difficulty,
     round:1,
@@ -754,7 +762,7 @@ function renderPhaseBar(){
 }
 
 function renderTopStats(){
-  document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive);
+  document.getElementById('menuButton').disabled = !!(S.chapterIntro || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive);
   document.getElementById('roundnum').textContent = S.round;
   document.getElementById('currentDifficulty').textContent = DIFFICULTIES[difficultyKey(S.difficulty)].name;
   document.getElementById('topres').textContent = S.resources;
@@ -871,17 +879,19 @@ function inspectAsset(index){
 
 function renderLocations(){
   const wrap = document.getElementById('mapwrap');
+  document.getElementById('sceneKicker').textContent=S.chapter===2?'BENEATH THE FLOOR / 第二幕 · 地板之下':'THE GATHERING / 探索宅邸';
   document.getElementById('scenePanel').dataset.location = S.location;
   document.getElementById('sceneTitle').textContent = LOCATIONS[S.location].name;
   document.getElementById('sceneDescription').textContent = LOCATIONS[S.location].desc;
   document.getElementById('sceneClues').textContent = `遮蔽 ${LOCATIONS[S.location].shroud}　 /　线索 ${S.locClues[S.location]}`;
   const hint = document.getElementById('locationhint');
-  const ids = Object.keys(LOCATIONS);
+  const ids = S.chapter===2?['stairs','cellar','altar']:['study','hallway','attic'];
   // 预设节点坐标（百分比定位）
   const pos = {
     study:{x:20, y:78},
     hallway:{x:50, y:50},
     attic:{x:80, y:22},
+    stairs:{x:20,y:78},cellar:{x:50,y:50},altar:{x:80,y:22},
   };
   // 当前位置的相邻地点
   const current = S.location;
@@ -990,7 +1000,8 @@ function renderActions(){
   const el = document.getElementById('actions');
   const controls = document.getElementById('controls');
   const cnt = document.getElementById('actioncount');
-  if(S.gameOver){ el.innerHTML=''; controls.innerHTML=`<button class="btn primary" onclick="location.reload()">${uiIcon('restart')}重新开始</button>`; cnt.textContent=''; return; }
+  if(S.gameOver){ el.innerHTML=''; controls.innerHTML=`${S.canContinue?'<button class="btn primary" onclick="continueChapter()">继续下一幕</button>':''}<button class="btn" onclick="location.reload()">${uiIcon('restart')}重新开始</button>`; cnt.textContent=''; return; }
+  if(S.chapterIntro){el.innerHTML='';controls.innerHTML='<button class="btn primary" onclick="beginChapter()">开始第二幕调查</button>';cnt.textContent='准备开始';return;}
   const actions = [];
   if(S.phase==='investigation'){
     const canTakeAction = canAct();
@@ -1007,6 +1018,8 @@ function renderActions(){
     if(S.actIdx===1 && S.location==='attic'){
       actions.push(btn(' 完成调查','finish',canTakeAction,'结束调查'));
     }
+    if(S.actIdx===2&&S.clues>=2)actions.push(btn(' 辨认封印','advanceAct',canTakeAction,'花费 2 线索'));
+    if(S.actIdx===3&&S.location==='altar')actions.push(btn(' 封印裂隙','finish',canTakeAction&&!hasEngagedReadyEnemy(),'意志 vs 目标值 3'));
     controls.innerHTML = `<button id="endTurnButton" class="btn" onclick="requestAction('endTurn')" ${S.actions===3||S.test||S.pendingMove||pendingNavigation||pendingAction||phaseTransitionActive?'disabled':''}>${uiIcon('next')}结束回合 </button>
       <span style="color:var(--dim);font-size:11px">${S.actions===3?'（至少执行 1 个行动后才能结束回合）':''}</span>`;
   } else {
@@ -1065,8 +1078,9 @@ function requestAction(fn){
   if(fn==='fight'){fight(true);return;}
   if(fn==='evade'){evade(true);return;}
   const choices={draw:['抽牌','消耗 1 次行动，抽取 1 张牌。',draw],resource:['获取资源','消耗 1 次行动，获得 1 资源。',resource],
-    advanceAct:['推进幕','消耗 1 次行动与 3 条线索，推进当前幕。',advanceAct],finish:['完成调查','消耗 1 次行动，完成调查并结束本局。',finish]};
-  if(fn==='advanceAct'&&(S.actIdx!==0||S.clues<3))return;
+    advanceAct:['推进幕',S.chapter===2?'消耗 1 次行动与 2 条线索，辨认封印。':'消耗 1 次行动与 3 条线索，推进当前幕。',advanceAct],finish:['完成调查','消耗 1 次行动，完成阁楼调查，然后可继续下一幕。',finish]};
+  if(fn==='advanceAct'&&!((S.actIdx===0&&S.clues>=3)||(S.actIdx===2&&S.clues>=2)))return;
+  if(fn==='finish'&&S.actIdx===3&&S.location==='altar'){finish(true);return;}
   if(fn==='finish'&&(S.actIdx!==1||S.location!=='attic'))return;
   const choice=choices[fn];if(choice)showActionConfirmation(...choice,actionRisk());
 }
@@ -1089,7 +1103,7 @@ function doAction(fn){
 }
 
 function canAct(ignoreTest=false){
-  return !!S && !S.gameOver && (ignoreTest || !S.test) && !S.pendingMove && !pendingNavigation && !pendingAction && !phaseTransitionActive && S.phase==='investigation' && S.actions>0;
+  return !!S && !S.gameOver && !S.chapterIntro && (ignoreTest || !S.test) && !S.pendingMove && !pendingNavigation && !pendingAction && !phaseTransitionActive && S.phase==='investigation' && S.actions>0;
 }
 
 function beginAction(exempt=false,stagedTest=null){
@@ -1165,6 +1179,12 @@ function doMove(id){
   // 交缠的敌人跟随移动；游荡的敌人留在原地
   S.enemies.forEach(e=>{ if(e.engaged) e.location = id; });
   engageLocalEnemies();
+  if(S.chapter===2&&id==='cellar'&&!S.cellarGuardSpawned){
+    S.cellarGuardSpawned=true;
+    const card={...CELLAR_GUARD};
+    S.enemies.push({card,hp:2,engaged:true,exhausted:false,location:id});monsterSfx(card);
+    log('窖室守门者从木桶后扑出，与你交缠。你可以战斗或闪避它。','bad');
+  }
   render();
 }
 
@@ -1247,7 +1267,15 @@ function evade(preview=false){
   }, bonus,preview?true:null,preview?()=>{S.evadeBonus=0}:null);
 }
 
-function finish(){
+function finish(preview=false){
+  if(S.actIdx===3&&S.location==='altar'){
+    if(!canAct()||hasEngagedReadyEnemy())return;
+    if(!preview&&!beginAction())return;
+    startTest('will',3,'封印裂隙',success=>{
+      if(success)resolve('R1','你将旧箱中的残页压入刻痕，念完最后一个字。门后的低语骤然中断，血色裂缝终于合拢。你活着走出宅邸，但钥匙仍在掌心发冷。');
+      else{applyPlayerLoss(0,1,'封印反噬');log('封印失败：承受 1 点恐惧。仍可再次尝试封印裂隙。','bad');checkDefeat();render();}
+    },0,preview?false:null);return;
+  }
   if(S.actIdx===1 && S.location==='attic'){
     if(!beginAction()) return;
     resolve('R1','你在阁楼的旧箱中找到了真相——这场聚会背后的邪恶仪式。你决定阻止它。');
@@ -1255,6 +1283,10 @@ function finish(){
 }
 
 function advanceAct(){
+  if(S.actIdx===2){
+    if(S.clues<2||!beginAction())return;S.clues-=2;S.actIdx=3;
+    log('你用线索读懂了封印的顺序。前往仪式祭坛，执行「封印裂隙」。','gold');render();return;
+  }
   if(S.actIdx!==0 || S.clues<3){ return; }
   if(!beginAction()) return;
   S.clues -= 3;
@@ -1709,6 +1741,29 @@ function applyEvent(c){
 }
 
 /* ============ 结算 ============ */
+function continueChapter(){
+  if(!S||!S.gameOver||!S.canContinue||S.chapter!==1)return;
+  S.canContinue=false;
+  if(typeof resetPhaseAnnouncement==='function')resetPhaseAnnouncement();
+  phaseTransitionActive=false;pendingNavigation=false;pendingAction=null;selectedHandCard=null;
+  S.chapter=2;S.gameOver=false;S.test=null;S.committed=[];S.pendingMove=false;
+  closeModal();
+  S.previousEnemies=S.enemies;S.enemies=[];
+  S.location='stairs';S.revealed={stairs:true,cellar:false,altar:false};S.locClues={stairs:1,cellar:2,altar:0};
+  S.actIdx=2;S.agendaIdx=0;S.doom=0;S.actions=3;S.phase='investigation';S.round++;
+  S.assets.forEach(a=>a.exhausted=false);
+  log('—— 第二幕 · 地板之下 ——','gold');
+  log('旧箱中的钥匙打开了地板暗门。你沿着冰冷石阶向下；暗门在身后合拢，楼上的追逐声被隔绝了。','narr');
+  log('状态、资源、手牌、牌堆与装备全部保留。本幕末日重新计时；收集 2 条线索辨认封印，再前往祭坛封印裂隙。','gold');
+  S.chapterIntro=true;
+  render();gameSfx('move');
+  openModal(`<h3>第二幕 · 地板之下</h3><p style="line-height:1.9;margin:18px 0">暗门在身后合拢。石阶尽头的烛光忽明忽暗，门后的低语如今就在脚下。<br><br>前往地下窖室，收集两条线索并辨认封印，再到仪式祭坛封印裂隙。小心守门者；封印失败会损失 1 点理智，但可以重试。</p><p style="font-size:12px;color:var(--dim)">本网页版改编续幕。当前状态、手牌、装备与所选难度保留；新幕末日重新计时。</p><div class="center mb"><button class="btn primary" onclick="beginChapter()">沿石阶向下 · 开始调查</button></div>`);
+}
+function beginChapter(){
+  if(!S||S.gameOver||S.chapter!==2||!S.chapterIntro)return;
+  S.chapterIntro=false;closeModal();render();
+  if(typeof announcePhase==='function')announcePhase('investigation',()=>{});
+}
 function resolve(code, text){
   if(S.gameOver) return;
   S.gameOver = true;
@@ -1717,31 +1772,33 @@ function resolve(code, text){
   S.pendingMove = false;
   renderInvestigator();
   const win = code==='R1';
+  S.canContinue=win&&S.chapter===1;
   log(`<b>${win?' 达成结算 '+code+' —— 胜利':' 触发结算 '+code+' —— 失败'}</b>`,'gold');
   log(text,'narr');
   document.getElementById('actions').innerHTML='';
-  document.getElementById('controls').innerHTML = `<button class="btn primary" onclick="location.reload()">${uiIcon('restart')}重新开始</button>`;
+  renderActions();
   openModal(`
-    <h3>${win?' 调查成功！':' 调查失败……'}</h3>
+    <h3>${win?(S.canContinue?' 阁楼调查成功！':' 调查成功！'):' 调查失败……'}</h3>
     <div class="center" style="font-size:13px;line-height:1.8">${text}</div>
-    ${win?'<div class="ending-voice"><audio id="endingNarration" hidden preload="auto" src="assets/audio/ending-narration-natural-v2.mp3"></audio><p id="endingVoiceStatus" hidden role="status" aria-live="polite" style="margin:12px 0;font-size:11px;color:var(--dim)"></p></div>':''}
-    <div class="center mb"><button class="btn primary" onclick="closeModal()">${uiIcon('close')}关闭</button></div>
+    ${win&&S.chapter!==2?'<div class="ending-voice"><audio id="endingNarration" hidden preload="auto" src="assets/audio/ending-narration-natural-v2.mp3"></audio><p id="endingVoiceStatus" hidden role="status" aria-live="polite" style="margin:12px 0;font-size:11px;color:var(--dim)"></p></div>':''}
+    ${S.canContinue?'<p style="font-size:12px;color:var(--dim);line-height:1.8">钥匙指向地板下的暗门。下一幕：地板之下。保留当前状态，继续前往地下室。</p><div class="center mb"><button class="btn primary" onclick="continueChapter()">继续下一幕 · 地下室</button></div>':''}
+    <div class="center mb"><button class="btn" onclick="closeModal()">${uiIcon('close')}关闭</button></div>
   `);
-  if(win){gameSfx('victory');if(typeof beginEndingNarration==='function')beginEndingNarration();}
+  if(win){gameSfx('victory');if(S.chapter!==2&&typeof beginEndingNarration==='function')beginEndingNarration();}
 }
 </script>
 <script src="ambience.js?v=ending-victory-6"></script>
 <script src="ending-narration.js?v=text-voice-2"></script>
 <script>updateDifficultyPreview();</script>
-<script src="play-guide.js?v=guide-1"></script>
+<script src="play-guide.js?v=chapter-2"></script>
 <script src="phase-transition.js?v=skip-countdown-2"></script>
 <script src="loss-notices.js?v=loss-1"></script>
 <script src="tutorial.js?v=standalone-outro-1"></script>
-<script src="atlas.js?v=confirm-close-2"></script>
+<script src="atlas.js?v=chapter-2"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
 <script src="hand-dialog.js?v=action-confirm-1"></script>
 <script src="discard.js?v=character-deck-1"></script>
-<script src="next-step.js?v=animated-cue-3"></script>
+<script src="next-step.js?v=chapter-2"></script>
 <script src="prologue-narration.js?v=three-scenes-2"></script>
 <script src="prologue.js?v=three-scenes-2"></script>
 <script src="home-dialogs.js?v=character-1"></script>
@@ -1749,7 +1806,7 @@ function resolve(code, text){
 <script src="game-header.js?v=spacious-1"></script>
 <script src="phase-help.js?v=hover-1"></script>
 <script src="hand-hover.js?v=hover-1"></script>
-<script src="board-inspect.js?v=center-1"></script>
+<script src="board-inspect.js?v=chapter-2"></script>
 <script src="start-tutorial.js?v=choice-1"></script>
 </body>
 </html>

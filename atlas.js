@@ -20,7 +20,7 @@
     add(c.type,c.name,c.text,fields,usage[c.id],CARD_ART[c.id]);
   }
   const seen = new Set();
-  for (const c of ENCOUNTER) {
+  for (const c of [...ENCOUNTER,...(typeof CELLAR_GUARD==='undefined'?[]:[CELLAR_GUARD])]) {
     if(seen.has(c.name)) continue;
     seen.add(c.name);
     if(c.type==='enemy') add(c.type,c.name,'遭遇抽到后，生成在你当前的地点并交缠。',
@@ -31,7 +31,7 @@
   for(const [id,c] of Object.entries(LOCATIONS)) add('location',c.name,c.desc,
     [['遮蔽',c.shroud],['初始线索',c.clues],['相邻地点',c.conn.map(key=>LOCATIONS[key].name).join('、')]],
     '移动消耗 1 行动，只能前往相邻地点。调查以智慧对抗遮蔽；成功获得这里的 1 个线索。图鉴显示初始线索，不是剩余线索。');
-  ACT_DECK.forEach(c=>add('act','幕 '+c.id,c.text,[],c.id==='1a'?'本作推进幕需花 3 线索和 1 行动；不是免行动操作。':'推进幕后到达阁楼，再执行「完成调查」行动获胜。'));
+  ACT_DECK.forEach(c=>add('act','幕 '+c.id,c.text,[],({'1a':'花 3 线索和 1 行动推进；不是免行动操作。','1b':'抵达阁楼完成调查后，可保留状态继续进入下一幕。','2a':'收集 2 条线索，花费 2 线索和 1 行动辨认封印。','2b':'到祭坛摆脱就绪交缠敌人，花 1 行动执行意志目标值 3 的封印检定；失败承受 1 恐惧，可重试。'})[c.id]));
   AGENDA_DECK.forEach(c=>add('agenda','议程 '+c.id,c.text,[['末日门槛',c.threshold||'终局']],c.threshold?'神话阶段或卡牌效果增加末日；达到门槛后自动推进并清除当前末日。':'本作的失败终局，推进到此时调查结束。'));
   function render() {
     const query=search.value.trim().toLocaleLowerCase();

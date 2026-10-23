@@ -36,7 +36,7 @@
     const queue=(locations[start]?.conn||[]).map(id=>({id,first:id}));
     while(queue.length){
       const {id,first}=queue.shift();if(seen.has(id))continue;seen.add(id);
-      const useful=S.actIdx>=1?id==='attic':(!S.revealed?.[id] || (S.locClues?.[id]||0)>0);
+      const useful=S.actIdx===3?id==='altar':S.actIdx===1?id==='attic':(!S.revealed?.[id] || (S.locClues?.[id]||0)>0);
       if(useful)return first;
       for(const next of locations[id]?.conn||[])if(!seen.has(next))queue.push({id:next,first});
     }
@@ -52,6 +52,12 @@
       return choices.find(choice=>{const button=document.querySelector(choice[0]);return button&&!button.disabled;})||null;
     }
     if(S.actIdx===0 && S.clues>=3)return action('advanceAct','线索已足够：点击「推进幕」');
+    if(S.chapter===2){
+      if(S.actIdx===2&&S.clues>=2)return action('advanceAct','线索已足够：点击「辨认封印」');
+      if(S.actIdx===3)return S.location==='altar'?action('finish','已到祭坛：点击「封印裂隙」'):action('move','封印已辨认：前往仪式祭坛');
+      if((S.locClues?.[S.location]||0)>0)return action('investigate','调查地下室，收集辨认封印所需的两条线索');
+      return action('move','前往地下窖室，继续寻找线索');
+    }
     if(S.actIdx>=1){
       if(S.location==='attic')return action('finish','已到阁楼：点击「完成调查」');
       return action('move','目标在阁楼：点击「移动」继续前进');

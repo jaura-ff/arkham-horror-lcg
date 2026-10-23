@@ -48,7 +48,7 @@ test('观察器不观察箭头自身，不形成重绘循环，批量变更合�
   const g=setup();assert.ok(g.observed.includes('game'));assert.ok(g.observed.includes('modal'));assert.ok(g.observed.includes('assetInfoDialog'));assert.ok(!g.observed.includes('nextStepArrow'));g.mutate();g.mutate();g.mutate();assert.equal(g.frames.length,1);g.flush();assert.equal(g.frames.length,0);
 });
 test('标记存在、箭头不占布局且鼠标触摸可穿透，无闪烁动画',()=>{
-  const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),css=fs.readFileSync(path.join(root,'next-step.css'),'utf8');for(const id of ['endTurnButton','actionContinueButton','testDrawButton','testResolveButton','nextStepArrow','nextStepToggle'])assert.ok(html.includes(`id="${id}"`),id);assert.match(css,/position:fixed/);assert.match(css,/pointer-events:none/);assert.doesNotMatch(css,/infinite/);assert.match(css,/prefers-reduced-motion:reduce/);assert.match(html,/next-step.js\?v=animated-cue-3/);
+  const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),css=fs.readFileSync(path.join(root,'next-step.css'),'utf8');for(const id of ['endTurnButton','actionContinueButton','testDrawButton','testResolveButton','nextStepArrow','nextStepToggle'])assert.ok(html.includes(`id="${id}"`),id);assert.match(css,/position:fixed/);assert.match(css,/pointer-events:none/);assert.doesNotMatch(css,/infinite/);assert.match(css,/prefers-reduced-motion:reduce/);assert.match(html,/next-step.js\?v=chapter-2/);
 });
 
 function smart(){
@@ -61,6 +61,11 @@ function smart(){
 test('完整开局即建议调查，阶段提示结束和游戏开始事件触发指引',()=>{
  const g=smart();assert.equal(g.el('nextStepArrow').hidden,false);assert.match(g.el('nextStepLabel').textContent,/第一条线索/);assert.equal(g.el('nextStepTarget').hidden,false);
  g.context.phaseTransitionActive=true;g.update();assert.equal(g.el('nextStepTarget').hidden,true);g.context.phaseTransitionActive=false;g.events['arkham:game-started']();g.flush();assert.equal(g.el('nextStepArrow').hidden,false);
+});
+test('地下室智能指引按线索、封印和祭坛切换，不再指向阁楼',()=>{
+ const g=smart();Object.assign(g.context.S,{chapter:2,actIdx:2,location:'stairs',clues:0,locClues:{stairs:1,cellar:2,altar:0}});g.update();assert.match(g.el('nextStepLabel').textContent,/调查地下室/);
+ g.context.S.clues=2;g.update();assert.match(g.el('nextStepLabel').textContent,/辨认封印/);
+ g.context.S.actIdx=3;g.context.S.location='altar';g.update();assert.match(g.el('nextStepLabel').textContent,/封印裂隙/);
 });
 test('线索耗尽推荐移动，移动弹窗指向相邻探索入口且不泄露未揭示名字',()=>{
  const g=smart();g.context.S.locClues.study=0;g.update();assert.match(g.el('nextStepLabel').textContent,/这里已无线索/);

@@ -6,6 +6,56 @@ const path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
+function basement(){const g=game();g.run("S.actIdx=1;S.location='attic';finish();continueChapter();beginChapter()");return g;}
+test('新幕先阅读背景，确认后才允许行动，入口重复确认不重复倒计时',()=>{
+ const g=game();g.run("S.actIdx=1;S.location='attic';finish();continueChapter();let announcements=0;announcePhase=()=>{announcements++};requestAction('draw');requestReturnMenu()");
+ assert.equal(g.get('S.actions'),3);assert.equal(g.get('pendingNavigation'),false);assert.match(g.document.getElementById('modalBox').innerHTML,/第二幕 · 地板之下/);
+ g.run('closeModal();renderActions()');assert.match(g.document.getElementById('controls').innerHTML,/beginChapter/);g.run('beginChapter();beginChapter()');assert.equal(g.get('announcements'),1);assert.equal(g.get('canAct()'),true);
+});
+test('阁楼完成后提供下一幕入口，关闭结局不会丢失继续入口',()=>{
+ const g=game();g.run("S.actIdx=1;S.location='attic';finish()");assert.equal(g.get('S.canContinue'),true);assert.match(g.document.getElementById('modalBox').innerHTML,/继续下一幕/);
+ g.run('closeModal();render()');assert.match(g.document.getElementById('controls').innerHTML,/continueChapter/);assert.equal(g.get('S.chapter'),1);
+});
+test('下一幕保留人物、牌组、装备和难度，不重新发牌或治疗，重复点击无效',()=>{
+ const g=game();g.run("S.hp=6;S.sanity=3;S.resources=2;S.clues=1;S.hand=[{...INVESTIGATOR.deck[0]}];S.assets=[{card:{...INVESTIGATOR.deck[1]},exhausted:true}];S.actIdx=1;S.location='attic';finish()");
+ const before=g.get('[S.hp,S.sanity,S.resources,S.clues,S.hand,S.deck,S.discard,S.assets[0].card,S.difficulty]');g.run('continueChapter()');
+ assert.deepEqual(g.get('[S.hp,S.sanity,S.resources,S.clues,S.hand,S.deck,S.discard,S.assets[0].card,S.difficulty]'),before);
+ assert.deepEqual(g.get('[S.chapter,S.location,S.actIdx,S.actions,S.gameOver,S.doom,S.agendaIdx]'),[2,'stairs',2,3,false,0,0]);
+ const after=g.get('S');g.run('continueChapter()');assert.deepEqual(g.get('S'),after);
+});
+test('失败和未完成阁楼时不能进入下一幕，重新开局恢复第一幕',()=>{
+ const g=game(),before=g.get('S');g.run('continueChapter()');assert.deepEqual(g.get('S'),before);g.run("resolve('R3','失败');continueChapter()");assert.equal(g.get('S.chapter'),1);
+ const h=basement();h.run('startGame()');assert.equal(h.get('S.chapter'),1);assert.equal(h.get('S.canContinue'),false);assert.equal(h.get('S.location'),'study');
+});
+test('第二幕地图只显示新地点，连线和入口位置正确',()=>{
+ const g=basement(),map=g.document.getElementById('mapwrap').innerHTML;
+ for(const id of ['stairs','cellar','altar'])assert.ok(map.includes('data-room="'+id+'"'));
+ assert.doesNotMatch(map,/data-room="study"|data-room="hallway"|data-room="attic"/);assert.equal((map.match(/<line /g)||[]).length,2);
+ assert.equal(g.document.getElementById('sceneTitle').textContent,'石阶入口');
+});
+test('首次进入窖室生成守门者一次，再次进入不重生',()=>{
+ const g=basement();g.run("doMove('cellar')");assert.equal(g.get('S.enemies.length'),1);assert.equal(g.get('S.enemies[0].card.id'),'cellar-keeper');
+ g.run("S.enemies=[];S.actions=3;doMove('stairs');doMove('cellar')");assert.equal(g.get('S.enemies.length'),0);assert.ok(g.get('S.cellarGuardSpawned'));
+});
+test('辨认封印只花两条线索与一个行动，取消和重复推进不额外消费',()=>{
+ const g=basement();g.run("S.clues=2;requestAction('advanceAct');closeModal()");assert.deepEqual(g.get('[S.clues,S.actions,S.actIdx]'),[2,3,2]);
+ g.run('advanceAct();advanceAct()');assert.deepEqual(g.get('[S.clues,S.actions,S.actIdx]'),[0,2,3]);
+});
+test('封印检定可取消，失败损失一理智并能重试，成功后不再有下一幕入口',()=>{
+ const g=basement();g.run("S.actIdx=3;S.location='altar';requestAction('finish');cancelTest()");assert.equal(g.get('S.actions'),3);
+ g.run("S.chaos=[{label:'失败',autofail:true}];requestAction('finish')");g.finish();assert.equal(g.get('S.sanity'),4);assert.equal(g.get('S.gameOver'),false);assert.equal(g.get('S.actions'),2);
+ g.run("S.chaos=[{label:'0',mod:0}];requestAction('finish')");g.finish();assert.equal(g.get('S.gameOver'),true);assert.equal(g.get('S.canContinue'),false);assert.doesNotMatch(g.document.getElementById('modalBox').innerHTML,/endingNarration|继续下一幕/);
+});
+test('祭坛有就绪交缠敌人时不能封印，精神反噬致死保持失败结局',()=>{
+ const g=basement();g.run("S.actIdx=3;S.location='altar';S.enemies=[{card:{...ENCOUNTER[0]},hp:2,engaged:true,exhausted:false,location:'altar'}];requestAction('finish')");assert.equal(g.get('S.test'),null);assert.equal(g.get('S.actions'),3);
+ g.run("S.enemies=[];S.sanity=1;S.chaos=[{autofail:true,label:'失败'}];requestAction('finish')");g.finish();assert.equal(g.get('S.gameOver'),true);assert.equal(g.get('S.canContinue'),false);
+});
+test('实际完成第二幕：调查、移动、守门者、辨认封印、封印成功',()=>{
+ const g=basement();g.run('S.assets=[{card:{...INVESTIGATOR.deck[0]},exhausted:false}];investigate()');g.finish();g.run("doMove('cellar');fight()");g.finish();assert.equal(g.get('S.enemies.length'),0);
+ g.run("S.phase='mythos';advancePhase();investigate()");g.finish();g.run("advanceAct();doMove('altar')");assert.equal(g.get('S.actIdx'),3);
+ g.run("S.phase='mythos';advancePhase();requestAction('finish')");g.finish();assert.equal(g.get('S.gameOver'),true);assert.match(g.document.getElementById('modalBox').innerHTML,/裂缝终于合拢/);
+});
+
 test('实际抽牌和出牌各触发一次短音效，资源行动不触发牌声',()=>{
   const g=game();g.run(`let cues=[];playGameSfx=name=>cues.push(name);draw();S.hand=[{...INVESTIGATOR.deck[0]}];onHandCard(0);resource()`);assert.deepEqual(g.get('cues'),['draw','card']);
 });

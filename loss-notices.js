@@ -3,7 +3,7 @@
   'use strict';
   const byId=id=>document.getElementById(id),notice=byId('lossNotice');
   if(!notice)return;
-  let queue=[],timer=null,version=0,flight=null;
+  let queue=[],timer=null,version=0,flight=null,earlyExit=null;
   const landings=new Set();
   function cancelFlight(){
     const old=flight;flight=null;if(!old)return;
@@ -15,7 +15,7 @@
   function hide(){try{notice.hidePopover?.();}catch(_){}notice.hidden=true;notice.classList.remove('loss-enter');clearImpact();}
   window.resetLossNotices=()=>{
     version++;if(timer!==null)clearTimeout(timer);
-    timer=null;queue=[];cancelFlight();landings.forEach(a=>{try{a.cancel();}catch(_){}});landings.clear();hide();
+    timer=null;earlyExit=null;queue=[];cancelFlight();landings.forEach(a=>{try{a.cancel();}catch(_){}});landings.clear();hide();
     byId('lossNoticeAmount').textContent='';byId('lossNoticeSource').textContent='';
     byId('lossNoticeTitle').textContent='';byId('lossNoticeRemaining').textContent='';
   };
@@ -60,7 +60,7 @@
     }catch(_){current.end();}
   }
   function next(){
-    if(!queue.length){timer=null;hide();return;}
+    if(!queue.length){timer=null;earlyExit=null;hide();return;}
     const loss=queue.shift(),ticket=version;
     notice.dataset.kind=loss.hp>0?(loss.sanity>0?'both':'hp'):'sanity';
     byId('lossNoticeTitle').textContent=loss.hp>0?(loss.sanity>0?'生命与理智受损':'遭受伤害'):'精神受创';
@@ -71,12 +71,25 @@
     try{notice.showPopover?.();}catch(_){notice.removeAttribute?.('popover');}
     void notice.offsetWidth;notice.classList.add('loss-enter');
     clearImpact();const panel=byId('investigator');if(panel){void panel.offsetWidth;if(loss.hp>0)panel.classList.add('is-loss-hp');if(loss.sanity>0)panel.classList.add('is-loss-sanity');}
-    timer=setTimeout(()=>{if(ticket!==version)return;exit(loss,ticket);},3000);
+    const finishWait=()=>{
+      if(ticket!==version||earlyExit!==finishWait)return;
+      if(timer!==null)clearTimeout(timer);
+      timer=null;earlyExit=null;exit(loss,ticket);
+    };
+    earlyExit=finishWait;
+    timer=setTimeout(finishWait,3000);
   }
   window.showPlayerLoss=loss=>{
     if(!S || !(loss.hp>0 || loss.sanity>0))return;
     queue.push({...loss,remainingHp:S.hp,remainingSanity:S.sanity});if(timer===null)next();
   };
+  window.dismissPlayerLoss=()=>{if(!notice.hidden&&!flight)earlyExit?.();};
+  // Capture before the button settles game effects: new damage from this click
+  // must still get its own full notification rather than being dismissed too.
+  document.addEventListener?.('click',event=>{
+    const button=event.target?.closest?.('#testResolveButton, #testDrawButton, #actionContinueButton, #phaseAnnouncementSkip, [data-action="next"]');
+    if(button&&!button.disabled)window.dismissPlayerLoss();
+  },true);
   window.addEventListener?.('resize',()=>flight?.end());
   document.addEventListener?.('visibilitychange',()=>{if(document.hidden)flight?.end();});
 })();

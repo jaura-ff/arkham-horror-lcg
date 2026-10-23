@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const byId=id=>document.getElementById(id);
-  const pairs=[['menuDifficultyButton','homeDifficultyDialog'],['menuSettingsButton','homeSettingsDialog'],['menuTutorialButton','homeTutorialDialog']];
+  const pairs=[['menuDifficultyButton','homeDifficultyDialog'],['menuSettingsButton','homeSettingsDialog'],['menuCharacterButton','homeCharacterDialog']];
   let active=null,lastFocus=null,savedOverflow='';
   function restore(dialog){
     if(active!==dialog)return;

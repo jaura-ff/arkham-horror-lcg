@@ -1,4 +1,13 @@
 /* Menu-only progressive disclosure; preserve the noir setting and game layout. */
+.character-current{display:grid;grid-template-columns:90px minmax(0,1fr);gap:18px;padding:14px;border:1px solid #8a6c3b;background:#292218}
+.character-current .portrait{width:90px;height:125px;min-height:0}
+.character-current h3{margin:0;color:#edce95;font-size:17px}
+.character-current strong{font-size:11px;color:#edce95}
+.character-reference{margin:0}
+.character-reference>div{padding:12px 0;border-bottom:1px solid #5a4930}
+.character-reference dt{color:#edce95;font-size:14px}
+.character-reference small{font-size:11px;color:#b9aa8b}
+.character-reference dd{margin:5px 0 0;font-size:12px;color:#d2c5ae}
 body #startOverlay{padding:clamp(24px,5vw,76px);min-height:100dvh;background-position:center;align-items:center}
 body #startOverlay .home-layout{max-width:1180px;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(36px,7vw,110px);align-items:center;padding:12px 0}
 #startOverlay .home-intro{width:100%;max-width:540px;min-width:0}

@@ -193,6 +193,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="phase-transition.css?v=skip-countdown-2">
 <link rel="stylesheet" href="loss-notices.css?v=return-trail-3">
 <link rel="stylesheet" href="failure-transition.css?v=1">
+<link rel="stylesheet" href="clue-flight.css?v=1">
 <link rel="stylesheet" href="play-guide.css?v=guide-1">
 <link rel="stylesheet" href="next-step.css?v=animated-cue-3">
 <link rel="stylesheet" href="prologue.css?v=narration-1">
@@ -603,6 +604,7 @@ function confirmReturnMenu(){
   if(!pendingNavigation || !S || S.test || S.pendingMove) return;
   pendingNavigation = false;
   if(typeof resetLossNotices==='function')resetLossNotices();
+  if(typeof resetClueFlight==='function')resetClueFlight();
   S = null;
   closeModal();
   document.getElementById('log').innerHTML = '';
@@ -619,6 +621,7 @@ function beginPrologue(tutorial=false){
   if(typeof document.dispatchEvent==='function')document.dispatchEvent(new CustomEvent('arkham:game-started',{detail:{tutorial}}));
 }
 function startGame(){
+  if(typeof resetClueFlight==='function')resetClueFlight();
   if(typeof resetFailureTransition==='function')resetFailureTransition();
   if(typeof resetLossNotices==='function')resetLossNotices();
   if(typeof resetPhaseAnnouncement==='function')resetPhaseAnnouncement();
@@ -1535,11 +1538,16 @@ function finishTest(result){
   const t = S.test;
   if(!t || !t.resolved || S.gameOver) return;
   result = S.testResult;
+  const clueState=S,cluesBefore=S.clues;
+  const clueOrigin=typeof captureClueOrigin==='function'?captureClueOrigin():null;
   const ghoulId=t.searchGhoul?document.getElementById('ghoulSearchChoice')?.value:null;
   S.test = null; S.committed=[];
   closeModal();
   t.onDone(result);
   if(t.searchGhoul && !S.gameOver){drawSearchedGhoul(ghoulId);render();}
+  if(S===clueState&&!S.gameOver&&S.clues>cluesBefore&&typeof showClueGain==='function'){
+    try{showClueGain(S.clues-cluesBefore,clueOrigin);}catch(_){} // Visual feedback must never affect settlement.
+  }
 }
 
 function cancelTest(){
@@ -1803,6 +1811,7 @@ function resolve(code, text){
 <script src="ambience.js?v=ending-victory-6"></script>
 <script src="ending-narration.js?v=text-voice-2"></script>
 <script src="failure-transition.js?v=1"></script>
+<script src="clue-flight.js?v=1"></script>
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=chapter-2"></script>
 <script src="phase-transition.js?v=skip-countdown-2"></script>

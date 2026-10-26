@@ -391,6 +391,24 @@ test('人物状态仍在外部显示，支持键盘放大查阅，受伤后同�
   assert.match(summary,/0\/9/);assert.match(summary,/gauge-percent">0%/);
 });
 
+test('两种最终通关路线都提供返回主菜单，关闭结局弹窗后仍保留入口',()=>{
+ for(const route of ['evaded','defeated']){
+  const g=finale();g.run(`S.finaleRoute='${route}';resolve('R1','最终胜利')`);assert.match(g.document.getElementById('modalBox').innerHTML,/onclick="returnToMenuAfterVictory\(\)"/);assert.match(g.document.getElementById('modalBox').innerHTML,/返回主菜单/);
+  g.run('closeModal();renderActions()');assert.match(g.document.getElementById('controls').innerHTML,/returnToMenuAfterVictory/);assert.equal(g.get('S.resolutionCode'),'R1');
+ }
+});
+
+test('通关返回菜单无需刷新或二次确认，清空本局后可重新开局',()=>{
+ const g=finale();g.run("resolve('R1','最终胜利');returnToMenuAfterVictory();returnToMenuAfterVictory()");assert.equal(g.get('S'),null);assert.equal(g.get('pendingNavigation'),false);assert.equal(g.document.getElementById('game').style.display,'none');assert.equal(g.document.getElementById('startOverlay').style.display,'flex');assert.equal(g.document.getElementById('modal').classList.contains('open'),false);assert.equal(g.document.getElementById('log').innerHTML,'');
+ g.run('startGame()');assert.deepEqual(g.get('[S.chapter,S.gameOver,S.actions,S.resources]'),[1,false,3,5]);
+});
+
+test('直接通关返回入口不能绕过进行中游戏，也不误用于中途胜利或失败',()=>{
+ const g=game(),before=g.get('S');g.run('returnToMenuAfterVictory()');assert.deepEqual(g.get('S'),before);
+ for(const chapter of [1,2]){const h=game();h.run(`S.chapter=${chapter};resolve('R1','中途胜利')`);const state=h.get('S');h.run('returnToMenuAfterVictory()');assert.deepEqual(h.get('S'),state);assert.match(h.document.getElementById('controls').innerHTML,/continueChapter/);assert.doesNotMatch(h.document.getElementById('controls').innerHTML,/returnToMenuAfterVictory/);}
+ const h=finale();h.run("resolve('R3','失败');returnToMenuAfterVictory()");assert.equal(h.get('S.gameOver'),true);assert.equal(h.get('S.resolutionCode'),'R3');assert.doesNotMatch(h.document.getElementById('controls').innerHTML,/returnToMenuAfterVictory/);
+});
+
 test('返回菜单需确认，取消不改变进度，确认后可重新开始',()=>{
   const g=game();g.run(`resource();requestReturnMenu()`);
   assert.equal(g.get('pendingNavigation'),true);assert.equal(g.get('canAct()'),false);

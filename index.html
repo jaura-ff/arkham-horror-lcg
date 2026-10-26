@@ -187,7 +187,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="noir.css">
 <link rel="stylesheet" href="home.css?v=character-1">
 <link rel="stylesheet" href="chapter-two.css?v=finale-1">
-<link rel="stylesheet" href="atlas.css?v=action-confirm-1">
+<link rel="stylesheet" href="atlas.css?v=category-buttons-2">
 <link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=asset-icons-1">
 <link rel="stylesheet" href="phase-transition.css?v=skip-countdown-2">
@@ -460,12 +460,23 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     <header class="atlas-heading"><div><span class="atlas-kicker">ARKHAM / CARD ARCHIVE</span><h2 id="atlasTitle">卡牌图鉴</h2></div><button type="button" class="btn icon-button" id="atlasClose" aria-label="关闭卡牌图鉴" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
     <p id="atlasNotice" class="atlas-notice">本作简化版卡牌档案，不是官方完整卡库。牌名、数值和用法以本网页实现为准；下方场景牌含剧情与结局信息。</p>
     <details class="atlas-primer" open><summary>怎么看一张卡牌？</summary>
-      <div class="atlas-reading"><section><h3>牌面信息</h3><p>名称用于识别卡牌；类型决定用途；费用是打出所需资源。技能图标用于投入检定；特性可被能力引用；等级关联购牌经验，并非资源费用。</p><p>敌人看战斗、生命、闪避和攻击的伤害／恐惧；地点看遮蔽、线索与连接；幕和议程分别看线索与末日门槛。</p></section>
-      <section><h3>卡牌类型</h3><p>资产通常留场；事件结算一次性效果；技能用于投入检定，不直接打出。调查员提供人物基础数值；敌人、诡计、地点、幕与议程构成场景。</p><p>弱点表示不利卡牌，并非所有弱点都采用相同处理方式。</p></section></div>
+      <div class="atlas-reading"><section><h3>牌面信息</h3><p>名称用于识别卡牌；类型决定用途；费用是打出所需资源。技能图标用于投入检定；特性可被能力引用；等级关联购牌经验，并非资源费用。</p><p>敌人看战斗、生命、闪避和攻击的伤害／恐惧；地点看遮蔽、线索与连接。</p></section>
+      <section><h3>卡牌类型</h3><p>资产通常留场；事件结算一次性效果；技能用于投入检定，不直接打出。调查员提供人物基础数值；敌人、诡计和地点构成场景。</p><p>弱点表示不利卡牌，并非所有弱点都采用相同处理方式。</p></section></div>
       <p class="atlas-source">基础版概念参考：<a href="https://images-cdn.fantasyflightgames.com/filer_public/c4/b0/c4b0d66c-d79e-411b-bdb5-b5d8c457d4bc/ahc01_rules_reference_web.pdf#page=28" target="_blank" rel="noopener noreferrer">FFG 官方 Rules Reference（2016），附录 IV，第 28–31 页及类型条目</a>。以上为概括说明，非逐字翻译。</p>
       <p class="atlas-notice">本网页版差异：只实现两只手槽，没有经验升级、完整职业组牌或武器弹药。只有四张技能牌和「侧身闪避」可投入对应检定；资产和事件打出均消耗 1 次行动，没有实现快速牌的免行动时机。具体效果请看下方“本作使用说明”，不要直接套用同名实体卡。</p>
     </details>
-    <div class="atlas-tools"><label>搜索卡牌<input id="atlasSearch" type="search" placeholder="名称、效果或用法" autocomplete="off"></label><label>卡牌分类<select id="atlasFilter"><option value="all">全部类型</option><option value="investigator">调查员</option><option value="asset">资产</option><option value="event">事件</option><option value="skill">技能</option><option value="weak">弱点</option><option value="enemy">敌人</option><option value="treachery">诡计</option><option value="location">地点</option><option value="act">幕</option><option value="agenda">议程</option></select></label></div>
+    <nav id="atlasCategories" class="atlas-categories" aria-label="卡牌分类">
+      <button type="button" class="atlas-category" data-atlas-type="all" aria-pressed="true" aria-controls="atlasCards">全部</button>
+      <button type="button" class="atlas-category" data-atlas-type="investigator" aria-pressed="false" aria-controls="atlasCards">调查员</button>
+      <button type="button" class="atlas-category" data-atlas-type="asset" aria-pressed="false" aria-controls="atlasCards">资产</button>
+      <button type="button" class="atlas-category" data-atlas-type="event" aria-pressed="false" aria-controls="atlasCards">事件</button>
+      <button type="button" class="atlas-category" data-atlas-type="skill" aria-pressed="false" aria-controls="atlasCards">技能</button>
+      <button type="button" class="atlas-category" data-atlas-type="weak" aria-pressed="false" aria-controls="atlasCards">弱点</button>
+      <button type="button" class="atlas-category" data-atlas-type="enemy" aria-pressed="false" aria-controls="atlasCards">敌人</button>
+      <button type="button" class="atlas-category" data-atlas-type="treachery" aria-pressed="false" aria-controls="atlasCards">诡计</button>
+      <button type="button" class="atlas-category" data-atlas-type="location" aria-pressed="false" aria-controls="atlasCards">地点</button>
+    </nav>
+    <div class="atlas-tools"><label>搜索卡牌<input id="atlasSearch" type="search" placeholder="名称、效果或用法" autocomplete="off"></label></div>
     <p id="atlasCount" class="atlas-count" role="status" aria-live="polite"></p>
     <div id="atlasCards" class="atlas-cards"></div>
     <footer class="home-dialog-footer"><button id="atlasConfirm" type="button" class="btn primary">确定</button></footer>
@@ -630,6 +641,15 @@ function cancelReturnMenu(){
   pendingNavigation = false;
   closeModal();
   if(S) render();
+}
+function hasCompletedStory(){
+  return !!S&&S.gameOver&&S.chapter===3&&S.resolutionCode==='R1';
+}
+function returnToMenuAfterVictory(){
+  if(!hasCompletedStory())return;
+  // The run is finished: no unsaved-investigation confirmation is needed.
+  pendingNavigation=true;
+  confirmReturnMenu();
 }
 function confirmReturnMenu(){
   if(!pendingNavigation || !S || S.drawingCards || S.test || S.pendingMove) return;
@@ -1088,7 +1108,7 @@ function renderActions(){
   const el = document.getElementById('actions');
   const controls = document.getElementById('controls');
   const cnt = document.getElementById('actioncount');
-  if(S.gameOver){ el.innerHTML=''; controls.innerHTML=S.failureTransitionActive?'':`${S.canContinue?'<button class="btn primary" onclick="continueChapter()">继续下一幕</button>':''}<button class="btn" onclick="location.reload()">${uiIcon('restart')}重新开始</button>`; cnt.textContent=''; return; }
+  if(S.gameOver){ el.innerHTML=''; controls.innerHTML=S.failureTransitionActive?'':`${S.canContinue?'<button class="btn primary" onclick="continueChapter()">继续下一幕</button>':''}${hasCompletedStory()?`<button class="btn primary" onclick="returnToMenuAfterVictory()">${uiIcon('home')}返回主菜单</button>`:''}<button class="btn" onclick="location.reload()">${uiIcon('restart')}重新开始</button>`; cnt.textContent=''; return; }
   if(S.drawingCards){el.innerHTML='';controls.innerHTML='<span role="status">弱点牌展示中，稍后自动结算并进入弃牌堆。</span>';cnt.textContent='自动结算中';return;}
   if(S.chapterIntro){el.innerHTML='';controls.innerHTML=`<button class="btn primary" onclick="beginChapter()">${S.chapter===3?'开始最终幕':'开始第二幕调查'}</button>`;cnt.textContent='准备开始';return;}
   const actions = [];
@@ -1951,6 +1971,7 @@ function resolve(code, text){
   if(typeof gameNarrator!=='undefined')gameNarrator.stop();
   if(typeof resetEnemyEngagement==='function')resetEnemyEngagement();
   S.gameOver = true;
+  S.resolutionCode=code;
   S.test = null;
   S.committed = [];
   S.pendingMove = false;
@@ -1972,7 +1993,7 @@ function resolve(code, text){
     <div class="center" style="font-size:13px;line-height:1.8">${text}</div>
     ${win&&S.chapter===1?'<div class="ending-voice"><audio id="endingNarration" hidden preload="auto" src="assets/audio/ending-narration-natural-v2.mp3"></audio><p id="endingVoiceStatus" hidden role="status" aria-live="polite" style="margin:12px 0;font-size:11px;color:var(--dim)"></p></div>':''}
     ${S.canContinue?`<p style="font-size:12px;color:var(--dim);line-height:1.8">${S.chapter===1?'钥匙指向地板下的暗门。下一幕：地板之下。保留当前状态，继续前往地下室。':'裂隙已封闭，但你还必须离开宅邸。下一幕是本作故事的最终幕，人物状态与牌组会保留。'}</p><div class="center mb"><button class="btn primary" onclick="continueChapter()">继续下一幕 · ${S.chapter===1?'地下室':'黎明之前'}</button></div>`:''}
-    ${win&&S.chapter===3?'<p style="font-size:12px;color:var(--dim);line-height:1.8">本作三幕故事已全部完成。这是网页版原创改编的结局，并非官方战役通关。</p><div class="center mb"><button class="btn primary" onclick="location.reload()">重新开始</button></div>':''}
+    ${win&&S.chapter===3?`<p style="font-size:12px;color:var(--dim);line-height:1.8">本作三幕故事已全部完成。这是网页版原创改编的结局，并非官方战役通关。</p><div class="menu-confirm-actions"><button type="button" class="btn primary" onclick="returnToMenuAfterVictory()">${uiIcon('home')}返回主菜单</button><button type="button" class="btn" onclick="location.reload()">重新开始</button></div>`:''}
     <div class="center mb"><button class="btn" onclick="closeModal()">${uiIcon('close')}关闭</button></div>
   `);
   if(win){gameSfx('victory');if(S.chapter===1&&typeof beginEndingNarration==='function')beginEndingNarration();}
@@ -1991,7 +2012,7 @@ function resolve(code, text){
 <script src="loss-notices.js?v=phase-source-5"></script>
 <script src="weakness-reveal.js?v=1"></script>
 <script src="tutorial.js?v=standalone-outro-1"></script>
-<script src="atlas.js?v=chapter-3"></script>
+<script src="atlas.js?v=category-buttons-4"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
 <script src="hand-dialog.js?v=action-confirm-1"></script>
 <script src="discard.js?v=character-deck-1"></script>

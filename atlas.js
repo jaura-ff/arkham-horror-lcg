@@ -3,9 +3,11 @@
   'use strict';
   const byId = id => document.getElementById(id);
   const dialog = byId('cardAtlas'), list = byId('atlasCards');
-  const search = byId('atlasSearch'), filter = byId('atlasFilter');
-  if (!dialog || !list || !search || !filter) return;
-  const types = {investigator:'调查员',asset:'资产',event:'事件',skill:'技能',weak:'弱点',enemy:'敌人',treachery:'诡计',location:'地点',act:'幕',agenda:'议程'};
+  const search = byId('atlasSearch'), categoryBar = byId('atlasCategories');
+  if (!dialog || !list || !search || !categoryBar) return;
+  const categoryButtons=[...categoryBar.querySelectorAll('button[data-atlas-type]')];
+  let activeType='all';
+  const types = {investigator:'调查员',asset:'资产',event:'事件',skill:'技能',weak:'弱点',enemy:'敌人',treachery:'诡计',location:'地点'};
   const usage = CARD_USAGE;
   const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const cards = [];
@@ -31,13 +33,12 @@
   for(const [id,c] of Object.entries(LOCATIONS)) add('location',c.name,c.desc,
     [['遮蔽',c.shroud],['初始线索',c.clues],['相邻地点',c.conn.map(key=>LOCATIONS[key].name).join('、')]],
     '移动消耗 1 行动，只能前往相邻地点。调查以智慧对抗遮蔽；成功获得这里的 1 个线索。图鉴显示初始线索，不是剩余线索。');
-  ACT_DECK.forEach(c=>add('act','幕 '+c.id,c.text,[],({'1a':'花 3 线索和 1 行动推进；不是免行动操作。','1b':'抵达阁楼完成调查后，可保留状态继续进入下一幕。','2a':'收集 2 条线索，花费 2 线索和 1 行动辨认封印。','2b':'到祭坛摆脱就绪交缠敌人，花 1 行动执行意志目标值 3 的封印检定；失败承受 1 恐惧，可重试。成功后可保留状态继续最终幕。','3a':'本作原创最终幕：花费 2 线索和 1 行动辨明出口，再前往宅邸铁门。','3b':'击败或成功闪避守门者，没有就绪交缠敌人时花 1 行动逃离宅邸。闪避路线需要至少 2 行动：先闪避，再逃离。这是本作三幕故事的最终结局。'})[c.id]));
-  AGENDA_DECK.forEach(c=>add('agenda','议程 '+c.id,c.text,[['末日门槛',c.threshold||'终局']],c.threshold?'神话阶段或卡牌效果增加末日；达到门槛后自动推进并清除当前末日。':'本作的失败终局，推进到此时调查结束。'));
   function render() {
     const query=search.value.trim().toLocaleLowerCase();
-    const matches=cards.filter(c=>(filter.value==='all'||c.type===filter.value) && [c.name,c.text,c.use,types[c.type],...c.fields.flat()].join(' ').toLocaleLowerCase().includes(query));
+    const matches=cards.filter(c=>(activeType==='all'||c.type===activeType) && [c.name,c.text,c.use,types[c.type],...c.fields.flat()].join(' ').toLocaleLowerCase().includes(query));
+    categoryButtons.forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.atlasType===activeType)));
     byId('atlasCount').textContent=`显示 ${matches.length} / ${cards.length} 条档案（同名遭遇牌合并）`;
-    list.innerHTML=matches.length?matches.map(c=>`<details class="atlas-card"><summary>${c.art?`<span class="atlas-thumb art" aria-hidden="true" style="--art-x:${c.art[0]}%;--art-y:${c.art[1]}%"></span>`:`<span class="atlas-stamp" aria-hidden="true">${types[c.type]}</span>`}<span><small>${types[c.type]}</small><b>${esc(c.name)}</b></span><span class="atlas-expand" aria-hidden="true">＋</span></summary><div class="atlas-card-body"><dl>${c.fields.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl><h3>本作牌面效果</h3><p>${esc(c.text)}</p><h3>本作使用说明</h3><p>${esc(c.use)}</p></div></details>`).join(''):'<p class="atlas-empty">没有匹配的卡牌，试试其他名称或切回“全部类型”。</p>';
+    list.innerHTML=matches.length?matches.map(c=>`<details class="atlas-card"><summary>${c.art?`<span class="atlas-thumb art" aria-hidden="true" style="--art-x:${c.art[0]}%;--art-y:${c.art[1]}%"></span>`:`<span class="atlas-stamp" aria-hidden="true">${types[c.type]}</span>`}<span><small>${types[c.type]}</small><b>${esc(c.name)}</b></span><span class="atlas-expand" aria-hidden="true">＋</span></summary><div class="atlas-card-body"><dl>${c.fields.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl><h3>本作牌面效果</h3><p>${esc(c.text)}</p><h3>本作使用说明</h3><p>${esc(c.use)}</p></div></details>`).join(''):'<p class="atlas-empty">没有匹配的卡牌，试试其他名称或切回“全部”分类。</p>';
   }
   let lastFocus=null,savedOverflow='';
   function open() {
@@ -46,7 +47,7 @@
       byId('guideStatus').textContent='请先完成或关闭当前弹窗，再打开卡牌图鉴。';return;
     }
     lastFocus=document.activeElement;
-    search.value='';filter.value='all';render();
+    search.value='';activeType='all';render();
     savedOverflow=document.body.style.overflow;
     dialog.showModal();document.body.style.overflow='hidden';dialog.scrollTop=0;
     byId('atlasClose').focus();
@@ -56,5 +57,10 @@
   byId('atlasClose').addEventListener('click',()=>dialog.close());
   byId('atlasConfirm')?.addEventListener('click',()=>dialog.close());
   dialog.addEventListener('close',()=>{document.body.style.overflow=savedOverflow;if(lastFocus?.isConnected!==false)lastFocus?.focus();});
-  search.addEventListener('input',render);filter.addEventListener('change',render);
+  search.addEventListener('input',render);
+  categoryButtons.forEach(button=>button.addEventListener('click',()=>{
+    const type=button.dataset.atlasType;
+    if(type!=='all'&&!Object.hasOwn(types,type))return;
+    activeType=type;render();
+  }));
 })();

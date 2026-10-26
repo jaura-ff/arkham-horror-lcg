@@ -1,81 +1,39 @@
-# Official Core Set integration — in progress
+# Standard Core investigators — local playable integration
 
-The user selected the official-rules version on 2026-10-23. Do not substitute
-the existing ten-card adapted deck or parallel investigators.
+The five standard Core investigators are connected to the existing single-player web game through player-runtime.js. The original pure rule modules remain independently testable. Publication is handled by the repository's GitHub Pages deployment.
 
-## Implemented and tested, not enabled in the live game
+## Loaded modules
 
-- `official-session.js`: executable independent player setup, opening draw,
-  once-only mulligan with held-out cards, atomic cost payments, physical uses,
-  exhaustion, slot validation/replacement, simultaneous asset loss assignment,
-  direct loss, defeat guards and empty-supply asset removal.
-- `official-weaknesses.js`: executable draw/revelation queue, real Amnesia choice,
-  signature threat counters, Dark Memory end-turn horror, debt limits, basic
-  weakness enemy spawning, discard removal, deck exhaustion, forced-loss chains
-  and once-only end-scenario trauma/XP penalties. Choice hooks still need UI.
-- `official-tests.js`: executable independent test windows, icon commitment,
-  token holding/chained draws, paid Wendy cancellation before effects, five elder
-  signs, Detective blanking, Lucky and committed skill aftermath. Scene symbol
-  consequences require an explicit callback; unresolved effects return to queue.
-- No new module has been wired to `index.html`. Do not claim any of these are
-  available through the public game or that all 76 cards are playable yet.
+- official-core.js: five investigator specifications, abilities, elder signs and FFG v2.0 starter manifests.
+- official-cards.js / official-card-rules.js: 76 factual card definitions and declarative printed-rule recipes.
+- official-decks.js: 33 physical cards per investigator: 30 regular cards, signature, signature weakness and a randomly chosen Core basic weakness. Each copy has independent identity and mutable state.
+- official-session.js: opening draw/mulligan, payments, capacity/slot checks and simultaneous loss allocation.
+- official-tests.js: commitments, held tokens, paid Wendy cancellation, five elder signs, Lucky and committed aftermath.
+- player-catalogue.js: Chinese reading aids and metadata adapter; original printed slot names remain available for slot validation.
+- player-runtime.js: executable UI bridge, optional choices, reactions, play/asset actions, uses, weakness revelations, phase windows and scenario-state synchronization.
 
-- Latest instruction (2026-10-23): deploy the work completed so far. This
-  supersedes the earlier request to wait until every character was playable.
-  Deployment publishes the inactive modules and tests only; it does not enable
-  new characters or imply that the full official-rules integration is complete.
-  Update PR #66 with all current work before merging; do not release its old
-  foundation-only snapshot.
-- `official-cards.js`: factual metadata for all 68 distinct starter cards plus
-  the eight Core basic weaknesses (76 definitions); source is
-  `zzorba/arkhamdb-json-data/pack/core/core.json`, read 2026-10-23.
-- `official-card-rules.js`: explicit declarative effect/timing/cost recipes for
-  every definition, including fast/reaction/forced/replacement windows. These
-  are NOT executable integration handlers and must not be presented as playable.
-- `official-decks.js`: builds each 33-card physical deck, normalizes skill icons,
-  initializes uses, chooses a real random basic weakness from Core quantities,
-  and blocks release if any execution handler is absent.
+The independent official-weaknesses.js queue is still tested as a pure module. The active browser bridge supplies its own UI continuations for the same weakness operations; it does not load that independent queue into the legacy state shape.
 
-- `official-core.js`: standard five-investigator stats, independent FFG v2.0
-  starter manifests, 30 ordinary cards + signature + signature weakness + one
-  randomly selected basic weakness per investigator.
-- Independent physical-card identity and nested mutable data per copy.
-- Pure ability transitions: Skids once per own turn, Daisy's restricted Tome
-  action, Agnes once per phase on horror placed on her, Roland once per round
-  after defeating an enemy, Wendy's paid cancellation once per test/ability.
-- Five distinct elder signs; Daisy's Necronomicon override. Skids gains resources
-  only on success; Agnes's modifier uses horror on her, not committed icons.
-- Missing official card definitions or a missing real basic weakness fail closed.
+## Playable behavior
 
-These are rule-model functions, not integrated gameplay handlers. No script tag
-loads this module. The website still truthfully lists only Roland as playable.
+Selection is tentative until confirmed and applies only to the next run. Start gives the selected investigator's real attributes and independent starter deck. The initial five-card draw excludes weaknesses; a once-only mulligan holds rejected cards out until replacements have been drawn.
 
-## Remaining before any playable release
+Daisy receives a restricted Tome action; Skids pays two resources once per own turn; Agnes reacts only to horror placed on herself, once per phase; Wendy pays an uncommitted non-weakness card to cancel and return a token before redraw, once per test. Roland's once-per-round clue reaction is optional. A colocated Stubborn Detective blanks investigator abilities and elder signs.
 
-1. Audit all declarative card recipes against printed text and implement their
-   execution handlers. Metadata and deck assembly are now present for all codes.
-2. Integrate a choice/resolution queue for reaction windows and optional effects;
-   do not auto-select a player's paid ability, target, discard or asset soak.
-3. Implement action/fast/reaction timing, printed costs, uses (ammo/charges),
-   exhaustion, slots/replacement choices, ally/asset damage and horror assignment.
-4. Implement all referenced asset, event, skill and weakness effects, including
-   search/reorder choices, enemy targets, evade/fight modifiers, after-test timing,
-   discard replay, event destination replacement and campaign trauma/XP records.
-5. Wire the five abilities at correct game windows; return cancelled chaos tokens
-   before redraw and suppress all cancelled-token consequences. Keep pending
-   skill tests intact across choices, including chained chaos draws.
-6. Replace hard-coded Roland names/portraits/help/token explanations/deck views;
-   select and lock investigator before prologue, initialize/reset per-game state.
-7. Add end-to-end tests for each character, every starter card, optional choices,
-   defeat during payment, no-repeat guards, cancellation, new game and old flows.
-8. Only then enable role selection, publish, and verify deployed content.
+A selected weapon pays its own action/use costs and never stacks every equipped weapon. Ammo, charges, secrets, supplies, exhaustion and actual remaining uses are displayed. Slot replacements and damage/horror allocation are player choices. Assets reset their uses and placed tokens on re-entry. Fast cards cost no action; conditional reactions appear only in their windows. Other player-window fast abilities are accessible between phases and before test token reveal.
+
+Weaknesses reveal immediately, then follow their own destination and consequences: threat-area weaknesses persist, Dark Memory stays in hand and can be played, Amnesia requires a keep choice, enemy weaknesses spawn enemies, and direct loss bypasses assets. A defeated player enemy returns to the player discard as a weakness, not the encounter discard. The state queue and choice nonce prevent duplicate confirmations and interruption of pending effects.
+
+Role, deck, hand, assets and threats persist across the adapted chapters. Final weakness penalties are recorded for the current run. The deck reference sorts the initial composition by collector number and does not expose shuffled order. The atlas includes five investigators and 76 player definitions, with act/agenda excluded.
+
+## Scope and presentation
+
+The map, encounters, chaos-symbol reference and three-chapter story remain the existing web adaptation, not the official full campaign. There is no campaign persistence, XP upgrade shop, arbitrary deck construction, multiplayer or parallel-investigator support. Non-Roland investigators use profession medallions. Their first prologue page uses character-specific text without the prerecorded Roland identity line; later generic narration remains.
+
+Verification uses VM integration tests that execute the same scripts and rule paths as the page, alongside the existing pure-module and regression suites. Browser visual QA has not been performed. Do not describe this as a full official campaign or as a deployed update before an actual publication.
 
 ## Sources
 
-- FFG Starter Decklists v2.0 (2016), pp. 2–4:
-  https://images-cdn.fantasyflightgames.com/filer_public/c0/87/c087e26e-c6d6-4533-ba2e-2b97b3f05917/ahc_decklists_v20_web.pdf
-- Standard card transcriptions: https://arkhamdb.com/card/01001 through 01005.
-  Do not use replacement cards or parallel investigator text.
-
-The current scenario/map remains a web adaptation. Supporting official player
-cards does not make this an implementation of the entire official campaign.
+- FFG Starter Decklists v2.0 (2016), pp. 2–4: https://images-cdn.fantasyflightgames.com/filer_public/c0/87/c087e26e-c6d6-4533-ba2e-2b97b3f05917/ahc_decklists_v20_web.pdf
+- FFG Rules Reference (2016): https://images-cdn.fantasyflightgames.com/filer_public/c4/b0/c4b0d66c-d79e-411b-bdb5-b5d8c457d4bc/ahc01_rules_reference_web.pdf
+- Existing factual card metadata was sourced from zzorba/arkhamdb-json-data, pack/core/core.json on 2026-10-23; standard original cards only, no taboo substitutions or parallel signatures.

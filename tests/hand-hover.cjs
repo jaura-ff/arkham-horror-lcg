@@ -36,6 +36,6 @@ test('只读查看不消耗卡牌行动资源，触屏悬停忽略，焦点仍�
 });
 test('视口约束与缩放外浮层不改变棋盘，索引钩子保留原有点击处理',()=>{
  const g=setup();g.enter(g.card(0));const tip=g.nodes.get('handHover');assert.ok(parseFloat(tip.style.top)>=12);assert.ok(parseFloat(tip.style.top)+260<=588);assert.ok(parseFloat(tip.style.left)>=12);
- assert.match(html,/data-hand-index="\$\{i\}"/);assert.match(html,/onclick="inspectHandCard\(\$\{i\},event\)"/);assert.match(html,/id="handHover" role="tooltip" hidden/);assert.match(html,/hand-hover.js\?v=hover-1/);
+ assert.match(html,/data-hand-index="\$\{i\}"/);assert.match(html,/onclick="inspectHandCard\(\$\{i\},event\)"/);assert.match(html,/id="handHover" role="tooltip" hidden/);assert.match(html,/hand-hover.js\?v=players-1/);
  const css=fs.readFileSync(path.join(root,'hand-hover.css'),'utf8');assert.match(css,/position:fixed/);assert.match(css,/max-width:calc\(100vw - 24px\)/);assert.match(css,/#handHover\[hidden\]\{display:none\}/);assert.doesNotMatch(css,/#hand\s*\{|#game|#wrap/);
 });

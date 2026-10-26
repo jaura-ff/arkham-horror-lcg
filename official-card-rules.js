@@ -1,5 +1,5 @@
-/* Declarative printed Core rules. These recipes are NOT a claim that the
- * legacy game has execution/timing handlers for them. Release stays gated.
+/* Declarative printed Core rules. player-runtime.js supplies UI execution for
+ * the five standard starter decks; recipes alone are not execution handlers.
  * Effects use numeric primitives and explicit windows, never legacy card IDs.
  */
 (function(root){

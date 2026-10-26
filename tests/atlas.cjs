@@ -5,7 +5,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const root=path.join(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-function setup(){
+function setup(official=false){
   const nodes=new Map();
   const doc={body:{style:{overflow:'auto'}},activeElement:null,createElement(){return{innerHTML:'',className:''}},getElementById(id){
     if(!nodes.has(id)){
@@ -14,9 +14,10 @@ function setup(){
       nodes.set(id,n);
     }return nodes.get(id);
   }};
-  const ctx=vm.createContext({document:doc,Math});
+  const ctx=vm.createContext({document:doc,Math:Object.create(Math),structuredClone});
   const run=code=>vm.runInContext(code,ctx);
   run(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
+  if(official)for(const file of ['official-core.js','official-cards.js','official-card-rules.js','official-decks.js','player-catalogue.js'])run(fs.readFileSync(path.join(root,file),'utf8'));
   const categories=[...html.matchAll(/<button[^>]*data-atlas-type="([^"]+)"[^>]*>([^<]+)<\/button>/g)].map(m=>{const n=doc.getElementById('category-'+m[1]);n.dataset.atlasType=m[1];n.textContent=m[2];return n});
   doc.getElementById('atlasCategories').querySelectorAll=()=>categories;
   run(fs.readFileSync(path.join(root,'atlas.js'),'utf8'));
@@ -30,7 +31,7 @@ test('菜单可直接阅读全部卡牌而不开始游戏，含官方来源和�
   const g=setup();g.click('menuAtlasButton');assert.equal(g.run('S'),null);assert.equal(g.node('cardAtlas').open,true);
   assert.match(g.node('atlasCount').textContent,/26 \/ 26/);
   assert.match(html,/附录 IV，第 28–31 页/);assert.match(html,/不等同|不是官方完整卡库/);
-  assert.match(html,/atlas.css/);assert.ok(html.includes('src="atlas.js?v=category-buttons-4"'));
+  assert.match(html,/atlas.css/);assert.ok(html.includes('src="atlas.js?v=players-1"'));
 });
 test('图鉴确定按钮关闭并回到首页图鉴入口，不开局',()=>{
  const g=setup();g.click('menuAtlasButton');g.click('atlasConfirm');assert.equal(g.node('cardAtlas').open,false);assert.equal(g.doc.activeElement.id,'menuAtlasButton');assert.equal(g.doc.body.style.overflow,'auto');assert.equal(g.run('S'),null);
@@ -88,4 +89,11 @@ test('本作关键差异说明存在，图鉴中没有打出卡牌或抽牌操�
   for(const text of ['不计弹药','不增加伤害','不是剩余线索','不能主动打出','不是当前剩余状态'])assert.ok(content.includes(text),text);
   assert.doesNotMatch(content,/onclick=|onHandCard|drawCards/);
   assert.match(html,/<dialog id="cardAtlas"/);assert.match(html,/aria-labelledby="atlasTitle"/);
+});
+test('实际页面图鉴收录五位调查员与76张基础盒玩家牌，未泄露抽牌顺序或抽取随机弱点',()=>{
+ const g=setup(true);g.run('Math.random=()=>{throw Error("Atlas must not shuffle or choose a weakness") }');g.click('menuAtlasButton');assert.match(g.node('atlasCount').textContent,/96 \/ 96/);
+ const investigators=g.query('','investigator');assert.equal((investigators.match(/class="atlas-card"/g)||[]).length,5);
+ for(const name of ['罗兰·班克斯','黛西·沃克','斯基兹','艾格尼丝·贝克','温蒂·亚当斯'])assert.ok(investigators.includes(name),name);
+ assert.match(g.query('死灵之书'),/上古印记视为自动失败/);assert.match(g.query('.45 自动手枪','asset'),/4 发弹药/);
+ assert.doesNotMatch(g.query(),/<small>幕<\/small>|<small>议程<\/small>/);assert.equal(g.run('S'),null);
 });

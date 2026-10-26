@@ -83,7 +83,7 @@ test('减少动态效果优先，系统设置变化立即生效，不改变游�
 });
 
 test('动画层仅装饰、无无限循环，不遮挡交互且缓存版本更新',()=>{
- const css=fs.readFileSync(path.join(root,'prologue.css'),'utf8');assert.match(html,/class="prologue-stage" aria-hidden="true"/);assert.match(html,/prologue\.css\?v=narration-1/);assert.match(html,/prologue\.js\?v=three-scenes-2/);assert.match(css,/pointer-events:none/);assert.doesNotMatch(css,/infinite/);assert.match(css,/pointer:coarse/);assert.match(css,/noir-rooms.webp/);
+ const css=fs.readFileSync(path.join(root,'prologue.css'),'utf8');assert.match(html,/class="prologue-stage" aria-hidden="true"/);assert.match(html,/prologue\.css\?v=narration-1/);assert.match(html,/prologue\.js\?v=players-1/);assert.match(css,/pointer-events:none/);assert.doesNotMatch(css,/infinite/);assert.match(css,/pointer:coarse/);assert.match(css,/noir-rooms.webp/);
 });
 
 const flush=()=>new Promise(resolve=>setImmediate(resolve));

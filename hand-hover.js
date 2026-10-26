@@ -31,11 +31,12 @@
     card=next;
     const type={asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[card.type]||'卡牌';
     byId('handHoverTitle').textContent=card.name;
-    byId('handHoverType').textContent=type+(['skill','weak'].includes(card.type)?' · 非普通出牌':` · 费用 ${card.cost} 资源 + 1 行动`);
+    byId('handHoverType').textContent=type+(['skill','weak'].includes(card.type)&&card.code!=='01013'?' · 非普通出牌':` · 费用 ${card.cost} 资源 + ${card.rules?.play?.timing==='fast'?0:1} 行动`);
     byId('handHoverEffect').textContent=card.text;
     byId('handHoverUsage').textContent=CARD_USAGE[card.id]||card.text;
     const art=CARD_ART[card.id]||[0,0];
     byId('handHoverArt').style.setProperty('--art-x',art[0]+'%');byId('handHoverArt').style.setProperty('--art-y',art[1]+'%');
+    if(card.code){byId('handHoverArt').classList.toggle('art',!!CARD_ART[card.id]);byId('handHoverArt').classList.toggle('player-card-stamp',!CARD_ART[card.id]);byId('handHoverArt').textContent=CARD_ART[card.id]?'':type;}
     anchor.setAttribute('aria-describedby',[originalDescription,'handHover'].filter(Boolean).join(' '));
     tip.hidden=false;position();
   }

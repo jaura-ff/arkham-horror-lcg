@@ -6,6 +6,7 @@
   let lastTap=0,pending=null,lastFocus=null,savedOverflow='';
   function blocked(card){
     if(!S || !S.hand.includes(card))return '手牌已变化，请关闭后重新选择。';
+    if(S.player&&window.ArkhamPlayerRuntime)return window.ArkhamPlayerRuntime.playable(card);
     if(card.type==='skill')return '技能牌不能直接出牌，请在对应属性的检定弹窗中投入。';
     if(card.type==='weak')return '弱点不能主动出牌，抽到时自动结算。';
     if(!canAct())return S.actions<=0?'本回合行动已用完，当前不能出牌。':'当前不在可出牌的调查阶段，或有未完成的操作。';
@@ -17,7 +18,8 @@
     const reason=blocked(pending),button=byId('handCardPlay');button.disabled=!!reason;
     button.textContent=reason?'当前无法出牌':'继续 · 出牌';
     const enemies=S?.enemies.filter(e=>e.engaged&&!e.exhausted)||[];
-    byId('handCardWarning').textContent=reason || (enemies.length?`注意：出牌会触发 ${enemies.length} 名敌人的借机攻击（共 ${enemies.reduce((n,e)=>n+e.card.dmg,0)} 伤害、${enemies.reduce((n,e)=>n+e.card.horror,0)} 恐惧）。若被击败，卡牌效果不会执行。`:'确认出牌才消耗费用；关闭或取消不消耗资源和行动。');
+    const exempt=pending.rules?.play?.timing==='fast'||['fight','evade','automatic-evade-all-local'].includes(pending.rules?.play?.effect);
+    byId('handCardWarning').textContent=reason || (enemies.length&&!exempt?`注意：出牌会触发 ${enemies.length} 名敌人的借机攻击（共 ${enemies.reduce((n,e)=>n+e.card.dmg,0)} 伤害、${enemies.reduce((n,e)=>n+e.card.horror,0)} 恐惧）。若被击败，卡牌效果不会执行。`:'确认出牌才消耗费用；关闭或取消不消耗资源和行动。');
   }
   function open(card){
     pending=card;lastFocus=document.activeElement;savedOverflow=document.body.style.overflow;
@@ -25,8 +27,9 @@
     byId('handCardType').textContent={asset:'资产 / ASSET',event:'事件 / EVENT',skill:'技能 / SKILL',weak:'弱点 / WEAKNESS'}[card.type];
     byId('handCardEffect').textContent=card.text;
     byId('handCardUsage').textContent=CARD_USAGE[card.id]||card.text;
-    byId('handCardCost').textContent=['skill','weak'].includes(card.type)?'此牌不使用普通出牌行动。':`出牌费用：${card.cost} 资源 + 1 行动。当前：${S.resources} 资源，${S.actions} 行动。${card.slot==='hand'?'占用 1 只手槽。':''}`;
+    byId('handCardCost').textContent=['skill','weak'].includes(card.type)&&card.code!=='01013'?'此牌不使用普通出牌行动。':`出牌费用：${card.cost} 资源 + ${card.rules?.play?.timing==='fast'?0:1} 行动。当前：${S.resources} 资源，${S.actions} 行动。${card.slot==='hand'?`占用 ${card.slots||1} 只手槽。`:''}`;
     const art=CARD_ART[card.id]||[0,0];byId('handCardArt').style.setProperty('--art-x',art[0]+'%');byId('handCardArt').style.setProperty('--art-y',art[1]+'%');
+    if(card.code){byId('handCardArt').classList.toggle('art',!!CARD_ART[card.id]);byId('handCardArt').classList.toggle('player-card-stamp',!CARD_ART[card.id]);byId('handCardArt').textContent=CARD_ART[card.id]?'':({asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[card.type]);}
     refresh();dialog.showModal();document.body.style.overflow='hidden';dialog.scrollTop=0;byId('handCardClose').focus();
   }
   window.inspectHandCard=(index,event)=>{

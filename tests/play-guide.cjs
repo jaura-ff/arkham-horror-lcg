@@ -17,6 +17,11 @@ test('首回合实时指引明确跳过神话而非敌人阶段',()=>{
 test('无敌人时解释没有攻击，不删除敌人阶段',()=>{
   const g=setup();g.run('S.enemies=[];S.actions=0;advancePhase()');assert.equal(g.get('S.phase'),'enemy');assert.match(g.text(),/没有敌人/);assert.match(g.text(),/敌人阶段仍正常经过/);assert.doesNotMatch(g.text(),/首回合跳过敌人阶段/);
 });
+test('最终幕指引解释出口和闪避行动预算，封印胜利可继续最终幕',()=>{
+ const g=setup();g.run("S.chapter=2;resolve('R1','封印成功')");assert.match(g.text(),/最终幕「黎明之前」/);
+ g.run("continueChapter();beginChapter()");assert.match(g.text(),/辨明出口/);g.run('S.actIdx=5;renderActions()');assert.match(g.text(),/预留 2 行动/);assert.match(g.text(),/逃离宅邸/);
+});
+
 test('调查中根据交缠、行动及目标切换指引',()=>{
   const g=setup();g.run(`S.enemies=[{engaged:true,exhausted:false}];renderActions()`);assert.match(g.text(),/借机攻击/);assert.match(g.text(),/战斗、闪避豁免/);
   g.run('S.actions=0;renderActions()');assert.match(g.text(),/行动已用完/);g.run('S.actions=3;S.enemies=[];S.clues=3;renderActions()');assert.match(g.text(),/推进幕/);
@@ -34,6 +39,6 @@ test('指引只读且不重开用户收起的面板，不影响随机或行动�
   const g=setup(),before=g.get('S');g.el('playGuide').open=false;g.run(`Math.random=()=>{throw Error('unexpected random')};updatePlayGuide();renderActions();phaseGuideText('enemy',true);phaseGuideText('upkeep',true)`);assert.deepEqual(g.get('S'),before);assert.equal(g.el('playGuide').open,false);
 });
 test('指引有本地脚本、收起入口及官方来源，阶段弹窗读取同一规则说明',()=>{
-  assert.match(html,/<details id="playGuide"[^>]*open>/);assert.match(html,/playGuideText" aria-live="polite"/);assert.match(html,/ahc01_learn_to_play_web.pdf#page=9/);assert.match(html,/play-guide.js\?v=chapter-2/);assert.match(html,/phaseAnnouncementRule/);
+  assert.match(html,/<details id="playGuide"[^>]*open>/);assert.match(html,/playGuideText" aria-live="polite"/);assert.match(html,/ahc01_learn_to_play_web.pdf#page=9/);assert.match(html,/play-guide.js\?v=chapter-3/);assert.match(html,/phaseAnnouncementRule/);
   const phase=fs.readFileSync(path.join(root,'phase-transition.js'),'utf8');assert.match(phase,/phaseGuideText\(phase,true\)/);
 });

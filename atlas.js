@@ -20,10 +20,10 @@
     add(c.type,c.name,c.text,fields,usage[c.id],CARD_ART[c.id]);
   }
   const seen = new Set();
-  for (const c of [...ENCOUNTER,...(typeof CELLAR_GUARD==='undefined'?[]:[CELLAR_GUARD])]) {
+  for (const c of [...ENCOUNTER,...(typeof CELLAR_GUARD==='undefined'?[]:[CELLAR_GUARD]),...(typeof FINAL_GUARD==='undefined'?[]:[FINAL_GUARD])]) {
     if(seen.has(c.name)) continue;
     seen.add(c.name);
-    if(c.type==='enemy') add(c.type,c.name,'遭遇抽到后，生成在你当前的地点并交缠。',
+    if(c.type==='enemy') add(c.type,c.name,c.id==='gate-keeper'?'最终幕首次进入宅邸铁门时出现，与你交缠；本局不重复生成。':c.id==='cellar-keeper'?'第二幕首次进入地下窖室时出现，与你交缠；本局不重复生成。':'遭遇抽到后，生成在你当前的地点并交缠。',
       [['战斗难度',c.fight],['生命',c.hp],['闪避难度',c.evade],['攻击伤害',c.dmg],['攻击恐惧',c.horror],['胜利点',c.victory]],
       (c.hunter?'猎手：就绪且未交缠时，每个敌人阶段向你移动一个相邻地点。':'非猎手：不会主动跨地点追赶。')+' 成功闪避使其力竭并脱离交缠；就绪且同地点时会重新交缠。交缠的就绪敌人会在普通非战斗／闪避行动前借机攻击。');
     else add(c.type,c.name,c.text,[],c.id.startsWith('ancient')?'抽到后自动增加 1 末日，并检查议程推进，然后弃置。':'抽到后自动打开意志难度 2 的检定。可投入匹配技能牌；失败失去 1 理智，成功则不受恐惧，之后弃置。');
@@ -31,7 +31,7 @@
   for(const [id,c] of Object.entries(LOCATIONS)) add('location',c.name,c.desc,
     [['遮蔽',c.shroud],['初始线索',c.clues],['相邻地点',c.conn.map(key=>LOCATIONS[key].name).join('、')]],
     '移动消耗 1 行动，只能前往相邻地点。调查以智慧对抗遮蔽；成功获得这里的 1 个线索。图鉴显示初始线索，不是剩余线索。');
-  ACT_DECK.forEach(c=>add('act','幕 '+c.id,c.text,[],({'1a':'花 3 线索和 1 行动推进；不是免行动操作。','1b':'抵达阁楼完成调查后，可保留状态继续进入下一幕。','2a':'收集 2 条线索，花费 2 线索和 1 行动辨认封印。','2b':'到祭坛摆脱就绪交缠敌人，花 1 行动执行意志目标值 3 的封印检定；失败承受 1 恐惧，可重试。'})[c.id]));
+  ACT_DECK.forEach(c=>add('act','幕 '+c.id,c.text,[],({'1a':'花 3 线索和 1 行动推进；不是免行动操作。','1b':'抵达阁楼完成调查后，可保留状态继续进入下一幕。','2a':'收集 2 条线索，花费 2 线索和 1 行动辨认封印。','2b':'到祭坛摆脱就绪交缠敌人，花 1 行动执行意志目标值 3 的封印检定；失败承受 1 恐惧，可重试。成功后可保留状态继续最终幕。','3a':'本作原创最终幕：花费 2 线索和 1 行动辨明出口，再前往宅邸铁门。','3b':'击败或成功闪避守门者，没有就绪交缠敌人时花 1 行动逃离宅邸。闪避路线需要至少 2 行动：先闪避，再逃离。这是本作三幕故事的最终结局。'})[c.id]));
   AGENDA_DECK.forEach(c=>add('agenda','议程 '+c.id,c.text,[['末日门槛',c.threshold||'终局']],c.threshold?'神话阶段或卡牌效果增加末日；达到门槛后自动推进并清除当前末日。':'本作的失败终局，推进到此时调查结束。'));
   function render() {
     const query=search.value.trim().toLocaleLowerCase();

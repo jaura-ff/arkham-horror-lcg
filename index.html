@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>诡镇奇谭：卡牌版 · 宅邸与地板之下</title>
+<title>诡镇奇谭：卡牌版 · 黎明之前</title>
 <style>
 :root{
   --bg:#10171c;--panel:#192329;--panel2:#202d34;--border:#314149;
@@ -186,7 +186,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 </style>
 <link rel="stylesheet" href="noir.css">
 <link rel="stylesheet" href="home.css?v=character-1">
-<link rel="stylesheet" href="chapter-two.css?v=basement-1">
+<link rel="stylesheet" href="chapter-two.css?v=finale-1">
 <link rel="stylesheet" href="atlas.css?v=action-confirm-1">
 <link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=asset-icons-1">
@@ -529,8 +529,12 @@ const LOCATIONS = {
   stairs:{name:'石阶入口',shroud:2,clues:1,desc:'旧箱里的钥匙打开了地板暗门。潮湿石阶向下延伸，墙内的抓挠声越来越近。',conn:['cellar']},
   cellar:{name:'地下窖室',shroud:3,clues:2,desc:'腐烂木桶之间留着新鲜拖痕。一个蜷缩的人影挡住了通往祭坛的窄门。',conn:['stairs','altar']},
   altar:{name:'仪式祭坛',shroud:4,clues:0,desc:'烛火围住一道仍在渗血的裂缝。先用两条线索辨认封印，再以意志抵抗门后的低语。',conn:['cellar']},
+  vestibule:{name:'破碎门厅',shroud:2,clues:1,desc:'你推开石阶尽头的门，再次回到宅邸。墙纸正在剥落，风从碎裂的窗框中灌入。远处传来铁链拖地的声音。',conn:['gallery']},
+  gallery:{name:'灰烬回廊',shroud:3,clues:2,desc:'烧焦的画像下散着钥匙与门锁的草图。收集两条线索，辨明开门顺序。出口就在回廊尽头，但有什么东西正守在那里。',conn:['vestibule','gate']},
+  gate:{name:'宅邸铁门',shroud:2,clues:0,desc:'天边透出灰白微光。一只食尸鬼伏在铁门前。击败它，或成功闪避令其力竭；辨明出口后，花一行动逃离宅邸。',conn:['gallery']},
 };
 const CELLAR_GUARD={id:'cellar-keeper',name:'窖室守门者',type:'enemy',traits:['Ghoul'],fight:2,hp:2,evade:2,dmg:1,horror:1,hunter:true,victory:0};
+const FINAL_GUARD={id:'gate-keeper',name:'食尸鬼·守门者',type:'enemy',traits:['Ghoul'],fight:3,hp:3,evade:2,dmg:1,horror:1,hunter:false,victory:0};
 
 // 地点图标（金色线条 SVG）
 const LOC_ICONS = {
@@ -545,6 +549,8 @@ const ACT_DECK = [
   {id:'1b', text:'前往阁楼，执行「完成调查」，然后可以继续进入地下室的下一幕。'},
   {id:'2a',text:'地板之下：收集至少 2 条线索，花费 2 线索和 1 行动辨认封印。此前获得的线索仍可使用。'},
   {id:'2b',text:'前往仪式祭坛，摆脱就绪且交缠的敌人，执行「封印裂隙」：意志对抗目标值 3。失败可重试。'},
+  {id:'3a',text:'黎明之前：收集 2 条线索，花费 2 线索和 1 行动辨明出口。此前获得的线索仍可使用。'},
+  {id:'3b',text:'前往宅邸铁门，击败或成功闪避守门者。没有就绪交缠敌人时，花费 1 行动「逃离宅邸」，完成本作故事。'},
 ];
 
 // 议程牌组
@@ -908,19 +914,20 @@ function inspectAsset(index){
 
 function renderLocations(){
   const wrap = document.getElementById('mapwrap');
-  document.getElementById('sceneKicker').textContent=S.chapter===2?'BENEATH THE FLOOR / 第二幕 · 地板之下':'THE GATHERING / 探索宅邸';
+  document.getElementById('sceneKicker').textContent=S.chapter===3?'BEFORE THE DAWN / 最终幕 · 黎明之前':S.chapter===2?'BENEATH THE FLOOR / 第二幕 · 地板之下':'THE GATHERING / 探索宅邸';
   document.getElementById('scenePanel').dataset.location = S.location;
   document.getElementById('sceneTitle').textContent = LOCATIONS[S.location].name;
   document.getElementById('sceneDescription').textContent = LOCATIONS[S.location].desc;
   document.getElementById('sceneClues').textContent = `遮蔽 ${LOCATIONS[S.location].shroud}　 /　线索 ${S.locClues[S.location]}`;
   const hint = document.getElementById('locationhint');
-  const ids = S.chapter===2?['stairs','cellar','altar']:['study','hallway','attic'];
+  const ids = S.chapter===3?['vestibule','gallery','gate']:S.chapter===2?['stairs','cellar','altar']:['study','hallway','attic'];
   // 预设节点坐标（百分比定位）
   const pos = {
     study:{x:20, y:78},
     hallway:{x:50, y:50},
     attic:{x:80, y:22},
     stairs:{x:20,y:78},cellar:{x:50,y:50},altar:{x:80,y:22},
+    vestibule:{x:20,y:78},gallery:{x:50,y:50},gate:{x:80,y:22},
   };
   // 当前位置的相邻地点
   const current = S.location;
@@ -1020,7 +1027,9 @@ function renderActAgenda(){
     {text:'收集线索，花费 3 条线索推进幕。',count:Math.min(3,Math.max(0,S.clues)),total:3,label:S.clues>=3?'线索已齐 · 可执行推进幕':`已持有 ${S.clues} / 3 条线索`},
     {text:'前往阁楼，执行「完成调查」。',count:S.location==='attic'?1:0,total:1,label:S.location==='attic'?'已抵达阁楼 · 可完成调查':'下一站：阁楼'},
     {text:'收集线索，花费 2 条线索辨认封印。',count:Math.min(2,Math.max(0,S.clues)),total:2,label:S.clues>=2?'线索已齐 · 可辨认封印':`已持有 ${S.clues} / 2 条线索`},
-    {text:'前往祭坛，执行「封印裂隙」。',count:S.location==='altar'?1:0,total:1,label:S.location==='altar'?(hasEngagedReadyEnemy()?'先摆脱交缠敌人，再封印':'已抵达祭坛 · 可尝试封印'):'下一站：仪式祭坛'}
+    {text:'前往祭坛，执行「封印裂隙」。',count:S.location==='altar'?1:0,total:1,label:S.location==='altar'?(hasEngagedReadyEnemy()?'先摆脱交缠敌人，再封印':'已抵达祭坛 · 可尝试封印'):'下一站：仪式祭坛'},
+    {text:'收集线索，花费 2 条线索辨明出口。',count:Math.min(2,Math.max(0,S.clues)),total:2,label:S.clues>=2?'线索已齐 · 可辨明出口':`已持有 ${S.clues} / 2 条线索`},
+    {text:'击败或闪避守门者，从铁门逃离。',count:S.location==='gate'&&!hasEngagedReadyEnemy()?1:0,total:1,label:S.location==='gate'?(hasEngagedReadyEnemy()?'先战斗或闪避，再逃离':'出口已打开 · 可逃离宅邸'):'下一站：宅邸铁门'}
   ][S.actIdx];
   document.getElementById('goalStage').textContent=`幕 ${act.id}`;
   document.getElementById('act').textContent=goal.text;
@@ -1039,7 +1048,7 @@ function renderActions(){
   const controls = document.getElementById('controls');
   const cnt = document.getElementById('actioncount');
   if(S.gameOver){ el.innerHTML=''; controls.innerHTML=S.failureTransitionActive?'':`${S.canContinue?'<button class="btn primary" onclick="continueChapter()">继续下一幕</button>':''}<button class="btn" onclick="location.reload()">${uiIcon('restart')}重新开始</button>`; cnt.textContent=''; return; }
-  if(S.chapterIntro){el.innerHTML='';controls.innerHTML='<button class="btn primary" onclick="beginChapter()">开始第二幕调查</button>';cnt.textContent='准备开始';return;}
+  if(S.chapterIntro){el.innerHTML='';controls.innerHTML=`<button class="btn primary" onclick="beginChapter()">${S.chapter===3?'开始最终幕':'开始第二幕调查'}</button>`;cnt.textContent='准备开始';return;}
   const actions = [];
   if(S.phase==='investigation'){
     const canTakeAction = canAct();
@@ -1058,6 +1067,8 @@ function renderActions(){
     }
     if(S.actIdx===2&&S.clues>=2)actions.push(btn(' 辨认封印','advanceAct',canTakeAction,'花费 2 线索'));
     if(S.actIdx===3&&S.location==='altar')actions.push(btn(' 封印裂隙','finish',canTakeAction&&!hasEngagedReadyEnemy(),'意志 vs 目标值 3'));
+    if(S.actIdx===4&&S.clues>=2)actions.push(btn(' 辨明出口','advanceAct',canTakeAction,'花费 2 线索'));
+    if(S.actIdx===5&&S.location==='gate')actions.push(btn(' 逃离宅邸','finish',canTakeAction&&!hasEngagedReadyEnemy(),'花费 1 行动 · 最终通关'));
     controls.innerHTML = `<button id="endTurnButton" class="btn" onclick="requestAction('endTurn')" ${S.actions===3||S.test||S.pendingMove||pendingNavigation||pendingAction||phaseTransitionActive?'disabled':''}>${uiIcon('next')}结束回合 </button>
       <span style="color:var(--dim);font-size:11px">${S.actions===3?'（至少执行 1 个行动后才能结束回合）':''}</span>`;
   } else {
@@ -1116,9 +1127,13 @@ function requestAction(fn){
   if(fn==='fight'){fight(true);return;}
   if(fn==='evade'){evade(true);return;}
   const choices={draw:['抽牌','消耗 1 次行动，抽取 1 张牌。',draw],resource:['获取资源','消耗 1 次行动，获得 1 资源。',resource],
-    advanceAct:['推进幕',S.chapter===2?'消耗 1 次行动与 2 条线索，辨认封印。':'消耗 1 次行动与 3 条线索，推进当前幕。',advanceAct],finish:['完成调查','消耗 1 次行动，完成阁楼调查，然后可继续下一幕。',finish]};
-  if(fn==='advanceAct'&&!((S.actIdx===0&&S.clues>=3)||(S.actIdx===2&&S.clues>=2)))return;
+    advanceAct:['推进幕',S.chapter===3?'消耗 1 次行动与 2 条线索，辨明出口。':S.chapter===2?'消耗 1 次行动与 2 条线索，辨认封印。':'消耗 1 次行动与 3 条线索，推进当前幕。',advanceAct],finish:['完成调查','消耗 1 次行动，完成阁楼调查，然后可继续下一幕。',finish]};
+  if(fn==='advanceAct'&&!((S.actIdx===0&&S.clues>=3)||([2,4].includes(S.actIdx)&&S.clues>=2)))return;
   if(fn==='finish'&&S.actIdx===3&&S.location==='altar'){finish(true);return;}
+  if(fn==='finish'&&S.chapter===3&&S.actIdx===5&&S.location==='gate'){
+    if(!hasEngagedReadyEnemy())showActionConfirmation('逃离宅邸','消耗 1 次行动，从铁门离开，完成最终幕。成功闪避后的力竭敌人不会阻止你逃离。',finish);
+    return;
+  }
   if(fn==='finish'&&(S.actIdx!==1||S.location!=='attic'))return;
   const choice=choices[fn];if(choice)showActionConfirmation(...choice,actionRisk());
 }
@@ -1223,6 +1238,12 @@ function doMove(id){
     S.enemies.push({card,hp:2,engaged:true,exhausted:false,location:id});monsterSfx(card);
     log('窖室守门者从木桶后扑出，与你交缠。你可以战斗或闪避它。','bad');
   }
+  if(S.chapter===3&&id==='gate'&&!S.finalGuardSpawned){
+    S.finalGuardSpawned=true;
+    const card={...FINAL_GUARD};
+    S.enemies.push({card,hp:card.hp,engaged:true,exhausted:false,location:id});monsterSfx(card);
+    log('食尸鬼·守门者挡在铁门前！可以战斗击败它，也可以闪避后立即逃离。闪避和逃离各需 1 行动；行动不够时，可先退回回廊准备。','bad');
+  }
   render();
   if(typeof gameNarrator!=='undefined')gameNarrator.enter(id);
 }
@@ -1275,7 +1296,13 @@ function fight(preview=false){
           log(`获得 ${target.card.victory} 点胜利线索！`,'good');
         }
         S.enemies = S.enemies.filter(e=>e!==target);
-        if(target.card.victory>0) S.victory.push(target.card);
+        // Scripted, one-off guards are not random encounter cards. Recycling
+        // them would resurrect a cleared gate on later mythos draws.
+        if([CELLAR_GUARD.id,FINAL_GUARD.id].includes(target.card.id)){
+          (S.defeatedStoryEnemies??=[]).push(target.card);
+          if(target.card.id===FINAL_GUARD.id)S.finalGuardDefeated=true;
+        }
+        else if(target.card.victory>0) S.victory.push(target.card);
         else S.encounterDiscard.push(target.card);
       }
     } else {
@@ -1307,11 +1334,17 @@ function evade(preview=false){
 }
 
 function finish(preview=false){
+  if(S.chapter===3&&S.actIdx===5&&S.location==='gate'){
+    if(!canAct()||hasEngagedReadyEnemy()||!beginAction())return;
+    S.finaleRoute=S.enemies.some(e=>e.card.id===FINAL_GUARD.id)?'evaded':'defeated';
+    resolve('R1',S.finaleRoute==='evaded'?'你趁食尸鬼失去平衡，侧身钻出铁门。第一缕晨光越过屋顶，身后的抓挠声终于远去。裂隙已经封闭，你带着仪式的证据活着离开了宅邸。':'守门者倒在灰烬之中。你推开铁门，冰冷的晨风吹散了最后一句低语。裂隙已经封闭，宅邸的噩梦终于结束——至少，今夜如此。');
+    return;
+  }
   if(S.actIdx===3&&S.location==='altar'){
     if(!canAct()||hasEngagedReadyEnemy())return;
     if(!preview&&!beginAction())return;
     startTest('will',3,'封印裂隙',success=>{
-      if(success)resolve('R1','你将旧箱中的残页压入刻痕，念完最后一个字。门后的低语骤然中断，血色裂缝终于合拢。你活着走出宅邸，但钥匙仍在掌心发冷。');
+      if(success)resolve('R1','你将旧箱中的残页压入刻痕，念完最后一个字。门后的低语骤然中断，血色裂缝终于合拢。石阶上方传来铁链拖地的声音。你还没有离开宅邸——最后一道门，仍在黑暗中等待。');
       else{applyPlayerLoss(0,1,'封印反噬');log('封印失败：承受 1 点恐惧。仍可再次尝试封印裂隙。','bad');checkDefeat();render();}
     },0,preview?false:null);return;
   }
@@ -1322,6 +1355,10 @@ function finish(preview=false){
 }
 
 function advanceAct(){
+  if(S.chapter===3&&S.actIdx===4){
+    if(S.clues<2||!beginAction())return;S.clues-=2;S.actIdx=5;
+    log('你依照草图转动钥匙，铁门的锁终于松开。前往宅邸铁门，击败或闪避守门者，再花 1 行动逃离。','gold');render();return;
+  }
   if(S.actIdx===2){
     if(S.clues<2||!beginAction())return;S.clues-=2;S.actIdx=3;
     log('你用线索读懂了封印的顺序。前往仪式祭坛，执行「封印裂隙」。','gold');render();return;
@@ -1788,30 +1825,41 @@ function applyEvent(c){
 
 /* ============ 结算 ============ */
 function continueChapter(){
-  if(!S||!S.gameOver||!S.canContinue||S.chapter!==1)return;
+  if(!S||!S.gameOver||!S.canContinue||![1,2].includes(S.chapter))return;
   if(typeof gameNarrator!=='undefined')gameNarrator.stop();
   S.canContinue=false;
   if(typeof resetPhaseAnnouncement==='function')resetPhaseAnnouncement();
   phaseTransitionActive=false;pendingNavigation=false;pendingAction=null;selectedHandCard=null;
-  S.chapter=2;S.gameOver=false;S.test=null;S.committed=[];S.pendingMove=false;
+  S.chapter++;S.gameOver=false;S.test=null;S.committed=[];S.pendingMove=false;S.evadeBonus=0;
   closeModal();
-  S.previousEnemies=S.enemies;S.enemies=[];
-  S.location='stairs';S.revealed={stairs:true,cellar:false,altar:false};S.locClues={stairs:1,cellar:2,altar:0};
-  S.actIdx=2;S.agendaIdx=0;S.doom=0;S.actions=3;S.phase='investigation';S.round++;
+  S.previousEnemies=[...(S.previousEnemies||[]),...S.enemies];S.enemies=[];
+  const finalChapter=S.chapter===3;
+  S.location=finalChapter?'vestibule':'stairs';
+  S.revealed=finalChapter?{vestibule:true,gallery:false,gate:false}:{stairs:true,cellar:false,altar:false};
+  S.locClues=finalChapter?{vestibule:1,gallery:2,gate:0}:{stairs:1,cellar:2,altar:0};
+  S.actIdx=finalChapter?4:2;S.agendaIdx=0;S.doom=0;S.actions=3;S.phase='investigation';S.round++;
   S.assets.forEach(a=>a.exhausted=false);
+  S.chapterIntro=true;
+  if(finalChapter){
+    log('—— 最终幕 · 黎明之前 ——','gold');
+    log('裂隙已被封闭，但宅邸正在崩塌。收集两条线索辨明出口，击败或闪避守门者，然后逃离宅邸。','narr');
+    log('人物状态、手牌、牌堆、装备与难度保留；末日重新计时，上一幕敌人不再追来。','gold');
+    render();gameSfx('move');
+    openModal(`<h3>最终幕 · 黎明之前</h3><p style="line-height:1.9;margin:18px 0">封印合拢的瞬间，整座宅邸都在颤抖。你沿石阶返回门厅，墙后的抓挠声追着你的脚步。铁门之外，天色正一点点变白。<br><br>收集两条线索，花费两条线索和一次行动「辨明出口」。然后前往宅邸铁门，击败或闪避守门者，再花一次行动「逃离宅邸」。<br><br>闪避路线请预留两次行动：一次闪避，一次逃离。不要等敌人在维持阶段重新就绪。</p><p style="font-size:12px;color:var(--dim)">本网页版原创最终幕，非官方剧本。人物状态、牌组与难度保留；本幕末日重新计时。</p><div class="center mb"><button class="btn primary" onclick="beginChapter()">重返门厅 · 开始最终幕</button></div>`);
+    return;
+  }
   log('—— 第二幕 · 地板之下 ——','gold');
   log('旧箱中的钥匙打开了地板暗门。你沿着冰冷石阶向下；暗门在身后合拢，楼上的追逐声被隔绝了。','narr');
   log('状态、资源、手牌、牌堆与装备全部保留。本幕末日重新计时；收集 2 条线索辨认封印，再前往祭坛封印裂隙。','gold');
-  S.chapterIntro=true;
   render();gameSfx('move');
   openModal(`<h3>第二幕 · 地板之下</h3><span id="chapterNarrationAnchor" hidden></span><p style="line-height:1.9;margin:18px 0">暗门在身后合拢。石阶尽头的烛光忽明忽暗，门后的低语如今就在脚下。<br><br>前往地下窖室，收集两条线索并辨认封印，再到仪式祭坛封印裂隙。小心守门者；封印失败会损失 1 点理智，但可以重试。</p><p style="font-size:12px;color:var(--dim)">本网页版改编续幕。当前状态、手牌、装备与所选难度保留；新幕末日重新计时。</p><div class="center mb"><button class="btn primary" onclick="beginChapter()">沿石阶向下 · 开始调查</button></div>`);
   if(typeof gameNarrator!=='undefined')gameNarrator.intro();
 }
 function beginChapter(){
-  if(!S||S.gameOver||S.chapter!==2||!S.chapterIntro)return;
+  if(!S||S.gameOver||![2,3].includes(S.chapter)||!S.chapterIntro)return;
   S.chapterIntro=false;closeModal();render();
   if(typeof announcePhase==='function')announcePhase('investigation',()=>{});
-  if(typeof gameNarrator!=='undefined')gameNarrator.enter('stairs');
+  if(typeof gameNarrator!=='undefined')gameNarrator.enter(S.location);
 }
 function resolve(code, text){
   if(S.gameOver) return;
@@ -1824,7 +1872,7 @@ function resolve(code, text){
   renderInvestigator();
   const win = code==='R1';
   S.failureTransitionActive=!win&&typeof beginFailureTransition==='function';
-  S.canContinue=win&&S.chapter===1;
+  S.canContinue=win&&[1,2].includes(S.chapter);
   log(`<b>${win?' 达成结算 '+code+' —— 胜利':' 触发结算 '+code+' —— 失败'}</b>`,'gold');
   log(text,'narr');
   document.getElementById('actions').innerHTML='';
@@ -1835,31 +1883,32 @@ function resolve(code, text){
     if(typeof beginFailureTransition==='function'){beginFailureTransition(text);return;}
   }
   openModal(`
-    <h3>${win?(S.canContinue?' 阁楼调查成功！':' 调查成功！'):' 调查失败……'}</h3>
+    <h3>${win?(S.chapter===3?'最终幕完成 · 黎明已至':S.chapter===2?'封印成功！':' 阁楼调查成功！'):' 调查失败……'}</h3>
     <div class="center" style="font-size:13px;line-height:1.8">${text}</div>
-    ${win&&S.chapter!==2?'<div class="ending-voice"><audio id="endingNarration" hidden preload="auto" src="assets/audio/ending-narration-natural-v2.mp3"></audio><p id="endingVoiceStatus" hidden role="status" aria-live="polite" style="margin:12px 0;font-size:11px;color:var(--dim)"></p></div>':''}
-    ${S.canContinue?'<p style="font-size:12px;color:var(--dim);line-height:1.8">钥匙指向地板下的暗门。下一幕：地板之下。保留当前状态，继续前往地下室。</p><div class="center mb"><button class="btn primary" onclick="continueChapter()">继续下一幕 · 地下室</button></div>':''}
+    ${win&&S.chapter===1?'<div class="ending-voice"><audio id="endingNarration" hidden preload="auto" src="assets/audio/ending-narration-natural-v2.mp3"></audio><p id="endingVoiceStatus" hidden role="status" aria-live="polite" style="margin:12px 0;font-size:11px;color:var(--dim)"></p></div>':''}
+    ${S.canContinue?`<p style="font-size:12px;color:var(--dim);line-height:1.8">${S.chapter===1?'钥匙指向地板下的暗门。下一幕：地板之下。保留当前状态，继续前往地下室。':'裂隙已封闭，但你还必须离开宅邸。下一幕是本作故事的最终幕，人物状态与牌组会保留。'}</p><div class="center mb"><button class="btn primary" onclick="continueChapter()">继续下一幕 · ${S.chapter===1?'地下室':'黎明之前'}</button></div>`:''}
+    ${win&&S.chapter===3?'<p style="font-size:12px;color:var(--dim);line-height:1.8">本作三幕故事已全部完成。这是网页版原创改编的结局，并非官方战役通关。</p><div class="center mb"><button class="btn primary" onclick="location.reload()">重新开始</button></div>':''}
     <div class="center mb"><button class="btn" onclick="closeModal()">${uiIcon('close')}关闭</button></div>
   `);
-  if(win){gameSfx('victory');if(S.chapter!==2&&typeof beginEndingNarration==='function')beginEndingNarration();}
+  if(win){gameSfx('victory');if(S.chapter===1&&typeof beginEndingNarration==='function')beginEndingNarration();}
 }
 </script>
 <script src="ambience.js?v=ending-victory-6"></script>
 <script src="ending-narration.js?v=text-voice-2"></script>
-<script src="scene-narration.js?v=minimax-1"></script>
+<script src="scene-narration.js?v=finale-1"></script>
 <script src="failure-transition.js?v=2"></script>
 <script src="clue-flight.js?v=1"></script>
 <script src="enemy-engagement.js?v=1"></script>
 <script>updateDifficultyPreview();</script>
-<script src="play-guide.js?v=chapter-2"></script>
+<script src="play-guide.js?v=chapter-3"></script>
 <script src="phase-transition.js?v=skip-countdown-2"></script>
 <script src="loss-notices.js?v=continue-dismiss-4"></script>
 <script src="tutorial.js?v=standalone-outro-1"></script>
-<script src="atlas.js?v=chapter-2"></script>
+<script src="atlas.js?v=chapter-3"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
 <script src="hand-dialog.js?v=action-confirm-1"></script>
 <script src="discard.js?v=character-deck-1"></script>
-<script src="next-step.js?v=chapter-2"></script>
+<script src="next-step.js?v=chapter-3"></script>
 <script src="prologue-narration.js?v=three-scenes-2"></script>
 <script src="prologue.js?v=three-scenes-2"></script>
 <script src="home-dialogs.js?v=character-1"></script>
@@ -1867,7 +1916,7 @@ function resolve(code, text){
 <script src="game-header.js?v=spacious-1"></script>
 <script src="phase-help.js?v=hover-1"></script>
 <script src="hand-hover.js?v=hover-1"></script>
-<script src="board-inspect.js?v=chapter-2"></script>
+<script src="board-inspect.js?v=chapter-3"></script>
 <script src="start-tutorial.js?v=choice-1"></script>
 </body>
 </html>

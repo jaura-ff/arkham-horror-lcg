@@ -28,6 +28,12 @@ test('幕按钮只在可推进时出现，并重新验证原状态，普通行�
  const h=setup();h.ctx.S.clues=0;h.click(h.node('act-side',['side','act']));assert.equal(h.nodes.get('boardInspectAction').hidden,true);h.action();assert.equal(h.calls.length,0);
  const j=setup(),panel=j.node('commandPanel',['panel']),button=j.node('draw',[],'button',panel),e=j.click(button);assert.equal(e.stopped,undefined);assert.equal(j.nodes.get('boardInspectDialog').open,false);
 });
+test('最终幕的放大目标显示出口规则而不是祭坛，并沿用行动确认入口',()=>{
+ const g=setup();g.ctx.ACT_DECK[4]={id:'3a',text:'辨明出口'};g.ctx.ACT_DECK[5]={id:'3b',text:'最终逃离'};g.ctx.S.actIdx=4;g.ctx.S.clues=2;
+ const n=g.node('act-side',['side','act']);g.click(n);assert.match(g.nodes.get('boardInspectContent').innerHTML,/辨明出口/);assert.doesNotMatch(g.nodes.get('boardInspectContent').innerHTML,/祭坛/);g.action();assert.deepEqual(g.calls,[['action','advanceAct']]);
+ g.ctx.S.actIdx=5;g.click(n);assert.match(g.nodes.get('boardInspectContent').innerHTML,/击败或闪避守门者/);assert.equal(g.nodes.get('boardInspectAction').hidden,true);
+});
+
 test('手牌单击接入已有详情和确认，不直接出牌；卡面再点关闭，不拦截出牌按钮',()=>{
  const g=setup(),hand=g.node('hand0',[],'button');hand.dataset.handIndex='0';g.click(hand);assert.deepEqual(g.calls,[['hand',0,0]]);assert.equal(g.nodes.get('boardInspectDialog').open,false);
  const existing=g.nodes.get('handCardDialog'),button=g.node('play',[],'button',existing);existing.listeners.click({target:button});assert.equal(existing.open,true);const image=g.node('card-art',[], 'div',existing);existing.listeners.click({target:image});assert.equal(existing.open,false);

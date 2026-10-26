@@ -7,7 +7,7 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
 test('左栏目标线索进度随持有量更新，超过门槛不会溢出，不消耗资源与行动',()=>{
- for(const [idx,total]of [[0,3],[2,2]])for(const clues of [0,1,total,total+3]){
+ for(const [idx,total]of [[0,3],[2,2],[4,2]])for(const clues of [0,1,total,total+3]){
   const g=game();g.run(`S.actIdx=${idx};S.clues=${clues}`);const state=g.get('S');g.run('renderActAgenda()');
   const bar=g.document.getElementById('goalProgress').innerHTML;
   assert.match(bar,new RegExp('aria-valuenow="'+Math.min(clues,total)+'"'));assert.match(bar,new RegExp('aria-valuemax="'+total+'"'));
@@ -29,6 +29,86 @@ test('调查成功确认后同步目标进度，取消检定不增加进度',()=
 });
 
 function basement(){const g=game();g.run("S.actIdx=1;S.location='attic';finish();continueChapter();beginChapter()");return g;}
+function finale(begin=true){
+ const g=basement();g.run("S.actIdx=3;S.location='altar';requestAction('finish')");g.finish();g.run('continueChapter()');if(begin)g.run('beginChapter()');return g;
+}
+function finaleRound(g){g.run('endTurn();next();next();next()');}
+
+test('最终幕须封印成功才能进入，背景确认前禁止行动，重复进入无效',()=>{
+ const g=finale(false);assert.deepEqual(g.get('[S.chapter,S.actIdx,S.location,S.chapterIntro,S.actions]'),[3,4,'vestibule',true,3]);
+ assert.match(g.document.getElementById('modalBox').innerHTML,/本网页版原创最终幕，非官方剧本/);
+ const before=g.get('S');g.run("requestAction('draw');doMove('gallery');continueChapter();advanceAct()");assert.deepEqual(g.get('S'),before);
+ g.run('closeModal();renderActions()');assert.match(g.document.getElementById('controls').innerHTML,/开始最终幕/);
+ g.run('let calls=0;announcePhase=()=>calls++;beginChapter();beginChapter()');assert.equal(g.get('calls'),1);assert.equal(g.get('canAct()'),true);
+ const h=basement();h.run("resolve('R3','失败');continueChapter()");assert.equal(h.get('S.chapter'),2);
+});
+
+test('最终幕保留人物状态与所有玩家牌，归档旧敌人，重置末日而不治疗或发牌',()=>{
+ const g=basement();g.run("S.hp=5;S.sanity=2;S.resources=4;S.clues=3;S.hand=[{...INVESTIGATOR.deck[2]}];S.discard=[{...INVESTIGATOR.deck[3]}];S.playedCards=[{...INVESTIGATOR.deck[3]}];S.assets=[{card:{...INVESTIGATOR.deck[0]},exhausted:true}];S.doom=2;S.agendaIdx=1;resolve('R1','封印成功')");
+ const before=g.get('[S.hp,S.sanity,S.resources,S.clues,S.hand,S.deck,S.discard,S.playedCards,S.assets[0].card,S.difficulty,S.round]');
+ g.run('continueChapter()');const after=g.get('[S.hp,S.sanity,S.resources,S.clues,S.hand,S.deck,S.discard,S.playedCards,S.assets[0].card,S.difficulty,S.round-1]');assert.deepEqual(after,before);
+ assert.deepEqual(g.get('[S.actions,S.doom,S.agendaIdx,S.assets[0].exhausted,S.canContinue]'),[3,0,0,false,false]);
+});
+
+test('最终幕地图只显示三个新地点，保持顺序连接和当前人物标记',()=>{
+ const g=finale(),map=g.document.getElementById('mapwrap').innerHTML;
+ for(const id of ['vestibule','gallery','gate'])assert.ok(map.includes('data-room="'+id+'"'));
+ assert.doesNotMatch(map,/data-room="(?:study|hallway|attic|stairs|cellar|altar)"/);assert.equal((map.match(/<line /g)||[]).length,2);
+ assert.equal(g.document.getElementById('sceneTitle').textContent,'破碎门厅');assert.match(g.document.getElementById('sceneKicker').textContent,/最终幕/);
+ g.run("doMove('gate')");assert.equal(g.get('S.location'),'vestibule');assert.equal(g.get('S.actions'),3);
+});
+
+test('辨明出口可返回，需两条线索与一行动，不能重复消费',()=>{
+ const g=finale();g.run("S.clues=1;requestAction('advanceAct');advanceAct()");assert.deepEqual(g.get('[S.clues,S.actIdx,S.actions]'),[1,4,3]);
+ g.run("S.clues=2;requestAction('advanceAct');closeModal()");assert.deepEqual(g.get('[S.clues,S.actIdx,S.actions]'),[2,4,3]);
+ g.run("requestAction('advanceAct');confirmAction();confirmAction();advanceAct()");assert.deepEqual(g.get('[S.clues,S.actIdx,S.actions]'),[0,5,2]);
+});
+
+test('最终守门者首次抵达生成一次，正常攻击击败后不会进入遭遇循环',()=>{
+ const g=finale();g.run("S.clues=2;advanceAct();doMove('gallery');doMove('gate')");assert.equal(g.get('S.enemies.length'),1);assert.equal(g.get('S.enemies[0].card.id'),'gate-keeper');
+ g.run("S.actions=3;fight()");g.finish();g.run('fight()');g.finish();g.run('fight()');g.finish();
+ assert.equal(g.get('S.enemies.length'),0);assert.equal(g.get('S.finalGuardDefeated'),true);assert.equal(g.get("S.encounterDiscard.some(c=>c.id==='gate-keeper')"),false);
+ g.run("S.actions=3;doMove('gallery');doMove('gate')");assert.equal(g.get('S.enemies.length'),0);
+});
+
+test('未辨明出口、未到铁门或有就绪交缠敌人时，不能直接通关',()=>{
+ const g=finale();g.run("finish();requestAction('finish');S.location='gate';finish();requestAction('finish')");assert.equal(g.get('S.gameOver'),false);assert.equal(g.get('S.actions'),3);
+ g.run("S.actIdx=5;S.location='vestibule';finish();requestAction('finish')");assert.equal(g.get('S.gameOver'),false);
+ g.run("S.location='gate';S.enemies=[{card:{...FINAL_GUARD},hp:3,engaged:true,exhausted:false,location:'gate'}];finish();requestAction('finish')");assert.equal(g.get('S.gameOver'),false);assert.equal(g.get('S.actions'),3);
+ assert.match(g.document.getElementById('goalProgress').innerHTML,/下一站|已持有/);
+ g.run('renderActAgenda()');assert.match(g.document.getElementById('goalProgress').innerHTML,/先战斗或闪避/);
+});
+
+test('闪避失败不会开放逃离，成功后可返回确认且只花一次行动逃离',()=>{
+ const g=finale();g.run("S.actIdx=5;doMove('gallery');doMove('gate');S.actions=3;S.chaos=[{label:'失败',autofail:true}];requestAction('evade')");g.finish();g.run("requestAction('finish')");assert.equal(g.get('pendingAction'),null);assert.equal(g.get('S.gameOver'),false);
+ g.run("S.chaos=[{label:'0',mod:0}];requestAction('evade')");g.finish();assert.deepEqual(g.get('[S.actions,S.enemies[0].engaged,S.enemies[0].exhausted]'),[1,false,true]);
+ g.run("requestAction('finish');closeModal()");assert.equal(g.get('S.actions'),1);assert.equal(g.get('S.gameOver'),false);
+ g.run("requestAction('finish');confirmAction();confirmAction();finish();continueChapter()");assert.deepEqual(g.get('[S.actions,S.gameOver,S.canContinue,S.chapter,S.finaleRoute]'),[0,true,false,3,'evaded']);
+ assert.match(g.document.getElementById('modalBox').innerHTML,/三幕故事已全部完成/);assert.doesNotMatch(g.document.getElementById('modalBox').innerHTML,/endingNarration|continueChapter/);
+});
+
+test('完整最终幕闪避路线：调查、辨明出口、回合流转、守门者与逃离',()=>{
+ const g=finale();g.run("S.encounter=[];S.encounterDiscard=[];investigate()");g.finish();g.run("doMove('gallery');investigate()");g.finish();assert.equal(g.get('S.clues'),2);
+ finaleRound(g);g.run("requestAction('advanceAct');confirmAction()");assert.equal(g.get('S.actIdx'),5);
+ finaleRound(g);g.run("doMove('gate');requestAction('evade')");g.finish();g.run("requestAction('finish');confirmAction()");
+ assert.equal(g.get('S.finaleRoute'),'evaded');assert.equal(g.get('S.gameOver'),true);assert.equal(g.get('S.canContinue'),false);
+ assert.deepEqual(g.get('[S.hp,S.sanity]'),[9,5]);
+});
+
+test('完整最终幕战斗路线与最终失败都不出现不存在的第四幕',()=>{
+ const g=finale();g.run("S.encounter=[];S.encounterDiscard=[];investigate()");g.finish();g.run("doMove('gallery');investigate()");g.finish();finaleRound(g);
+ g.run("advanceAct();doMove('gate');fight()");g.finish();finaleRound(g);g.run('fight()');g.finish();g.run('fight()');g.finish();g.run("requestAction('finish');confirmAction()");
+ assert.equal(g.get('S.finaleRoute'),'defeated');assert.equal(g.get('S.canContinue'),false);assert.match(g.document.getElementById('modalBox').innerHTML,/守门者倒在灰烬/);
+ const h=finale();h.run("S.hp=1;doMove('gallery');doMove('gate');resource();continueChapter()");assert.equal(h.get('S.gameOver'),true);assert.equal(h.get('S.canContinue'),false);assert.equal(h.get('S.chapter'),3);
+});
+test('三幕连续通关：书房调查、阁楼、地下封印与最终逃离，牌组和状态持续沿用',()=>{
+ const g=game();g.run("S.encounter=[];S.encounterDiscard=[];S.assets=[{card:{...INVESTIGATOR.deck.find(c=>c.id==='p45')},exhausted:false}];investigate()");g.finish();g.run('investigate()');g.finish();g.run("doMove('hallway')");finaleRound(g);
+ g.run('investigate()');g.finish();g.run("advanceAct();doMove('attic')");finaleRound(g);g.run('finish();continueChapter();beginChapter();investigate()');g.finish();g.run("doMove('cellar');fight()");g.finish();finaleRound(g);
+ g.run('investigate()');g.finish();g.run("advanceAct();doMove('altar')");finaleRound(g);g.run("requestAction('finish')");g.finish();g.run('continueChapter();beginChapter();investigate()');g.finish();g.run("doMove('gallery');investigate()");g.finish();finaleRound(g);
+ g.run('advanceAct()');finaleRound(g);g.run("doMove('gate');evade()");g.finish();g.run("requestAction('finish');confirmAction()");
+ assert.deepEqual(g.get('[S.chapter,S.gameOver,S.canContinue,S.finaleRoute,S.hp,S.sanity]'),[3,true,false,'evaded',9,5]);assert.equal(g.get('S.assets[0].card.id'),'p45');
+});
+
 test('新幕先阅读背景，确认后才允许行动，入口重复确认不重复倒计时',()=>{
  const g=game();g.run("S.actIdx=1;S.location='attic';finish();continueChapter();let announcements=0;announcePhase=()=>{announcements++};requestAction('draw');requestReturnMenu()");
  assert.equal(g.get('S.actions'),3);assert.equal(g.get('pendingNavigation'),false);assert.match(g.document.getElementById('modalBox').innerHTML,/第二幕 · 地板之下/);
@@ -59,14 +139,21 @@ test('首次进入窖室生成守门者一次，再次进入不重生',()=>{
  const g=basement();g.run("doMove('cellar')");assert.equal(g.get('S.enemies.length'),1);assert.equal(g.get('S.enemies[0].card.id'),'cellar-keeper');
  g.run("S.enemies=[];S.actions=3;doMove('stairs');doMove('cellar')");assert.equal(g.get('S.enemies.length'),0);assert.ok(g.get('S.cellarGuardSpawned'));
 });
+
+test('两幕的剧情守门者击败后均不混入遭遇牌堆，不被再次抽出',()=>{
+ for(const chapter of [2,3]){
+  const g=chapter===2?basement():finale();g.run(`S.encounter=[];S.encounterDiscard=[];S.assets=[{card:{...INVESTIGATOR.deck.find(c=>c.id==='p45')},exhausted:false}];doMove('${chapter===2?'cellar':'gallery'}');${chapter===3?"doMove('gate');S.actions=3;":''}fight()`);g.finish();if(chapter===3){g.run('fight()');g.finish()}
+  assert.equal(g.get('S.enemies.length'),0);assert.equal(g.get('S.encounterDiscard.length'),0);assert.equal(g.get('S.defeatedStoryEnemies.length'),1);g.run('drawEncounter()');assert.equal(g.get('S.enemies.length'),0);
+ }
+});
 test('辨认封印只花两条线索与一个行动，取消和重复推进不额外消费',()=>{
  const g=basement();g.run("S.clues=2;requestAction('advanceAct');closeModal()");assert.deepEqual(g.get('[S.clues,S.actions,S.actIdx]'),[2,3,2]);
  g.run('advanceAct();advanceAct()');assert.deepEqual(g.get('[S.clues,S.actions,S.actIdx]'),[0,2,3]);
 });
-test('封印检定可取消，失败损失一理智并能重试，成功后不再有下一幕入口',()=>{
+test('封印检定可取消，失败损失一理智并能重试，成功后提供最终幕入口',()=>{
  const g=basement();g.run("S.actIdx=3;S.location='altar';requestAction('finish');cancelTest()");assert.equal(g.get('S.actions'),3);
  g.run("S.chaos=[{label:'失败',autofail:true}];requestAction('finish')");g.finish();assert.equal(g.get('S.sanity'),4);assert.equal(g.get('S.gameOver'),false);assert.equal(g.get('S.actions'),2);
- g.run("S.chaos=[{label:'0',mod:0}];requestAction('finish')");g.finish();assert.equal(g.get('S.gameOver'),true);assert.equal(g.get('S.canContinue'),false);assert.doesNotMatch(g.document.getElementById('modalBox').innerHTML,/endingNarration|继续下一幕/);
+ g.run("S.chaos=[{label:'0',mod:0}];requestAction('finish')");g.finish();assert.equal(g.get('S.gameOver'),true);assert.equal(g.get('S.canContinue'),true);assert.doesNotMatch(g.document.getElementById('modalBox').innerHTML,/endingNarration/);assert.match(g.document.getElementById('modalBox').innerHTML,/继续下一幕 · 黎明之前/);
 });
 test('祭坛有就绪交缠敌人时不能封印，精神反噬致死保持失败结局',()=>{
  const g=basement();g.run("S.actIdx=3;S.location='altar';S.enemies=[{card:{...ENCOUNTER[0]},hp:2,engaged:true,exhausted:false,location:'altar'}];requestAction('finish')");assert.equal(g.get('S.test'),null);assert.equal(g.get('S.actions'),3);

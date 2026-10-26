@@ -3,3 +3,9 @@
 .scene-panel[data-location=cellar]:before{background-position:center,right center}
 .scene-panel[data-location=altar]:before{background-image:linear-gradient(160deg,#30201590,#211816c9 55%,#15120cf5),url('assets/images/noir-rooms.webp');background-position:center,right center}
 #boardInspectContent .inspect-scene:is([data-room=stairs],[data-room=cellar],[data-room=altar]){background-image:linear-gradient(#14191355,#15120c99),url('assets/images/noir-rooms.webp');background-size:100% 100%,200% 100%;background-position:center,right center}
+/* The finale returns upstairs: ash, a threatened threshold, then pale dawn.
+   Reuse installed art; do not add layout rows or increase the board height. */
+.scene-panel:is([data-location=vestibule],[data-location=gallery],[data-location=gate]):before{background-image:linear-gradient(150deg,#29231b66,#1816129c 55%,#15120cf2),url('assets/images/noir-rooms.webp');background-size:100% 100%,200% 100%;background-position:center,right center}
+.scene-panel[data-location=gallery]:before{background-position:center,left center;filter:sepia(.3) saturate(.65)}
+.scene-panel[data-location=gate]:before{background-image:linear-gradient(140deg,#c9bd8a33,#171b1c9c 55%,#15120cf0),url('assets/images/noir-rooms.webp');filter:saturate(.5)}
+#boardInspectContent .inspect-scene:is([data-room=vestibule],[data-room=gallery],[data-room=gate]){background-image:linear-gradient(#b6a47520,#15120c99),url('assets/images/noir-rooms.webp');background-size:100% 100%,200% 100%;background-position:center,right center}

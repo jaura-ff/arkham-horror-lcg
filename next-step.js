@@ -36,7 +36,7 @@
     const queue=(locations[start]?.conn||[]).map(id=>({id,first:id}));
     while(queue.length){
       const {id,first}=queue.shift();if(seen.has(id))continue;seen.add(id);
-      const useful=S.actIdx===3?id==='altar':S.actIdx===1?id==='attic':(!S.revealed?.[id] || (S.locClues?.[id]||0)>0);
+      const useful=S.actIdx===5?id==='gate':S.actIdx===3?id==='altar':S.actIdx===1?id==='attic':(!S.revealed?.[id] || (S.locClues?.[id]||0)>0);
       if(useful)return first;
       for(const next of locations[id]?.conn||[])if(!seen.has(next))queue.push({id:next,first});
     }
@@ -52,6 +52,12 @@
       return choices.find(choice=>{const button=document.querySelector(choice[0]);return button&&!button.disabled;})||null;
     }
     if(S.actIdx===0 && S.clues>=3)return action('advanceAct','线索已足够：点击「推进幕」');
+    if(S.chapter===3){
+      if(S.actIdx===4&&S.clues>=2)return action('advanceAct','线索已足够：点击「辨明出口」');
+      if(S.actIdx===5)return S.location==='gate'?action('finish','敌人已被摆脱：点击「逃离宅邸」完成故事'):action('move','出口已辨明：前往宅邸铁门');
+      if((S.locClues?.[S.location]||0)>0)return action('investigate','调查门厅和回廊，收集辨明出口所需的两条线索');
+      return action('move','前往灰烬回廊，继续寻找线索');
+    }
     if(S.chapter===2){
       if(S.actIdx===2&&S.clues>=2)return action('advanceAct','线索已足够：点击「辨认封印」');
       if(S.actIdx===3)return S.location==='altar'?action('finish','已到祭坛：点击「封印裂隙」'):action('move','封印已辨认：前往仪式祭坛');

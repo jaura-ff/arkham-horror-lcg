@@ -48,7 +48,7 @@ test('观察器不观察箭头自身，不形成重绘循环，批量变更合�
   const g=setup();assert.ok(g.observed.includes('game'));assert.ok(g.observed.includes('modal'));assert.ok(g.observed.includes('assetInfoDialog'));assert.ok(!g.observed.includes('nextStepArrow'));g.mutate();g.mutate();g.mutate();assert.equal(g.frames.length,1);g.flush();assert.equal(g.frames.length,0);
 });
 test('标记存在、箭头不占布局且鼠标触摸可穿透，无闪烁动画',()=>{
-  const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),css=fs.readFileSync(path.join(root,'next-step.css'),'utf8');for(const id of ['endTurnButton','actionContinueButton','testDrawButton','testResolveButton','nextStepArrow','nextStepToggle'])assert.ok(html.includes(`id="${id}"`),id);assert.match(css,/position:fixed/);assert.match(css,/pointer-events:none/);assert.doesNotMatch(css,/infinite/);assert.match(css,/prefers-reduced-motion:reduce/);assert.match(html,/next-step.js\?v=chapter-2/);
+  const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),css=fs.readFileSync(path.join(root,'next-step.css'),'utf8');for(const id of ['endTurnButton','actionContinueButton','testDrawButton','testResolveButton','nextStepArrow','nextStepToggle'])assert.ok(html.includes(`id="${id}"`),id);assert.match(css,/position:fixed/);assert.match(css,/pointer-events:none/);assert.doesNotMatch(css,/infinite/);assert.match(css,/prefers-reduced-motion:reduce/);assert.match(html,/next-step.js\?v=chapter-3/);
 });
 
 function smart(){
@@ -67,6 +67,18 @@ test('地下室智能指引按线索、封印和祭坛切换，不再指向阁�
  g.context.S.clues=2;g.update();assert.match(g.el('nextStepLabel').textContent,/辨认封印/);
  g.context.S.actIdx=3;g.context.S.location='altar';g.update();assert.match(g.el('nextStepLabel').textContent,/封印裂隙/);
 });
+test('最终幕指引依次引导线索、出口、守门者与逃离，不回到阁楼或祭坛',()=>{
+ const g=smart();Object.assign(g.context.S,{chapter:3,actIdx:4,location:'vestibule',clues:0,locClues:{vestibule:1,gallery:2,gate:0}});
+ g.context.LOCATIONS={vestibule:{name:'破碎门厅',conn:['gallery']},gallery:{name:'灰烬回廊',conn:['vestibule','gate']},gate:{name:'宅邸铁门',conn:['gallery']}};
+ g.update();assert.match(g.el('nextStepLabel').textContent,/调查门厅和回廊/);
+ g.context.S.clues=2;g.update();assert.match(g.el('nextStepLabel').textContent,/辨明出口/);
+ g.context.S.actIdx=5;g.context.S.location='gallery';g.update();assert.match(g.el('nextStepLabel').textContent,/前往宅邸铁门/);
+ const selector='#modal .move-btn[data-move-target="gate"]';g.selectors.set(selector,{...g.selectors.get('#endTurnButton'),rect:{left:100,top:420,right:270,bottom:468,width:170,height:48}});
+ g.context.S.pendingMove=true;g.el('modal').classList.add('open');g.update();assert.equal(g.el('nextStepArrow').style.top,'342px');
+ g.context.S.pendingMove=false;g.el('modal').classList.remove('open');g.context.S.location='gate';g.context.S.enemies=[{engaged:true,exhausted:false,location:'gate',card:{dmg:1,horror:1}}];g.update();assert.match(g.el('nextStepLabel').textContent,/先战斗/);
+ g.context.S.enemies[0].exhausted=true;g.context.S.enemies[0].engaged=false;g.update();assert.match(g.el('nextStepLabel').textContent,/逃离宅邸/);assert.doesNotMatch(g.el('nextStepLabel').textContent,/阁楼|祭坛/);
+});
+
 test('线索耗尽推荐移动，移动弹窗指向相邻探索入口且不泄露未揭示名字',()=>{
  const g=smart();g.context.S.locClues.study=0;g.update();assert.match(g.el('nextStepLabel').textContent,/这里已无线索/);
  g.el('modal').classList.add('open');g.context.S.pendingMove=true;g.update();assert.match(g.el('nextStepLabel').textContent,/这个相邻地点/);assert.doesNotMatch(g.el('nextStepLabel').textContent,/走廊/);

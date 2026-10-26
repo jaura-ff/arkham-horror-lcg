@@ -61,7 +61,7 @@
     job={id,kind,owner:S,state:'pending',media:null};controls();play(job);
   }
   window.gameNarrator={
-    enter(id){if(S?.location!==id)return;start(id,'location');},
+    enter(id){if(S?.location!==id)return;if(!files[id]){stop();status('当前地点暂未配置旁白，请阅读场景文字。');return;}start(id,'location');},
     intro(){if(S?.chapter!==2||!S.chapterIntro)return;start('intro','intro');},
     closeIntro(){if(job?.kind==='intro')stop();},stop,reset
   };

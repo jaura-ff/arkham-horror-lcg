@@ -12,6 +12,12 @@ test('六个地点分别选择对应配音，原速原音量不循环，反复�
  const g=setup();for(const id of ['study','hallway','attic','stairs','cellar','altar']){g.ctx.S.location=id;g.api.enter(id);await g.flush();const m=g.media.at(-1);assert.equal(m.src,`assets/audio/minimax-${id}-v1.mp3`);assert.equal(m.volume,1);assert.equal(m.loop,false);assert.equal(m.playbackRate,undefined);const total=g.media.length;g.api.enter(id);await g.flush();assert.equal(g.media.length,total)}
  assert.ok(g.media.slice(0,-1).every(m=>m.paused&&m.src===undefined));g.ctx.S.location='study';g.api.enter('study');await g.flush();assert.equal(g.media.length,6);assert.equal(g.media.at(-1).paused,true);
 });
+test('最终幕没有录音时保留文字，不错播第二幕旁白或请求不存在的音频',async()=>{
+ const g=setup();g.api.enter('study');await g.flush();Object.assign(g.ctx.S,{chapter:3,chapterIntro:true,location:'vestibule'});g.api.intro();
+ g.ctx.S.chapterIntro=false;g.api.enter('vestibule');await g.flush();assert.equal(g.media.length,1);assert.equal(g.media[0].paused,true);assert.equal(g.timers.size,0);assert.match(g.node('sceneNarrationStatus').textContent,/暂未配置旁白/);
+ for(const id of ['gallery','gate']){g.ctx.S.location=id;g.api.enter(id);await g.flush()}assert.equal(g.media.length,1);
+});
+
 test('第二幕开场与石阶入口分开播放，开始调查时停止开场',async()=>{
  const g=setup();Object.assign(g.ctx.S,{chapter:2,chapterIntro:true,location:'stairs'});g.node('modal').classList.add('open');g.api.intro();await g.flush();assert.equal(g.media[0].src,'assets/audio/minimax-chapter-two-v1.mp3');g.api.closeIntro();assert.equal(g.media[0].paused,true);g.ctx.S.chapterIntro=false;g.node('modal').classList.remove('open');g.api.enter('stairs');await g.flush();assert.equal(g.media[1].src,'assets/audio/minimax-stairs-v1.mp3');
 });
@@ -40,5 +46,5 @@ test('弹窗打断已播放地点旁白时暂停，关掉后从当前位置恢�
 });
 test('游戏钩子仅做播放反馈，七份本地文件齐全，不调用系统机器人配音',()=>{
  for(const id of ['study','hallway','attic','stairs','cellar','altar','chapter-two']){const b=fs.readFileSync(path.join(root,`assets/audio/minimax-${id}-v1.mp3`));assert.ok(b.length>1000);assert.ok(b.subarray(0,3).toString()==='ID3'||b[0]===255)}
- assert.match(html,/gameNarrator.enter\('study'\)/);assert.match(html,/gameNarrator.enter\('stairs'\)/);assert.match(html,/gameNarrator.enter\(id\)/);assert.match(html,/gameNarrator.intro\(\)/);assert.match(html,/gameNarrator.closeIntro\(\)/);assert.match(html,/scene-narration.js\?v=minimax-1/);assert.doesNotMatch(source,/speechSynthesis|playbackRate|requestAction|S\.[a-zA-Z]+\s*=(?!=)/);
+ assert.match(html,/gameNarrator.enter\('study'\)/);assert.match(html,/gameNarrator.enter\(S.location\)/);assert.match(html,/gameNarrator.enter\(id\)/);assert.match(html,/gameNarrator.intro\(\)/);assert.match(html,/gameNarrator.closeIntro\(\)/);assert.match(html,/scene-narration.js\?v=finale-1/);assert.doesNotMatch(source,/speechSynthesis|playbackRate|requestAction|S\.[a-zA-Z]+\s*=(?!=)/);
 });

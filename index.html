@@ -184,10 +184,10 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 </style>
-<link rel="stylesheet" href="noir.css">
+<link rel="stylesheet" href="noir.css?v=card-art-1">
 <link rel="stylesheet" href="home.css?v=character-1">
 <link rel="stylesheet" href="chapter-two.css?v=finale-1">
-<link rel="stylesheet" href="atlas.css?v=category-buttons-2">
+<link rel="stylesheet" href="atlas.css?v=investigator-decks-1">
 <link rel="stylesheet" href="map.css?v=player-marker-1">
 <link rel="stylesheet" href="layout.css?v=asset-icons-1">
 <link rel="stylesheet" href="phase-transition.css?v=skip-countdown-2">
@@ -452,8 +452,8 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <dialog id="cardAtlas" class="card-atlas" aria-labelledby="atlasTitle" aria-describedby="atlasNotice">
   <div class="atlas-shell">
     <header class="atlas-heading"><div><span class="atlas-kicker">ARKHAM / CARD ARCHIVE</span><h2 id="atlasTitle">卡牌图鉴</h2></div><button type="button" class="btn icon-button" id="atlasClose" aria-label="关闭卡牌图鉴" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
-    <p id="atlasNotice" class="atlas-notice">基础盒玩家牌与本作场景档案，不是官方完整卡库。中文牌名及效果为阅读辅助；下方场景牌含剧情与结局信息。</p>
-    <details class="atlas-primer" open><summary>怎么看一张卡牌？</summary>
+    <p id="atlasNotice" class="atlas-notice">先选调查员，查看该角色的起始牌组；敌人可独立查阅。图鉴不收录地点、幕或议程，不是官方完整卡库。中文牌名及效果为阅读辅助。</p>
+    <details class="atlas-primer"><summary>怎么看一张卡牌？</summary>
       <div class="atlas-reading"><section><h3>牌面信息</h3><p>名称用于识别卡牌；类型决定用途；费用是打出所需资源。技能图标用于投入检定；特性可被能力引用；等级关联购牌经验，并非资源费用。</p><p>敌人看战斗、生命、闪避和攻击的伤害／恐惧；地点看遮蔽、线索与连接。</p></section>
       <section><h3>卡牌类型</h3><p>资产通常留场；事件结算一次性效果；技能用于投入检定，不直接打出。调查员提供人物基础数值；敌人、诡计和地点构成场景。</p><p>弱点表示不利卡牌，并非所有弱点都采用相同处理方式。</p></section></div>
       <p class="atlas-source">基础版概念参考：<a href="https://images-cdn.fantasyflightgames.com/filer_public/c4/b0/c4b0d66c-d79e-411b-bdb5-b5d8c457d4bc/ahc01_rules_reference_web.pdf#page=28" target="_blank" rel="noopener noreferrer">FFG 官方 Rules Reference（2016），附录 IV，第 28–31 页及类型条目</a>。以上为概括说明，非逐字翻译。</p>
@@ -462,14 +462,9 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     <nav id="atlasCategories" class="atlas-categories" aria-label="卡牌分类">
       <button type="button" class="atlas-category" data-atlas-type="all" aria-pressed="true" aria-controls="atlasCards">全部</button>
       <button type="button" class="atlas-category" data-atlas-type="investigator" aria-pressed="false" aria-controls="atlasCards">调查员</button>
-      <button type="button" class="atlas-category" data-atlas-type="asset" aria-pressed="false" aria-controls="atlasCards">资产</button>
-      <button type="button" class="atlas-category" data-atlas-type="event" aria-pressed="false" aria-controls="atlasCards">事件</button>
-      <button type="button" class="atlas-category" data-atlas-type="skill" aria-pressed="false" aria-controls="atlasCards">技能</button>
-      <button type="button" class="atlas-category" data-atlas-type="weak" aria-pressed="false" aria-controls="atlasCards">弱点</button>
       <button type="button" class="atlas-category" data-atlas-type="enemy" aria-pressed="false" aria-controls="atlasCards">敌人</button>
-      <button type="button" class="atlas-category" data-atlas-type="treachery" aria-pressed="false" aria-controls="atlasCards">诡计</button>
-      <button type="button" class="atlas-category" data-atlas-type="location" aria-pressed="false" aria-controls="atlasCards">地点</button>
     </nav>
+    <div id="atlasDeckNav" class="atlas-deck-nav" hidden><button type="button" id="atlasBack" class="btn">← 返回调查员</button><strong id="atlasDeckName"></strong></div>
     <div class="atlas-tools"><label>搜索卡牌<input id="atlasSearch" type="search" placeholder="名称、效果或用法" autocomplete="off"></label></div>
     <p id="atlasCount" class="atlas-count" role="status" aria-live="polite"></p>
     <div id="atlasCards" class="atlas-cards"></div>
@@ -908,7 +903,7 @@ function renderHand(){
       <span class="ccost">${c.cost>0?c.cost:'—'}</span>
       <div class="ctype">${typeLabel}</div>
       <div class="cname">${c.name}</div>
-      ${c.code&&!CARD_ART[c.id]?`<div class="card-art player-card-stamp" aria-hidden="true">${typeLabel}</div>`:`<div class="card-art art" aria-hidden="true" style="--art-x:${art[0]}%;--art-y:${art[1]}%"></div>`}
+      ${c.code&&!CARD_ART[c.id]?`<div class="card-art player-card-stamp" aria-hidden="true">${typeLabel}</div>`:`<div class="card-art art" aria-hidden="true" style="${cardArtStyle(art)}"></div>`}
       <div class="cbody">${c.text}</div>
       ${iconStr?`<div class="cicons">${iconStr}</div>`:''}
     </button>`;
@@ -926,6 +921,15 @@ function skillIcons(c){
 
 // Each illustration is a cell in the locally bundled 4×3 texture atlas.
 const CARD_ART = {p45:[33.3333,0],machete:[66.6667,0],aid:[100,0],resource:[0,50],dodge:[33.3333,50],courage:[66.6667,50],percep:[100,50],guts:[0,100],manual:[33.3333,100],nightmare:[66.6667,100]};
+const INVESTIGATOR_ART = {roland:[0,0]};
+function cardArtStyle(coords){
+  const art=coords||[0,0],path=art[2];
+  return `--art-x:${art[0]}%;--art-y:${art[1]}%${typeof path==='string'&&/^assets\/images\/noir-core-[1-6]-v1\.webp$/.test(path)?`;--art-image:url('${path}')`:''}`;
+}
+function setCardArt(node,coords){
+  const art=coords||[0,0],path=typeof art[2]==='string'&&/^assets\/images\/noir-core-[1-6]-v1\.webp$/.test(art[2])?art[2]:'assets/images/noir-atlas.webp';
+  node.style.setProperty('--art-x',art[0]+'%');node.style.setProperty('--art-y',art[1]+'%');node.style.setProperty('--art-image',`url('${path}')`);
+}
 const CARD_USAGE = {
   p45:'双击手牌并在弹窗确认，花 3 资源和 1 行动装备，占 1 只手槽。之后用战斗行动享受加值，成功伤害通常为 2；本作不计弹药。',
   machete:'花 3 资源和 1 行动装备，占 1 只手槽。战斗检定 +1，但这张牌在本作不增加伤害。',
@@ -947,7 +951,7 @@ function renderAssets(){
     el.innerHTML = S.assets.map((a,index)=>{
       const c=a.card,art=CARD_ART[c.id],slot={hand:'手部',body:'身体',accessory:'饰品',ally:'盟友',arcane:'法术'}[c.slot]||c.slot||'无槽位';
       return `<button type="button" class="asset-icon ${a.exhausted?'is-exhausted':''}" onclick="inspectAsset(${index})" aria-haspopup="dialog" aria-label="${escape(c.name)}，${a.exhausted?'已力竭':'就绪'}，${escape(slot)}，点击查看效果">
-        ${art?`<span class="asset-icon-art art" aria-hidden="true" style="--art-x:${art[0]}%;--art-y:${art[1]}%"></span>`:'<span class="asset-icon-art asset-icon-no-art" aria-hidden="true">资产</span>'}
+        ${art?`<span class="asset-icon-art art" aria-hidden="true" style="${cardArtStyle(art)}"></span>`:'<span class="asset-icon-art asset-icon-no-art" aria-hidden="true">资产</span>'}
         <span class="asset-icon-copy"><span class="asset-icon-name">${escape(c.name)}</span><small>${a.exhausted?'已力竭':'就绪'}</small></span>
       </button>`;
     }).join('');
@@ -1066,7 +1070,7 @@ function renderEnemies(){
     const st = e.exhausted ? ' 力竭' : (e.engaged ? ' 交缠' : ' 游荡');
     const locName = LOCATIONS[e.location] ? LOCATIONS[e.location].name : '?';
     return `<div class="enemy ${e.exhausted?'exhausted':''}" data-enemy-key="${enemyVisualKey(e)}">
-      <div class="e-ico art" aria-hidden="true" style="--art-x:100%;--art-y:100%"></div>
+      <div class="e-ico art" aria-hidden="true" style="${cardArtStyle(CARD_ART[e.card.code||e.card.id]||[100,100])}"></div>
       <div class="e-info">
         <div class="ename">${e.card.name} <span class="st">${st} · ${locName}</span></div>
         <div class="estats">战斗 <b>${e.card.fight}</b> · 生命 <b>${e.hp}/${e.card.hp}</b> · 伤害 <b>${e.card.dmg}</b> · 恐惧 <b>${e.card.horror}</b> · 闪避 <b>${e.card.evade}</b>${e.card.hunter?' · <b style="color:var(--blood)">猎手</b>':''}${e.card.victory>0?' · <b style="color:var(--gold)">胜利点</b>':''}</div>
@@ -1520,7 +1524,7 @@ function openTestModal(){
           const art=CARD_ART[c.id];
           const name=String(c.name).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
           return `<button type="button" id="commitCard${origIdx}" class="commit-card ${sel?'sel':''}" aria-pressed="${sel}" aria-label="${name}，${sk}加 ${commitBonus(c)}，${sel?'已投入，点击取消':'点击投入'}" onclick="toggleCommit(${origIdx})">
-            ${art?`<span class="commit-art art" aria-hidden="true" style="--art-x:${art[0]}%;--art-y:${art[1]}%"></span>`:`<span class="commit-art commit-fallback" aria-hidden="true">${SKILL_ICON[t.skill]}</span>`}
+            ${art?`<span class="commit-art art" aria-hidden="true" style="${cardArtStyle(art)}"></span>`:`<span class="commit-art commit-fallback" aria-hidden="true">${SKILL_ICON[t.skill]}</span>`}
             <span class="commit-copy"><b>${name}</b><span class="commit-bonus">${sk} +${commitBonus(c)}</span><small>${sel?'已投入 · 点击取消':'点击投入'}</small></span>
           </button>`;
         }).join('')}
@@ -2001,23 +2005,24 @@ function resolve(code, text){
 <script src="official-session.js?v=players-1"></script>
 <script src="official-tests.js?v=players-1"></script>
 <script src="player-catalogue.js?v=1"></script>
+<script src="card-art.js?v=1"></script>
 <script src="ambience.js?v=ending-victory-6"></script>
 <script src="ending-narration.js?v=text-voice-2"></script>
 <script src="scene-narration.js?v=interrupt-stop-2"></script>
 <script src="failure-transition.js?v=2"></script>
 <script src="clue-flight.js?v=1"></script>
-<script src="enemy-engagement.js?v=stats-2"></script>
+<script src="enemy-engagement.js?v=card-art-1"></script>
 <script src="enemy-damage.js?v=1"></script>
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=chapter-3"></script>
 <script src="phase-transition.js?v=players-1"></script>
 <script src="loss-notices.js?v=phase-source-5"></script>
-<script src="weakness-reveal.js?v=players-1"></script>
+<script src="weakness-reveal.js?v=card-art-1"></script>
 <script src="tutorial.js?v=players-1"></script>
-<script src="atlas.js?v=players-1"></script>
+<script src="atlas.js?v=card-art-1"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
-<script src="hand-dialog.js?v=players-1"></script>
-<script src="discard.js?v=players-1"></script>
+<script src="hand-dialog.js?v=card-art-1"></script>
+<script src="discard.js?v=card-art-1"></script>
 <script src="next-step.js?v=chapter-3"></script>
 <script src="prologue-narration.js?v=three-scenes-2"></script>
 <script src="prologue.js?v=players-1"></script>
@@ -2025,10 +2030,10 @@ function resolve(code, text){
 <script src="board.js?v=spacious-header-4"></script>
 <script src="game-header.js?v=spacious-1"></script>
 <script src="phase-help.js?v=hover-1"></script>
-<script src="hand-hover.js?v=players-1"></script>
-<script src="board-inspect.js?v=players-1"></script>
+<script src="hand-hover.js?v=card-art-1"></script>
+<script src="board-inspect.js?v=card-art-1"></script>
 <script src="start-tutorial.js?v=choice-1"></script>
-<script src="player-runtime.js?v=1"></script>
+<script src="player-runtime.js?v=card-art-1"></script>
 </body>
 </html>
 

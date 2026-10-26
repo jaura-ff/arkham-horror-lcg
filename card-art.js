@@ -1,0 +1,97 @@
+/* Generated noir illustrations. Original game art, not official card scans.
+ * Stable row-major coordinates; each texture has four columns and three rows.
+ * Prompts and cell index: CARD-ART.md. No gameplay data is changed here. */
+(() => {
+  'use strict';
+  const sheets=[
+  [
+    "daisy",
+    "skids",
+    "agnes",
+    "wendy",
+    "01006",
+    "01007",
+    "01008",
+    "01009",
+    "01010",
+    "01011",
+    "01012",
+    "01013"
+  ],
+  [
+    "01014",
+    "01015",
+    "01017",
+    "01018",
+    "01019",
+    "01021",
+    "01022",
+    "01024",
+    "01025",
+    "01030",
+    "01031",
+    "01032"
+  ],
+  [
+    "01033",
+    "01034",
+    "01035",
+    "01036",
+    "01037",
+    "01038",
+    "01039",
+    "01044",
+    "01045",
+    "01046",
+    "01047",
+    "01048"
+  ],
+  [
+    "01049",
+    "01050",
+    "01051",
+    "01052",
+    "01053",
+    "01058",
+    "01059",
+    "01060",
+    "01061",
+    "01062",
+    "01063",
+    "01064"
+  ],
+  [
+    "01065",
+    "01066",
+    "01067",
+    "01072",
+    "01073",
+    "01074",
+    "01075",
+    "01076",
+    "01077",
+    "01078",
+    "01079",
+    "01080"
+  ],
+  [
+    "01081",
+    "01086",
+    "01087",
+    "01093",
+    "01096",
+    "01097",
+    "01098",
+    "01099",
+    "01100",
+    "01101",
+    "01102",
+    "01103"
+  ]
+];
+  sheets.forEach((ids,sheet)=>ids.forEach((id,cell)=>{
+    const art=[(cell%4)*100/3,Math.floor(cell/4)*50,'assets/images/noir-core-'+(sheet+1)+'-v1.webp'];
+    if(/^01\d{3}$/.test(id))CARD_ART[id]=art;else INVESTIGATOR_ART[id]=art;
+  }));
+  Object.assign(CARD_ART,{'01016':CARD_ART.p45,'01020':CARD_ART.machete,'01088':CARD_ART.resource,'01023':CARD_ART.dodge,'01089':CARD_ART.guts,'01090':CARD_ART.percep,'01091':CARD_ART.courage,'01092':CARD_ART.manual});
+})();

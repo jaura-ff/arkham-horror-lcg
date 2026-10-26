@@ -28,7 +28,7 @@
     byId('handCardEffect').textContent=card.text;
     byId('handCardUsage').textContent=CARD_USAGE[card.id]||card.text;
     byId('handCardCost').textContent=['skill','weak'].includes(card.type)&&card.code!=='01013'?'此牌不使用普通出牌行动。':`出牌费用：${card.cost} 资源 + ${card.rules?.play?.timing==='fast'?0:1} 行动。当前：${S.resources} 资源，${S.actions} 行动。${card.slot==='hand'?`占用 ${card.slots||1} 只手槽。`:''}`;
-    const art=CARD_ART[card.id]||[0,0];byId('handCardArt').style.setProperty('--art-x',art[0]+'%');byId('handCardArt').style.setProperty('--art-y',art[1]+'%');
+    const art=CARD_ART[card.id]||[0,0];setCardArt(byId('handCardArt'),art);
     if(card.code){byId('handCardArt').classList.toggle('art',!!CARD_ART[card.id]);byId('handCardArt').classList.toggle('player-card-stamp',!CARD_ART[card.id]);byId('handCardArt').textContent=CARD_ART[card.id]?'':({asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[card.type]);}
     refresh();dialog.showModal();document.body.style.overflow='hidden';dialog.scrollTop=0;byId('handCardClose').focus();
   }

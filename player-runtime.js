@@ -232,12 +232,12 @@
   renderInvestigator=function(){
     original.renderInvestigator();if(!active())return;
     const spec=catalog.investigator(p().investigator),el=byId('investigator');
-    if(p().investigator!=='roland')el.innerHTML=el.innerHTML.replace(/<div class="portrait art"[^>]*><\/div>/,`<div class="portrait player-medallion" role="img" aria-label="${esc(spec.name)}职业标记">${spec.symbol}</div>`);
+    if(p().investigator!=='roland'){const art=INVESTIGATOR_ART[p().investigator];el.innerHTML=el.innerHTML.replace(/<div class="portrait art"[^>]*><\/div>/,art?`<div class="portrait art" role="img" aria-label="${esc(spec.name)}肖像" style="${cardArtStyle(art)}"></div>`:`<div class="portrait player-medallion" role="img" aria-label="${esc(spec.name)}职业标记">${spec.symbol}</div>`);}
     el.innerHTML=el.innerHTML.replace(`${S.actions}/3`,`${S.actions}/${S.turnActions}`).replace('共 3 次','共 '+S.turnActions+' 次');
   };
   renderLocations=function(){original.renderLocations();if(active()){
     const spec=catalog.investigator(p().investigator),el=byId('mapwrap');el.innerHTML=el.innerHTML.replace('罗兰·班克斯的当前位置',spec.name+'的当前位置');
-    if(p().investigator!=='roland')el.innerHTML=el.innerHTML.replace(/<span class="map-player-portrait art"[^>]*><\/span>/,`<span class="map-player-portrait player-medallion" aria-hidden="true">${spec.symbol}</span>`);
+    if(p().investigator!=='roland'){const art=INVESTIGATOR_ART[p().investigator];el.innerHTML=el.innerHTML.replace(/<span class="map-player-portrait art"[^>]*><\/span>/,art?`<span class="map-player-portrait art" aria-hidden="true" style="${cardArtStyle(art)}"></span>`:`<span class="map-player-portrait player-medallion" aria-hidden="true">${spec.symbol}</span>`);}
   }};
   renderAssets=function(){if(!active())return original.renderAssets();sync();original.renderAssets();
     const used=session.slotUsage([...p().assets,...p().threats.filter(c=>c.type_code==='asset')]);
@@ -738,7 +738,7 @@
   continueChapter=function(){const state=S,chapter=S?.chapter,from=S?.location;original.continueChapter();if(active()&&S===state&&S.chapter!==chapter){leaveLocation(from);S.playerTurn++;p().turn=S.playerTurn;S.playerActionsTaken=0;S.turnActions=3+(has('01048')?1:0);S.actions=S.turnActions;sync();render();}};
   function renderCharacters(){
     const list=byId('playerCharacterList');if(!list)return;
-    list.innerHTML=catalog.ids.map(id=>{const c=catalog.investigator(id);return `<button type="button" class="player-character" aria-pressed="${pendingSelection===id}" onclick="playerSelect('${id}')"><span class="player-emblem" aria-hidden="true">${c.symbol}</span><span><b>${esc(c.name)}</b><small>${esc(c.role)} · ${esc(c.title)}</small><small>意志 ${c.skills[0]} / 智慧 ${c.skills[1]} / 战斗 ${c.skills[2]} / 敏捷 ${c.skills[3]} · 生命 ${c.health} / 理智 ${c.sanity}</small></span></button>`;}).join('');
+    list.innerHTML=catalog.ids.map(id=>{const c=catalog.investigator(id),art=INVESTIGATOR_ART[id];return `<button type="button" class="player-character" aria-pressed="${pendingSelection===id}" onclick="playerSelect('${id}')">${art?`<span class="player-emblem art" aria-hidden="true" style="${cardArtStyle(art)}"></span>`:`<span class="player-emblem" aria-hidden="true">${c.symbol}</span>`}<span><b>${esc(c.name)}</b><small>${esc(c.role)} · ${esc(c.title)}</small><small>意志 ${c.skills[0]} / 智慧 ${c.skills[1]} / 战斗 ${c.skills[2]} / 敏捷 ${c.skills[3]} · 生命 ${c.health} / 理智 ${c.sanity}</small></span></button>`;}).join('');
     const c=catalog.investigator(pendingSelection);byId('playerCharacterDetails').innerHTML=`<h3>${esc(c.name)} · 人物能力</h3><p>${esc(c.ability)}</p><p><b>上古印记：</b>${esc(c.elder)}</p><p>基础盒标准版起始牌组：30 张普通卡＋1 张专属牌＋1 张专属弱点＋1 张随机基础弱点。开局可换牌一次。</p><details><summary>查看起始牌组（不含随机基础弱点）</summary><ul>${Object.entries(core.starterManifest(pendingSelection).counts).map(([code,count])=>`<li>${esc(catalog.names[Number(code.slice(2))])} ×${count}</li>`).join('')}</ul></details>`;
     byId('playerCharacterConfirm').textContent='确定 · 使用'+c.name;
     const label=byId('menuCharacterName');if(label)label.textContent='当前：'+catalog.investigator(selected).name;

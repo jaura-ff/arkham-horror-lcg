@@ -35,7 +35,7 @@
     byId('handHoverEffect').textContent=card.text;
     byId('handHoverUsage').textContent=CARD_USAGE[card.id]||card.text;
     const art=CARD_ART[card.id]||[0,0];
-    byId('handHoverArt').style.setProperty('--art-x',art[0]+'%');byId('handHoverArt').style.setProperty('--art-y',art[1]+'%');
+    setCardArt(byId('handHoverArt'),art);
     if(card.code){byId('handHoverArt').classList.toggle('art',!!CARD_ART[card.id]);byId('handHoverArt').classList.toggle('player-card-stamp',!CARD_ART[card.id]);byId('handHoverArt').textContent=CARD_ART[card.id]?'':type;}
     anchor.setAttribute('aria-describedby',[originalDescription,'handHover'].filter(Boolean).join(' '));
     tip.hidden=false;position();

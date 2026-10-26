@@ -2,7 +2,7 @@
 
 Menu and in-game header provide a read-only catalogue. Native modal dialog supplies focus containment, Escape dismissal and an inert background; closing restores page scrolling and the initiating control. Existing game modals and the tutorial block atlas opening. No gameplay actions are called.
 
-The 23 entries are derived from `INVESTIGATOR`, `ENCOUNTER`, `LOCATIONS`, `ACT_DECK`, `AGENDA_DECK` and existing local artwork. Same-name encounters merge. Search covers names, effects, fields and usage; category filtering and expandable entries work offline.
+The 26 entries are derived from `INVESTIGATOR`, `ENCOUNTER`, `LOCATIONS` and existing local artwork. Same-name encounters merge. A wrapping button bar above search lets players select all cards, investigators, assets, events, skills, weaknesses, enemies, treacheries or locations. Act and agenda cards are excluded from the catalogue; their gameplay definitions and progression remain unchanged. Search covers names, effects, fields and usage and combines with the selected category. Reopening resets to all cards with an empty search. Filtering and expandable entries work offline.
 
 Official anatomy/type concepts are paraphrased from FFG's original *Rules Reference* (2016), pp. 28–31 and relevant glossary entries: https://images-cdn.fantasyflightgames.com/filer_public/c4/b0/c4b0d66c-d79e-411b-bdb5-b5d8c457d4bc/ahc01_rules_reference_web.pdf
 

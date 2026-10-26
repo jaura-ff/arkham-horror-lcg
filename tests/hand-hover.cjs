@@ -7,7 +7,8 @@ function setup(){
  for(const id of ['game','hand','handHover','handHoverTitle','handHoverType','handHoverEffect','handHoverUsage','handHoverArt','modal'])node(id);
  const cards=[{id:'percep',name:'感知',type:'skill',text:'投入智慧检定：+2 智慧。',cost:0},{id:'p45',name:'.45 自动手枪',type:'asset',text:'战斗 +1',cost:3}];
  const ctx={document:doc,window:{innerWidth:800,innerHeight:600,addEventListener:(k,f)=>winEvents[k]=f},S:{hand:cards,actions:3,resources:5},phaseTransitionActive:false,CARD_USAGE:{percep:'智慧检定前投入，不额外消耗资源或行动。',p45:'花3资源和1行动装备，占1只手槽。'},CARD_ART:{percep:[100,50],p45:[33.3333,0]},setTimeout:f=>{timers.set(++serial,f);return serial},clearTimeout:id=>timers.delete(id),MutationObserver:class{constructor(f){observer=f}observe(){}}};
- vm.runInNewContext(source,ctx);
+ const artHelpers=html.slice(html.indexOf('function cardArtStyle('),html.indexOf('const CARD_USAGE ='));
+ vm.runInNewContext(artHelpers+source,ctx);
  function card(index){const n=node('card'+index);n.dataset.handIndex=String(index);n.attrs['aria-describedby']='handInteractionHint';return n;}
  return{nodes,events,winEvents,doc,ctx,card,native:v=>native=v,mutate:()=>observer(),flush(){const callbacks=[...timers.values()];timers.clear();callbacks.forEach(f=>f())},enter(n){nodes.get('hand').listeners.pointerover({target:n,pointerType:'mouse'})}};
 }
@@ -36,6 +37,6 @@ test('只读查看不消耗卡牌行动资源，触屏悬停忽略，焦点仍�
 });
 test('视口约束与缩放外浮层不改变棋盘，索引钩子保留原有点击处理',()=>{
  const g=setup();g.enter(g.card(0));const tip=g.nodes.get('handHover');assert.ok(parseFloat(tip.style.top)>=12);assert.ok(parseFloat(tip.style.top)+260<=588);assert.ok(parseFloat(tip.style.left)>=12);
- assert.match(html,/data-hand-index="\$\{i\}"/);assert.match(html,/onclick="inspectHandCard\(\$\{i\},event\)"/);assert.match(html,/id="handHover" role="tooltip" hidden/);assert.match(html,/hand-hover.js\?v=players-1/);
+ assert.match(html,/data-hand-index="\$\{i\}"/);assert.match(html,/onclick="inspectHandCard\(\$\{i\},event\)"/);assert.match(html,/id="handHover" role="tooltip" hidden/);assert.match(html,/hand-hover.js\?v=card-art-1/);
  const css=fs.readFileSync(path.join(root,'hand-hover.css'),'utf8');assert.match(css,/position:fixed/);assert.match(css,/max-width:calc\(100vw - 24px\)/);assert.match(css,/#handHover\[hidden\]\{display:none\}/);assert.doesNotMatch(css,/#hand\s*\{|#game|#wrap/);
 });

@@ -35,8 +35,9 @@
     byId('enemyEngagementTrait').textContent=card.hunter?'猎手：就绪且未交缠时，敌人阶段会向你移动一个相邻地点。':'非猎手：不会主动跨地点追赶；同地点就绪时仍会与你交缠。';
     byId('enemyEngagementAttack').textContent=`它的每次攻击：${card.dmg||0} 伤害、${card.horror||0} 恐惧。`;
     const ghoul=card.name?.includes('食尸鬼')||card.traits?.includes('Ghoul')||card.id==='cellar-keeper';
-    art.classList.toggle('art',ghoul);art.textContent=ghoul?'':name.slice(0,1);
-    art.style.setProperty('--art-x','100%');art.style.setProperty('--art-y','100%');
+    const picture=typeof CARD_ART!=='undefined'?CARD_ART[card.code||card.id]:null;
+    art.classList.toggle('art',ghoul||!!picture);art.textContent=ghoul||picture?'':name.slice(0,1);
+    if(picture)setCardArt(art,picture);else{art.style.setProperty('--art-x','100%');art.style.setProperty('--art-y','100%');art.style.setProperty('--art-image',"url('assets/images/noir-atlas.webp')");}
     art.setAttribute('aria-label',`${name}的缩略图`);
     lastFocus=document.activeElement;
     try{dialog.showModal();byId('enemyEngagementConfirm').focus();}

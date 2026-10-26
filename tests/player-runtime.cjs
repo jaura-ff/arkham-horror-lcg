@@ -6,7 +6,7 @@ function game(id='roland',opening=true){
  const ctx=vm.createContext({document:doc,Math:Object.assign(Object.create(Math),{random:()=>.25}),structuredClone,console});ctx.window=ctx;ctx.globalThis=ctx;
  const run=code=>vm.runInContext(code,ctx),json=code=>JSON.parse(run('JSON.stringify('+code+')'));
  run(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
- for(const f of ['official-core.js','official-cards.js','official-card-rules.js','official-decks.js','official-session.js','official-tests.js','player-catalogue.js','player-runtime.js'])run(fs.readFileSync(path.join(root,f),'utf8'));
+ for(const f of ['official-core.js','official-cards.js','official-card-rules.js','official-decks.js','official-session.js','official-tests.js','player-catalogue.js','card-art.js','player-runtime.js'])run(fs.readFileSync(path.join(root,f),'utf8'));
  run(`ArkhamPlayerRuntime.select('${id}');startGame()`);
  function pick(label){const c=run('S.playerChoice');assert.ok(c,'expected a choice: '+label);const index=typeof label==='number'?label:c.options.findIndex(o=>o.label.includes(label));assert.ok(index>=0,'choice missing: '+label+' in '+c.options.map(o=>o.label).join('|'));run(`playerPick(${c.nonce},${index})`);}
  if(opening)pick('开始调查');

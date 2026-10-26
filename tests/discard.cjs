@@ -44,7 +44,7 @@ test('内容转义且包含插画和只读用法，没有出牌操作',()=>{
   const g=setup();g.play('resource');g.run(`S.playedCards[0].card.name='<img src=x onerror=alert(1)>'`);g.click('discardPileButton');const cards=g.el('discardCards').innerHTML;assert.match(cards,/&lt;img/);assert.doesNotMatch(cards,/<img|onclick=|onHandCard\(/);assert.match(cards,/discard-art art/);assert.match(cards,/查看用法/);
 });
 test('弃牌弹窗语义完整，入口放在手牌区域',()=>{
-  assert.match(html,/<dialog id="discardDialog"[^>]*aria-labelledby="discardTitle"/);assert.match(html,/discard.js\?v=players-1/);assert.match(html.split('<div class="panel hand-panel">')[1].split('<!-- 右栏 -->')[0],/id="discardPileButton"/);
+  assert.match(html,/<dialog id="discardDialog"[^>]*aria-labelledby="discardTitle"/);assert.match(html,/discard.js\?v=card-art-1/);assert.match(html.split('<div class="panel hand-panel">')[1].split('<!-- 右栏 -->')[0],/id="discardPileButton"/);
 });
 
 test('查阅角色配牌展示完整初始牌组和分类数量，包括弱点',()=>{

@@ -22,7 +22,7 @@
     const art=CARD_ART[card.id];
     openModal(`<section id="weaknessReveal" class="weakness-reveal" role="status" aria-live="assertive" aria-atomic="true">
       <p class="weakness-kicker">WEAKNESS / 抽到弱点牌</p><h3>${esc(card.name)}</h3>
-      ${art?`<div class="art weakness-art" aria-hidden="true" style="--art-x:${art[0]}%;--art-y:${art[1]}%"></div>`:'<div class="weakness-no-art" aria-hidden="true">弱点</div>'}
+      ${art?`<div class="art weakness-art" aria-hidden="true" style="${cardArtStyle(art)}"></div>`:'<div class="weakness-no-art" aria-hidden="true">弱点</div>'}
       <p class="weakness-rule">弱点牌必须立即展示并结算</p>
       <p>${esc(card.text||'承受 1 点恐惧（理智 −1）。')}</p>
       <p class="weakness-note">${card.code?'片刻后立即按本牌揭示效果结算。部分弱点进入威胁区或手牌；需要选择的效果会等待你确认。':'不能留在手牌，也不需要出牌。片刻后自动承受 1 点恐惧（理智 −1），然后进入弃牌堆。'}</p>

@@ -453,7 +453,7 @@ test('界面元素 ID 唯一，本地美术和样式资源全部存在',()=>{
   for(const match of css.matchAll(/url\('([^']+)'\)/g)){
     assert.ok(fs.existsSync(path.join(__dirname,'..',match[1])),match[1]);
   }
-  assert.ok(markup.includes('href="noir.css"'));
+  assert.ok(markup.includes('href="noir.css?v=card-art-1"'));
 });
 
 test('继续按钮完成敌人→维持→神话→调查完整流程',()=>{

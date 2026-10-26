@@ -71,5 +71,5 @@ test('检定、移动、菜单确认、教学、图鉴和终局都不叠加手�
 });
 test('手牌入口不再直接出牌，说明弹窗有语义标题与触摸交互提示',()=>{
   const g=setup();g.run('renderHand()');assert.match(g.node('hand').innerHTML,/onclick="inspectHandCard/);assert.doesNotMatch(g.node('hand').innerHTML,/onclick="onHandCard/);
-  assert.match(html,/<dialog id="handCardDialog"[^>]*aria-labelledby="handCardTitle"/);assert.match(html,/快速连点两次/);assert.match(html,/hand-dialog.js\?v=players-1/);
+  assert.match(html,/<dialog id="handCardDialog"[^>]*aria-labelledby="handCardTitle"/);assert.match(html,/快速连点两次/);assert.match(html,/hand-dialog.js\?v=card-art-1/);
 });

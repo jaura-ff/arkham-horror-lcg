@@ -28,7 +28,7 @@ Role, deck, hand, assets and threats persist across the adapted chapters. Final 
 
 ## Scope and presentation
 
-The map, encounters, chaos-symbol reference and three-chapter story remain the existing web adaptation, not the official full campaign. There is no campaign persistence, XP upgrade shop, arbitrary deck construction, multiplayer or parallel-investigator support. Non-Roland investigators use profession medallions. Their first prologue page uses character-specific text without the prerecorded Roland identity line; later generic narration remains.
+The map, encounters, chaos-symbol reference and three-chapter story remain the existing web adaptation, not the official full campaign. There is no campaign persistence, XP upgrade shop, arbitrary deck construction, multiplayer or parallel-investigator support. All five investigators use locally bundled noir portraits; the existing Roland illustration is preserved. Their first prologue page uses character-specific text without the prerecorded Roland identity line; later generic narration remains.
 
 Verification uses VM integration tests that execute the same scripts and rule paths as the page, alongside the existing pure-module and regression suites. Browser visual QA has not been performed. Do not describe this as a full official campaign or as a deployed update before an actual publication.
 

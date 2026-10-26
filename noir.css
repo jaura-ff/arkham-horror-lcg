@@ -25,7 +25,7 @@ body:before{content:'';position:fixed;inset:0;z-index:-1;background:linear-gradi
 .panel{border-radius:2px;background:#1b1813ed;border-color:#7b603a;padding:17px;margin-bottom:18px;box-shadow:inset 0 0 0 3px #151310, inset 0 0 0 4px #6d53312e}
 .panel h2{font-family:Georgia,'STSong','SimSun',serif;color:var(--gold);letter-spacing:2px;font-weight:400}
 .inv-card{padding:8px 12px 18px}.portrait{width:calc(100% + 8px);margin:-4px -4px 12px;aspect-ratio:1;box-shadow:inset 0 0 20px #15131155;border-bottom:1px solid var(--gold-dim)}
-.art{background-image:url('assets/images/noir-atlas.webp');background-size:400% 300%;background-position:var(--art-x) var(--art-y);background-repeat:no-repeat;background-color:#292218}
+.art{background-image:var(--art-image,url('assets/images/noir-atlas.webp'));background-size:400% 300%;background-position:var(--art-x) var(--art-y);background-repeat:no-repeat;background-color:#292218}
 .inv-top{margin:8px 2px 17px}.inv-card .nm{font:20px Georgia,'STSong','SimSun',serif;color:var(--gold);letter-spacing:1px}.inv-card .tt{font-size:11px;letter-spacing:2px}
 .inv-card .stat{border-radius:0;background:transparent;border-bottom:1px solid #5a4930;padding-bottom:9px}.stat .v{font-family:Georgia,serif;color:var(--gold)}
 .inv-card .stats{margin-bottom:16px}.bar{background:#3a3024;border-radius:0;height:4px}.fill.hp{background:#bb7864}.fill.sanity{background:#c3b78f}.inv-hint{font-size:10px}.resources-line{gap:14px;margin-top:14px;padding-top:12px}

@@ -25,8 +25,18 @@ test('弱点与牌组耗尽的精神损失均提示',()=>{
   const g=setup();g.run(`S.deck=[{...INVESTIGATOR.deck.find(c=>c.id==='nightmare')}];drawCards(1)`);assert.equal(g.amount(),'理智 −1');assert.equal(g.el('lossNoticeSource').textContent,'缠身梦魇');g.tick(3000);
   g.run(`S.deck=[];S.discard=[{...INVESTIGATOR.deck[0]}];drawCards(1)`);assert.equal(g.amount(),'理智 −1');assert.match(g.el('lossNoticeSource').textContent,/牌组耗尽/);
 });
+test('维持抽弱点的伤害提示标记发生阶段，进入神话也不会被误标为遭遇损失',()=>{
+ const g=setup();g.run("S.phase='upkeep';S.deck=[{...INVESTIGATOR.deck.find(c=>c.id==='nightmare')}];upkeepPhase();S.phase='mythos';S.encounter=[{...ENCOUNTER[0]}];mythosPhase()");
+ assert.equal(g.amount(),'理智 −1');assert.equal(g.el('lossNoticeSource').textContent,'缠身梦魇');assert.match(g.el('lossNoticePhase').textContent,/维持阶段/);assert.equal(g.get('S.sanity'),4);
+});
+
+test('排队损失保留各自发生阶段，重开清空阶段记录',()=>{
+ const g=setup();g.run("S.phase='upkeep';applyPlayerLoss(0,1,'弱点');S.phase='mythos';applyPlayerLoss(0,1,'恐惧低语')");assert.match(g.el('lossNoticePhase').textContent,/维持阶段/);
+ g.tick(3000);assert.match(g.el('lossNoticePhase').textContent,/神话阶段/);assert.equal(g.el('lossNoticeSource').textContent,'恐惧低语');g.run('resetLossNotices()');assert.equal(g.el('lossNoticePhase').textContent,'');
+});
+
 test('混沌符号导致的伤害及恐惧提示，不重复结算',()=>{
-  const g=setup();g.run(`startTest('int',2,'测试',()=>{});resolveChaosTokens=()=>({damage:2,horror:1,failHorror:0,mod:0,autofail:false,label:'测试',searchGhoul:false});resolveTest();resolveTest()`);assert.equal(g.amount(),'生命 −2 · 理智 −1');assert.equal(g.el('lossNoticeSource').textContent,'混沌符号效果');assert.deepEqual(g.get('[S.hp,S.sanity]'),[7,4]);assert.equal(g.timers.size,1);
+  const g=setup();g.run(`startTest('int',2,'测试',()=>{});resolveChaosTokens=()=>({damage:2,horror:1,failHorror:0,mod:0,autofail:false,label:'测试',searchGhoul:false});resolveTest();resolveTest()`);assert.equal(g.amount(),'生命 −2 · 理智 −1');assert.equal(g.el('lossNoticeSource').textContent,'混沌指示物「测试」');assert.deepEqual(g.get('[S.hp,S.sanity]'),[7,4]);assert.equal(g.timers.size,1);
 });
 test('恐惧低语检定失败的理智损失有提示，成功不提示',()=>{
   for(const success of [true,false]){const g=setup();g.run(`S.chaos=[{label:'修正',mod:${success?0:-5}}];S.encounter=[{id:'whisper-test',name:'恐惧低语',type:'treachery'}];drawEncounter();resolveTest();finishTest(S.testResult)`);assert.equal(g.el('lossNotice').hidden,success);if(!success){assert.equal(g.amount(),'理智 −1');assert.equal(g.el('lossNoticeSource').textContent,'恐惧低语');}}
@@ -66,7 +76,7 @@ test('Popover调用抛错不影响实际扣血、后续渲染和通知清理',()
 test('视觉反馈居中放大、带图标，支持减少动态效果且不拦截操作',()=>{
  const css=fs.readFileSync(path.join(root,'loss-notices.css'),'utf8');assert.match(css,/left:50%/);assert.match(css,/prefers-reduced-motion:reduce/);assert.match(css,/pointer-events:none/);
  assert.match(html,/class="loss-heart"/);assert.match(html,/class="loss-mind"/);assert.match(html,/data-vital="hp"/);assert.match(html,/data-vital="sanity"/);
- assert.match(html,/loss-notices.js\?v=continue-dismiss-4/);assert.match(html,/loss-notices.css\?v=return-trail-3/);
+ assert.match(html,/loss-notices.js\?v=phase-source-5/);assert.match(html,/loss-notices.css\?v=return-trail-3/);
 });
 function motion(g,{reduced=false,fail=false}={}){
  const animations=[],ghosts=[],targets=[];g.run('window.matchMedia=()=>({matches:false})');if(reduced)g.run('window.matchMedia=()=>({matches:true})');

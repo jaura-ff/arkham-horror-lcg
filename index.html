@@ -194,13 +194,15 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="loss-notices.css?v=return-trail-3">
 <link rel="stylesheet" href="failure-transition.css?v=2">
 <link rel="stylesheet" href="clue-flight.css?v=1">
-<link rel="stylesheet" href="enemy-engagement.css?v=1">
+<link rel="stylesheet" href="enemy-engagement.css?v=stats-2">
+<link rel="stylesheet" href="enemy-damage.css?v=1">
 <link rel="stylesheet" href="play-guide.css?v=guide-1">
 <link rel="stylesheet" href="next-step.css?v=animated-cue-3">
 <link rel="stylesheet" href="prologue.css?v=narration-1">
 <link rel="stylesheet" href="tutorial.css?v=standalone-outro-1">
 <link rel="stylesheet" href="board.css?v=sidebar-priority-4">
-<link rel="stylesheet" href="test-learning.css?v=mini-commits-2">
+<link rel="stylesheet" href="test-learning.css?v=encounter-context-3">
+<link rel="stylesheet" href="weakness-reveal.css?v=1">
 <link rel="stylesheet" href="game-header.css?v=spacious-1">
 <link rel="stylesheet" href="phase-help.css?v=hover-1">
 <link rel="stylesheet" href="hand-hover.css?v=hover-1">
@@ -382,6 +384,13 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
     <header class="engagement-header"><span>ARKHAM / ENEMY ENGAGEMENT</span><button id="enemyEngagementClose" type="button" class="btn icon-button" aria-label="关闭怪物提示"><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
     <div class="engagement-heading"><div id="enemyEngagementArt" class="engagement-portrait art" role="img" aria-label="怪物缩略图"></div><div><p class="engagement-eyebrow">已与你交缠 · 就绪的敌人</p><h2 id="enemyEngagementTitle"></h2></div></div>
     <p id="enemyEngagementDescription">它已经盯上了你。即使还没进入敌人阶段，贸然做其他事情，也会招来攻击。</p>
+    <section class="engagement-stats" aria-label="怪物数值与规则讲解">
+      <div><h3>当前生命 <b id="enemyEngagementHp"></b></h3><p>前面是剩余生命，后面是生命上限。受到伤害会减少，降到 0 就被击败。</p></div>
+      <div><h3>战斗值 <b id="enemyEngagementFight"></b></h3><p>这是命中它的门槛，不是伤害。你的最终战斗能力达到此值，攻击才会成功。</p></div>
+      <div><h3>闪避值 <b id="enemyEngagementEvade"></b></h3><p>你的最终敏捷能力达到此值，闪避成功，使它力竭并解除交缠。</p></div>
+      <div><h3>怪物攻击</h3><p id="enemyEngagementAttackStats"></p><p>伤害减少你的生命，恐惧减少你的理智。敌人攻击或借机攻击时生效，并非刚出现就攻击。</p></div>
+    </section>
+    <p id="enemyEngagementTrait" class="engagement-trait"></p>
     <div class="engagement-warning"><strong>现在出普通牌，会触发「借机攻击」</strong><p>例如装备武器、使用普通治疗牌：怪物会先攻击，再结算出牌效果。</p><p id="enemyEngagementAttack"></p></div>
     <p class="engagement-label">你可以先这样应对</p>
     <div class="engagement-choices"><div><strong>战斗</strong><p>主动攻击怪物<br>不会触发借机攻击</p></div><div><strong>闪避</strong><p>成功后使它力竭、解除交缠<br>再安全地出普通牌</p></div></div>
@@ -403,7 +412,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 </dialog>
 <div id="lossNotice" class="loss-notice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden>
   <div class="loss-portrait" aria-hidden="true"><svg class="loss-heart" viewBox="0 0 64 64" fill="none"><path d="M32 53 10 31C-4 15 17 1 32 18 47 1 68 15 54 31Z"/><path class="loss-crack" d="m34 13-8 15 12 6-9 17"/></svg><svg class="loss-mind" viewBox="0 0 64 64" fill="none"><path d="M5 32S15 14 32 14 59 32 59 32 49 50 32 50 5 32 5 32Z"/><circle cx="32" cy="32" r="10"/><path d="m35 14-8 12 10 7-7 17"/></svg></div>
-  <div class="loss-copy"><small id="lossNoticeTitle"></small><strong id="lossNoticeAmount"></strong><span id="lossNoticeSource"></span><span id="lossNoticeRemaining"></span></div>
+  <div class="loss-copy"><small id="lossNoticeTitle"></small><strong id="lossNoticeAmount"></strong><span id="lossNoticeSource"></span><span id="lossNoticePhase"></span><span id="lossNoticeRemaining"></span></div>
   <div class="loss-time" aria-hidden="true"></div>
 </div>
 <div id="nextStepTarget" class="next-step-target" aria-hidden="true" hidden></div>
@@ -608,7 +617,7 @@ function uiIcon(name){
 }
 
 function requestReturnMenu(){
-  if(!S || S.chapterIntro || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive) return;
+  if(!S || S.drawingCards || S.chapterIntro || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive) return;
   pendingNavigation = true;
   render();
   openModal(`<h3>${uiIcon('home')} 返回主菜单？</h3>
@@ -623,11 +632,12 @@ function cancelReturnMenu(){
   if(S) render();
 }
 function confirmReturnMenu(){
-  if(!pendingNavigation || !S || S.test || S.pendingMove) return;
+  if(!pendingNavigation || !S || S.drawingCards || S.test || S.pendingMove) return;
   pendingNavigation = false;
   if(typeof resetLossNotices==='function')resetLossNotices();
   if(typeof resetClueFlight==='function')resetClueFlight();
   if(typeof resetEnemyEngagement==='function')resetEnemyEngagement();
+  if(typeof resetWeaknessReveal==='function')resetWeaknessReveal();
   S = null;
   closeModal();
   document.getElementById('log').innerHTML = '';
@@ -644,6 +654,8 @@ function beginPrologue(tutorial=false){
   if(typeof document.dispatchEvent==='function')document.dispatchEvent(new CustomEvent('arkham:game-started',{detail:{tutorial}}));
 }
 function startGame(){
+  if(typeof resetEnemyDamage==='function')resetEnemyDamage();
+  if(typeof resetWeaknessReveal==='function')resetWeaknessReveal();
   if(typeof gameNarrator!=='undefined')gameNarrator.reset();
   if(typeof resetEnemyEngagement==='function')resetEnemyEngagement();
   if(typeof resetClueFlight==='function')resetClueFlight();
@@ -665,6 +677,7 @@ function startGame(){
     resources:5,
     deck:shuffle(INVESTIGATOR.deck.map(c=>({...c}))),
     hand:[], discard:[], playedCards:[],
+    drawingCards:false,weaknessReveal:null,
     assets:[],
     location:'study',
     revealed:{study:true, hallway:false, attic:false},
@@ -706,6 +719,12 @@ function drawOpeningHand(){
 }
 
 /* ============ 工具 ============ */
+const enemyVisualIds=new WeakMap();
+let enemyVisualSeq=0;
+function enemyVisualKey(enemy){
+  if(!enemyVisualIds.has(enemy))enemyVisualIds.set(enemy,`enemy-${++enemyVisualSeq}`);
+  return enemyVisualIds.get(enemy);
+}
 function gameSfx(name){try{if(typeof playGameSfx==='function')playGameSfx(name);}catch(_){}}
 function monsterSfx(card){
   if(!card || card.type!=='enemy')return;
@@ -716,33 +735,55 @@ function applyPlayerLoss(damage=0,horror=0,source=''){
   const hp=S.hp,sanity=S.sanity;
   S.hp=Math.max(0,S.hp-Math.max(0,damage));
   S.sanity=Math.max(0,S.sanity-Math.max(0,horror));
-  const loss={hp:hp-S.hp,sanity:sanity-S.sanity,source};
+  const loss={hp:hp-S.hp,sanity:sanity-S.sanity,source,phase:S.phase,round:S.round};
   if(loss.hp>0)gameSfx('hurt');
   if(loss.sanity>0)gameSfx('sanity');
   if((loss.hp>0 || loss.sanity>0) && typeof showPlayerLoss==='function')showPlayerLoss(loss);
 }
-function drawCards(n){
-  for(let i=0;i<n;i++){
-    if(S.gameOver) return;
-    if(S.deck.length===0){
-      if(S.discard.length===0){ log('牌组已空，无牌可抽！','bad'); break; }
-      S.deck = shuffle(S.discard); S.discard=[];
-      applyPlayerLoss(0,1,'牌组耗尽：洗回弃牌堆');
-      log('牌组耗尽，洗回弃牌堆，承受 1 点恐惧。','bad');
-      checkDefeat();
-      if(S.gameOver) return;
-    }
-    const c = S.deck.pop();
-    if(c.type==='weak'){
-      log('<b>缠身梦魇</b>！承受 1 点恐惧。','bad');
-      applyPlayerLoss(0,1,c.name);
-      S.discard.push(c);
-      checkDefeat();
-    } else {
-      S.hand.push(c);
-      gameSfx('draw');
-    }
+function drawCards(n,onComplete=null){
+  if(!S || S.gameOver || S.drawingCards)return;
+  const state=S;
+  let remaining=Math.max(0,Math.floor(n)),completed=false;
+  state.drawingCards=true;
+  function complete(){
+    if(completed || S!==state)return;
+    completed=true;state.drawingCards=false;
+    if(onComplete)onComplete();
   }
+  function takeNext(){
+    while(remaining>0){
+      if(S!==state)return;
+      if(state.gameOver){complete();return;}
+      if(state.deck.length===0){
+        if(state.discard.length===0){log('牌组已空，无牌可抽！','bad');complete();return;}
+        state.deck=shuffle(state.discard);state.discard=[];
+        applyPlayerLoss(0,1,'牌组耗尽：洗回弃牌堆');
+        log('牌组耗尽，洗回弃牌堆，承受 1 点恐惧。','bad');
+        checkDefeat();if(state.gameOver){complete();return;}
+      }
+      remaining--;
+      const c=state.deck.pop();
+      if(c.type==='weak'){
+        state.weaknessReveal=c;
+        log(`抽到弱点牌：<b>${c.name}</b>。弱点牌必须立即展示并结算，不能留在手牌中。`,'bad');
+        let settled=false;
+        const settle=()=>{
+          if(settled || S!==state || state.gameOver || state.weaknessReveal!==c)return;
+          settled=true;state.weaknessReveal=null;
+          applyPlayerLoss(0,1,c.name);
+          state.discard.push(c);
+          log(`${c.name}已自动结算：承受 1 点恐惧（理智 −1），该牌进入弃牌堆。`,'bad');
+          checkDefeat();takeNext();if(S===state)render();
+        };
+        // A missing presentation module must never strand a drawn card.
+        try{if(typeof revealWeakness==='function'&&revealWeakness(c,settle))return;}catch(_){}
+        settle();return;
+      }
+      state.hand.push(c);gameSfx('draw');
+    }
+    complete();
+  }
+  takeNext();
 }
 
 function log(html, cls){
@@ -797,7 +838,7 @@ function renderPhaseBar(){
 }
 
 function renderTopStats(){
-  document.getElementById('menuButton').disabled = !!(S.chapterIntro || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive);
+  document.getElementById('menuButton').disabled = !!(S.drawingCards || S.chapterIntro || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive);
   document.getElementById('roundnum').textContent = S.round;
   document.getElementById('currentDifficulty').textContent = DIFFICULTIES[difficultyKey(S.difficulty)].name;
   document.getElementById('topres').textContent = S.resources;
@@ -881,7 +922,7 @@ const CARD_USAGE = {
   percep:'在智慧检定窗口、抽指示物之前投入，智慧 +2。这里只提供加值，没有实现实体同名牌可能具有的成功抽牌效果。',
   guts:'在意志检定窗口、抽指示物之前投入，意志 +2。本作沿用「意外勇气」牌名，但不表示通配技能。',
   manual:'在敏捷检定窗口、抽指示物之前投入，敏捷 +2。投入牌在本次检定结算时弃置。',
-  nightmare:'普通抽牌抽到时自动失去 1 理智并弃置，不能主动打出。起手抽到会放回牌组并补牌。'
+  nightmare:'普通抽牌抽到时必须立即展示并结算，自动失去 1 理智并进入弃牌堆，不能留在手牌，不能主动打出。起手抽到会放回牌组并补牌。'
 };
 
 function renderAssets(){
@@ -1010,7 +1051,7 @@ function renderEnemies(){
   el.innerHTML = S.enemies.map(e=>{
     const st = e.exhausted ? ' 力竭' : (e.engaged ? ' 交缠' : ' 游荡');
     const locName = LOCATIONS[e.location] ? LOCATIONS[e.location].name : '?';
-    return `<div class="enemy ${e.exhausted?'exhausted':''}">
+    return `<div class="enemy ${e.exhausted?'exhausted':''}" data-enemy-key="${enemyVisualKey(e)}">
       <div class="e-ico art" aria-hidden="true" style="--art-x:100%;--art-y:100%"></div>
       <div class="e-info">
         <div class="ename">${e.card.name} <span class="st">${st} · ${locName}</span></div>
@@ -1043,11 +1084,12 @@ function renderActions(){
   // Tests consume an action before their modal resolves; keep the external
   // investigator summary current even when only the action controls refresh.
   renderInvestigator();
-  document.getElementById('menuButton').disabled = !!(S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive);
+  document.getElementById('menuButton').disabled = !!(S.drawingCards || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive);
   const el = document.getElementById('actions');
   const controls = document.getElementById('controls');
   const cnt = document.getElementById('actioncount');
   if(S.gameOver){ el.innerHTML=''; controls.innerHTML=S.failureTransitionActive?'':`${S.canContinue?'<button class="btn primary" onclick="continueChapter()">继续下一幕</button>':''}<button class="btn" onclick="location.reload()">${uiIcon('restart')}重新开始</button>`; cnt.textContent=''; return; }
+  if(S.drawingCards){el.innerHTML='';controls.innerHTML='<span role="status">弱点牌展示中，稍后自动结算并进入弃牌堆。</span>';cnt.textContent='自动结算中';return;}
   if(S.chapterIntro){el.innerHTML='';controls.innerHTML=`<button class="btn primary" onclick="beginChapter()">${S.chapter===3?'开始最终幕':'开始第二幕调查'}</button>`;cnt.textContent='准备开始';return;}
   const actions = [];
   if(S.phase==='investigation'){
@@ -1112,7 +1154,7 @@ function confirmAction(){
   run();
 }
 function requestAction(fn){
-  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive)return;
+  if(!S || S.gameOver || S.drawingCards || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive)return;
   if(fn==='next'){
     if(S.phase!=='investigation')showActionConfirmation('进入下一阶段','继续推进阶段并结算相应效果。',next);
     return;
@@ -1142,7 +1184,7 @@ function requestMapMove(id){
   requestMove(id);
 }
 function requestMove(id){
-  if(!S || S.gameOver || S.test || pendingNavigation || pendingAction || phaseTransitionActive || S.phase!=='investigation' || S.actions<=0)return;
+  if(!S || S.gameOver || S.drawingCards || S.test || pendingNavigation || pendingAction || phaseTransitionActive || S.phase!=='investigation' || S.actions<=0)return;
   if(!LOCATIONS[S.location].conn.includes(id))return;
   closeModal();
   showActionConfirmation('移动',`消耗 1 次行动，前往${S.revealed[id]?LOCATIONS[id].name:'所选未揭示地点'}。`,()=>doMove(id),actionRisk());
@@ -1156,7 +1198,7 @@ function doAction(fn){
 }
 
 function canAct(ignoreTest=false){
-  return !!S && !S.gameOver && !S.chapterIntro && (ignoreTest || !S.test) && !S.pendingMove && !pendingNavigation && !pendingAction && !phaseTransitionActive && S.phase==='investigation' && S.actions>0;
+  return !!S && !S.gameOver && !S.drawingCards && !S.chapterIntro && (ignoreTest || !S.test) && !S.pendingMove && !pendingNavigation && !pendingAction && !phaseTransitionActive && S.phase==='investigation' && S.actions>0;
 }
 
 function beginAction(exempt=false,stagedTest=null){
@@ -1187,10 +1229,11 @@ function takeEnemyHit(e, reason){
 /* --- 各行动 --- */
 function draw(){
   if(!beginAction()) return;
-  drawCards(1);
-  if(S.gameOver) return;
-  log('你抽了 1 张牌。');
-  render();
+  const state=S;
+  drawCards(1,()=>{
+    if(S!==state || S.gameOver)return;
+    log('你抽了 1 张牌。');render();
+  });
 }
 
 function resource(){
@@ -1285,9 +1328,14 @@ function fight(preview=false){
   });
   const weaponTxt = bonus>0 ? `（武器修正 +${bonus}）` : '';
   startTest('combat', target.card.fight, `战斗 ${weaponTxt}`, (success)=>{
+    let hit=null;
     if(success){
       let dmg = 1 + extraDmg;
-      target.hp -= dmg;
+      let origin=null;
+      try{if(typeof captureEnemyHitOrigin==='function')origin=captureEnemyHitOrigin(target);}catch(_){}
+      const hpBefore=target.hp;
+      target.hp=Math.max(0,target.hp-dmg);
+      hit={enemy:target,damage:hpBefore-target.hp,before:hpBefore,remaining:target.hp,origin};
       log(`你击中了 ${target.card.name}，造成 ${dmg} 点伤害！`,'good');
       if(target.hp<=0){
         log(`<b>${target.card.name} 被击败！</b>`,'gold');
@@ -1310,6 +1358,9 @@ function fight(preview=false){
       log('你的攻击落空了。','dim');
     }
     render();
+    if(hit&&hit.damage>0&&typeof showEnemyDamage==='function'){
+      try{showEnemyDamage(hit);}catch(_){} // Feedback must not affect combat settlement.
+    }
   }, bonus,preview?true:null);
 }
 
@@ -1377,9 +1428,9 @@ function next(){
 }
 
 /* ============ 检定系统 ============ */
-function startTest(skill, difficulty, label, onDone, bonus=0,actionExempt=null,onStart=null){
-  if(S.gameOver || S.test) return;
-  S.test = {skill, difficulty, label, onDone, bonus, resolved:false,actionExempt,onStart};
+function startTest(skill, difficulty, label, onDone, bonus=0,actionExempt=null,onStart=null,encounter=null){
+  if(S.gameOver || S.drawingCards || S.test) return;
+  S.test = {skill, difficulty, label, onDone, bonus, resolved:false,actionExempt,onStart,encounter};
   S.committed = [];
   openTestModal();
   renderActions();
@@ -1410,6 +1461,27 @@ function testLearningInfo(t,token=null){
     <div class="test-learning-formula" aria-label="抽取前数值组成"><span data-part="base">基础${skill}<b>${base}</b></span><i>+</i><span data-part="bonus">装备／效果<b>${t.bonus}</b></span><i>+</i><span data-part="committed">投入卡牌<b>${committed}</b></span><i>=</i><span data-part="before">${labels.before}<b>${before}</b></span></div>${outcome}</section>`;
 }
 
+function testConsequenceInfo(t,result=null){
+  const context=t.encounter,loss=t.tokenLoss;
+  if(!context&&!loss)return '';
+  const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  let content='';
+  if(context){
+    content=`<h4>遭遇牌：${esc(context.card.name)}</h4><p>${esc(context.card.text)}</p>`;
+    if(result===null)content+='<p>抽到这张牌不会立刻扣理智；先进行意志检定。此检定不消耗行动，也不会触发借机攻击。</p><p>承受 1 点恐惧，就是失去 1 点理智。混沌指示物的额外后果另行计算。</p>';
+    else if(result)content+='<p>本牌检定成功：不承受这张遭遇牌的恐惧。</p>';
+    else content+=`<p class="test-consequence-pending">待结算：点击「继续」后，${esc(context.card.name)}造成 ${context.failureHorror} 点恐惧（理智 −${context.failureHorror}）。这部分尚未扣除。</p>`;
+  }
+  if(loss){
+    content+=`<p class="test-consequence-applied">混沌指示物已结算：${loss.hp?`生命 −${loss.hp}`:''}${loss.hp&&loss.sanity?'，':''}${loss.sanity?`理智 −${loss.sanity}`:''}。来源：${esc(loss.source)}。点击继续不会再次扣除这一部分。</p>`;
+  }
+  if(context&&result!==null){
+    const applied=loss?.sanity||0,pending=result?0:context.failureHorror;
+    content+=`<p class="test-consequence-total">本次理智损失：已扣 ${applied} ＋ 待扣 ${pending} = ${applied+pending}。${applied+pending===0?'本次不会损失理智。':'遭遇牌与混沌指示物是两种来源，分别结算。'}</p>`;
+  }
+  return `<section class="test-consequence" role="status" aria-live="polite" aria-label="遭遇与损失说明">${content}</section>`;
+}
+
 function openTestModal(){
   const t = S.test;
   const sk = SKILL[t.skill];
@@ -1418,6 +1490,7 @@ function openTestModal(){
   const committable = S.hand.filter(c=>commitBonus(c)>0);
   document.getElementById('modalBox').innerHTML = `
     <h3>技能检定：${t.label}</h3>
+    ${testConsequenceInfo(t)}
     <div class="skilltest">
       <div class="testinfo">
         ${SKILL_ICON[t.skill]} 属性：<b>${sk}</b>（基础 ${base}）<br>
@@ -1575,8 +1648,11 @@ function resolveTest(){
   });
   const damage=token.damage,horror=token.horror+(!result?token.failHorror:0);
   if(damage||horror){
-    applyPlayerLoss(damage,horror,'混沌符号效果');
-    log(`混沌符号效果：承受 ${damage} 伤害、${horror} 恐惧。`,'bad');
+    const source=`混沌指示物「${token.label}」${t.encounter?` · ${t.encounter.card.name}`:''}`;
+    const hpBefore=S.hp,sanityBefore=S.sanity;
+    applyPlayerLoss(damage,horror,source);
+    t.tokenLoss={hp:hpBefore-S.hp,sanity:sanityBefore-S.sanity,source};
+    log(`${source}：承受 ${damage} 伤害、${horror} 恐惧（理智 ${sanityBefore} → ${S.sanity}）。`,'bad');
     checkDefeat();render();if(S.gameOver){const box=document.getElementById('modalBox');if(typeof box.insertAdjacentHTML==='function')box.insertAdjacentHTML('beforeend',tokenInfo);else box.innerHTML+=tokenInfo;return;}
   }
   const choices=t.searchGhoul?availableGhouls().filter((c,i,a)=>a.findIndex(x=>x.id===c.id)===i):[];
@@ -1584,6 +1660,7 @@ function resolveTest(){
   document.getElementById('modalBox').innerHTML = `
     <h3>检定结果</h3>
     <div class="test-reveal">
+    ${testConsequenceInfo(t,result)}
     ${learningInfo}
     <div class="chaos reveal-token"><span class="reveal-token-face">${tokenHtml}</span></div>
     ${tokenInfo}
@@ -1622,6 +1699,7 @@ function cancelTest(){
   S.test=null;S.committed=[];closeModal();render();
 }
 function closeModal(){
+  if(S && S.weaknessReveal && !S.gameOver)return;
   if(S && S.test && !S.gameOver) return;
   if(typeof gameNarrator!=='undefined')gameNarrator.closeIntro();
   if(typeof resetFailureTransition==='function')resetFailureTransition();
@@ -1635,20 +1713,20 @@ function openModal(html){ if(typeof resetFailureTransition==='function')resetFai
 
 /* ============ 阶段流转 ============ */
 function endTurn(){
-  if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive || S.phase!=='investigation' || S.actions===3) return;
+  if(!S || S.gameOver || S.drawingCards || S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive || S.phase!=='investigation' || S.actions===3) return;
   S.actions = 0;
   advancePhase();
 }
 
 function advancePhase(){
-  if(!S || S.gameOver || S.test || S.pendingMove || pendingAction || pendingNavigation || phaseTransitionActive) return;
+  if(!S || S.gameOver || S.drawingCards || S.test || S.pendingMove || pendingAction || pendingNavigation || phaseTransitionActive) return;
   const nextPhase={investigation:'enemy',enemy:'upkeep',upkeep:'mythos',mythos:'investigation'}[S.phase];
   if(!nextPhase)return;
   if(typeof announcePhase==='function')announcePhase(nextPhase,enterPhase);
   else enterPhase();
 }
 function enterPhase(){
-  if(!S || S.gameOver || S.test || S.pendingMove || pendingAction || pendingNavigation || phaseTransitionActive)return;
+  if(!S || S.gameOver || S.drawingCards || S.test || S.pendingMove || pendingAction || pendingNavigation || phaseTransitionActive)return;
   if(S.phase==='investigation'){ S.phase='enemy'; log('—— 敌人阶段 ——','gold'); enemyPhase(); }
   else if(S.phase==='enemy'){ S.phase='upkeep'; log('—— 维持阶段 ——','gold'); upkeepPhase(); }
   else if(S.phase==='upkeep'){ S.phase='mythos'; log('—— 神话阶段 ——','gold'); mythosPhase(); }
@@ -1700,23 +1778,25 @@ function enemyPhase(){
 }
 
 function upkeepPhase(){
-  if(S.gameOver) return;
+  if(S.gameOver || S.drawingCards) return;
+  const state=S;
   S.enemies.forEach(e=>{ e.exhausted=false; });
   S.assets.forEach(a=>a.exhausted=false);
   engageLocalEnemies();
-  drawCards(1);
-  if(S.gameOver) return;
-  S.resources++;
-  log('维持阶段：恢复就绪，抽 1 张牌，+1 资源。');
-  if(S.hand.length>8){
-    while(S.hand.length>8){ S.discard.push(S.hand.pop()); }
-    log('手牌超过 8 张，已弃置至 8 张。','dim');
-  }
-  render();
+  drawCards(1,()=>{
+    if(S!==state || S.gameOver)return;
+    S.resources++;
+    log('维持阶段：恢复就绪，抽 1 张牌，+1 资源。');
+    if(S.hand.length>8){
+      while(S.hand.length>8){S.discard.push(S.hand.pop());}
+      log('手牌超过 8 张，已弃置至 8 张。','dim');
+    }
+    render();
+  });
 }
 
 function mythosPhase(){
-  if(S.gameOver) return;
+  if(!S || S.gameOver || S.drawingCards || S.test) return;
   S.doom++;
   log(`神话阶段：末日 +1（当前 ${S.doom}）。`,'bad');
   const agenda = AGENDA_DECK[S.agendaIdx];
@@ -1729,7 +1809,8 @@ function mythosPhase(){
 }
 
 function drawEncounter(){
-  if(S.gameOver) return;
+  // A mandatory encounter test must settle before another draw can replace it.
+  if(!S || S.gameOver || S.drawingCards || S.test) return;
   if(S.encounter.length===0){
     S.encounter = shuffle(S.encounterDiscard); S.encounterDiscard=[];
   }
@@ -1751,14 +1832,15 @@ function drawEncounter(){
       log(`遭遇：<b>${c.name}</b> —— 进行意志(2)检定。`,'bad');
       startTest('will', 2, '抵抗恐惧低语', (success)=>{
         if(!success){
+          const sanityBefore=S.sanity;
           applyPlayerLoss(0,1,c.name);
-          log('你被低语侵蚀，承受 1 点恐惧。','bad');
+          log(`${c.name}检定失败：承受 1 点恐惧（理智 ${sanityBefore} → ${S.sanity}）。此前混沌指示物的后果不会重复结算。`,'bad');
           checkDefeat();
         } else {
           log('你稳住了心神。','good');
         }
         render();
-      });
+      },0,null,null,{card:{id:c.id,name:c.name,text:c.text},failureHorror:1});
       return;
     }
   }
@@ -1863,6 +1945,9 @@ function beginChapter(){
 }
 function resolve(code, text){
   if(S.gameOver) return;
+  if(typeof resetEnemyDamage==='function')resetEnemyDamage();
+  if(typeof resetWeaknessReveal==='function')resetWeaknessReveal();
+  S.weaknessReveal=null;S.drawingCards=false;
   if(typeof gameNarrator!=='undefined')gameNarrator.stop();
   if(typeof resetEnemyEngagement==='function')resetEnemyEngagement();
   S.gameOver = true;
@@ -1895,14 +1980,16 @@ function resolve(code, text){
 </script>
 <script src="ambience.js?v=ending-victory-6"></script>
 <script src="ending-narration.js?v=text-voice-2"></script>
-<script src="scene-narration.js?v=finale-1"></script>
+<script src="scene-narration.js?v=interrupt-stop-2"></script>
 <script src="failure-transition.js?v=2"></script>
 <script src="clue-flight.js?v=1"></script>
-<script src="enemy-engagement.js?v=1"></script>
+<script src="enemy-engagement.js?v=stats-2"></script>
+<script src="enemy-damage.js?v=1"></script>
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=chapter-3"></script>
 <script src="phase-transition.js?v=skip-countdown-2"></script>
-<script src="loss-notices.js?v=continue-dismiss-4"></script>
+<script src="loss-notices.js?v=phase-source-5"></script>
+<script src="weakness-reveal.js?v=1"></script>
 <script src="tutorial.js?v=standalone-outro-1"></script>
 <script src="atlas.js?v=chapter-3"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
@@ -1916,7 +2003,7 @@ function resolve(code, text){
 <script src="game-header.js?v=spacious-1"></script>
 <script src="phase-help.js?v=hover-1"></script>
 <script src="hand-hover.js?v=hover-1"></script>
-<script src="board-inspect.js?v=chapter-3"></script>
+<script src="board-inspect.js?v=enemy-stats-4"></script>
 <script src="start-tutorial.js?v=choice-1"></script>
 </body>
 </html>

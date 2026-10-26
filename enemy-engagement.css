@@ -9,6 +9,13 @@
 .engagement-eyebrow{font-size:11px;letter-spacing:2px;color:#d5a184;margin:0 0 7px}
 .engagement-heading h2{font:400 27px/1.35 Georgia,'SimSun','Songti SC',serif;letter-spacing:2px;color:#d3bb7f;margin:0;overflow-wrap:anywhere}
 #enemyEngagementDescription{font-size:14px;line-height:1.9;margin:23px 0}
+.engagement-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px}
+.engagement-stats>div{padding:11px 12px;border:1px solid #574b33;background:#272117;min-width:0}
+.engagement-stats h3{font-size:12px;font-weight:500;color:#d3bb7f;margin:0 0 7px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.engagement-stats h3 b{font:21px/1.1 Georgia,serif;color:#f0d7a2}
+.engagement-stats p,.engagement-trait{font-size:11px;line-height:1.75;color:#d4c5a5;margin:4px 0;overflow-wrap:anywhere}
+.engagement-trait{margin:0 0 16px;color:#d3bb7f}
+@media(max-width:380px){.engagement-stats{grid-template-columns:1fr}}
 .engagement-warning{padding:17px 16px;border-left:3px solid #b37b59;background:#30231b}
 .engagement-warning strong{font-size:14px;font-weight:500;color:#f0c9a7}
 .engagement-warning p{margin:8px 0 0;font-size:12px;line-height:1.8;color:#d4bba6}

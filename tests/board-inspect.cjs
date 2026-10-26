@@ -43,6 +43,12 @@ test('资产和敌人展示真实卡面与当前数值，通用区域只读且�
  g.ctx.S.enemies=[{card:{name:'食尸鬼',hp:2,fight:2,evade:2,dmg:1,horror:1,hunter:true},hp:1,location:'study',engaged:true}];const enemy=g.node('enemy0',['enemy'],'div',g.nodes.get('enemies'));g.nodes.get('enemies').parent=g.nodes.get('game');g.nodes.get('assets').parent=g.nodes.get('game');g.click(enemy);assert.match(g.nodes.get('boardInspectContent').innerHTML,/生命 1\/2/);g.close();
  const panel=g.node('generic',['panel']);panel.textContent='<script>not executable</script>';g.click(panel);assert.match(g.nodes.get('boardInspectContent').innerHTML,/&lt;script&gt;/);
 });
+test('桌面怪物再次放大时也讲解战斗门槛、当前生命和伤害恐惧的区别',()=>{
+ const g=setup();g.ctx.S.enemies=[{card:{name:'食尸鬼',hp:3,fight:2,evade:2,dmg:1,horror:2},hp:1,location:'study',engaged:true}];
+ const enemy=g.node('enemy0',['enemy'],'div',g.nodes.get('enemies'));g.click(enemy);const body=g.nodes.get('boardInspectContent').innerHTML;
+ assert.match(body,/生命 1\/3/);assert.match(body,/命中门槛，不是伤害/);assert.match(body,/1 伤害（减少生命）和 2 恐惧（减少理智）/);assert.match(body,/刚出现时不会立刻攻击/);assert.equal(g.calls.length,0);
+});
+
 test('教学、原生弹窗、阶段倒计时及未完成操作期间不叠加放大窗口',()=>{
  for(const block of [g=>g.native(true),g=>g.nodes.get('game').inert=true,g=>g.ctx.phaseTransitionActive=true,g=>g.ctx.S.test={},g=>g.ctx.S.pendingMove=true,g=>g.ctx.pendingNavigation=true,g=>g.ctx.pendingAction={},g=>g.nodes.get('game').style.display='none',g=>g.nodes.get('modal').classList.add('open')]){
   const g=setup();block(g);g.click(g.node('investigator',['panel']));assert.equal(g.nodes.get('boardInspectDialog').open,false);

@@ -28,6 +28,11 @@
     [active]=queue.splice(ready,1);
     const card=active.card,name=card.name||'未知怪物',art=byId('enemyEngagementArt');
     byId('enemyEngagementTitle').textContent=name;
+    byId('enemyEngagementHp').textContent=`${active.hp}/${card.hp}`;
+    byId('enemyEngagementFight').textContent=String(card.fight);
+    byId('enemyEngagementEvade').textContent=String(card.evade);
+    byId('enemyEngagementAttackStats').textContent=`每次造成 ${card.dmg||0} 伤害、${card.horror||0} 恐惧。`;
+    byId('enemyEngagementTrait').textContent=card.hunter?'猎手：就绪且未交缠时，敌人阶段会向你移动一个相邻地点。':'非猎手：不会主动跨地点追赶；同地点就绪时仍会与你交缠。';
     byId('enemyEngagementAttack').textContent=`它的每次攻击：${card.dmg||0} 伤害、${card.horror||0} 恐惧。`;
     const ghoul=card.name?.includes('食尸鬼')||card.traits?.includes('Ghoul')||card.id==='cellar-keeper';
     art.classList.toggle('art',ghoul);art.textContent=ghoul?'':name.slice(0,1);

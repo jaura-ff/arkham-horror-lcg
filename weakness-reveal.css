@@ -1,0 +1,12 @@
+/* Existing modal and sprite art: no extra board space or new media. */
+.weakness-reveal{text-align:center;max-width:380px;margin:auto;animation:weakness-appear 220ms ease-out}
+.weakness-reveal .weakness-kicker{font-size:10px;letter-spacing:2px;color:#c8a282;margin-bottom:10px}
+.weakness-reveal h3{margin:0 0 14px}
+.weakness-reveal .weakness-art,.weakness-no-art{width:116px;height:144px;margin:0 auto 14px;border:3px double #92704e}
+.weakness-no-art{display:grid;place-items:center;background:#282018;color:var(--gold)}
+.weakness-reveal p{font-size:13px;line-height:1.8;overflow-wrap:anywhere}
+.weakness-reveal .weakness-rule{font-size:16px;color:#e4bf91;margin-bottom:8px}
+.weakness-reveal .weakness-note{font-size:12px;color:var(--dim);margin-top:9px}
+@keyframes weakness-appear{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(orientation:landscape) and (max-height:440px){.weakness-reveal .weakness-art,.weakness-no-art{width:64px;height:70px;margin-bottom:8px}.weakness-reveal .weakness-rule{font-size:14px}.weakness-reveal p{font-size:12px;line-height:1.5}}
+@media(prefers-reduced-motion:reduce){.weakness-reveal{animation:none}}

@@ -559,6 +559,62 @@ test('牌组耗尽恐惧导致失败时维持阶段不再抽牌或加资源',()=
   const g=game();g.run(`S.sanity=1;S.deck=[];S.discard=[{...INVESTIGATOR.deck[0]}];upkeepPhase()`);
   assert.equal(g.get('S.gameOver'),true);assert.equal(g.get('S.hand.length'),0);assert.equal(g.get('S.resources'),5);
 });
+test('七张遭遇牌逐一抽取：抽牌本身不直接扣生命理智，也不触发怪物借机攻击',()=>{
+ for(const id of ['ghoul1','ghoul2','ghoul3','ancient1','ancient2','whisper1','whisper2']){
+  const g=game();g.enemy();g.run(`S.phase='mythos';S.encounter=[{...ENCOUNTER.find(c=>c.id==='${id}')}];mythosPhase()`);
+  assert.deepEqual(g.get('[S.hp,S.sanity,S.actions]'),[9,5,3],id);
+  assert.equal(g.get('!!S.test'),id.startsWith('whisper'),id);
+ }
+});
+
+test('恐惧低语弹窗先讲牌面与恐惧含义，只有失败确认时扣一次，不消耗行动',()=>{
+ for(const success of [true,false]){
+  const g=game();g.enemy();g.run(`S.phase='mythos';S.chaos=[{label:'修正',mod:${success?0:-2}}];S.encounter=[{...ENCOUNTER.find(c=>c.id==='whisper1')}];mythosPhase()`);
+  let box=g.document.getElementById('modalBox').innerHTML;assert.match(box,/遭遇牌：恐惧低语/);assert.match(box,/失败则承受 1 点恐惧/);assert.match(box,/不会立刻扣理智/);assert.match(box,/不会触发借机攻击/);
+  g.run('resolveTest();resolveTest()');assert.deepEqual(g.get('[S.hp,S.sanity,S.actions]'),[9,5,3]);
+  box=g.document.getElementById('modalBox').innerHTML;assert.match(box,success?/已扣 0 ＋ 待扣 0 = 0/:/已扣 0 ＋ 待扣 1 = 1/);
+  if(!success)assert.match(box,/这部分尚未扣除/);
+  g.run('finishTest(S.testResult);finishTest(false);resolveTest()');assert.deepEqual(g.get('[S.hp,S.sanity,S.actions]'),[9,success?5:4,3]);assert.equal(g.get('S.encounterDiscard.length'),1);
+ }
+});
+
+test('异教徒的额外恐惧与低语牌面分开标明，困难连抽不重复扣理智',()=>{
+ for(const hard of [false,true]){
+  const g=game();g.run(`S.phase='mythos';INVESTIGATOR.will=${hard?3:2};S.difficulty='${hard?'hard':'standard'}';Math.random=()=>0;S.chaos=[{label:'异教徒',symbol:'cultist'}${hard?",{label:'-2',mod:-2}":''}];S.encounter=[{...ENCOUNTER.find(c=>c.id==='whisper1')}];mythosPhase();resolveTest();resolveTest()`);
+  const extra=hard?2:1;assert.equal(g.get('S.sanity'),5-extra);const box=g.document.getElementById('modalBox').innerHTML;
+  assert.match(box,new RegExp('已扣 '+extra+' ＋ 待扣 1 = '+(extra+1)));assert.match(box,/异教徒/);assert.match(box,/点击继续不会再次扣除这一部分/);
+  g.run('finishTest(S.testResult);finishTest(false)');assert.equal(g.get('S.sanity'),4-extra);
+ }
+});
+
+test('困难石板即使检定成功也可能损失理智，明示为符号效果而不是遭遇失败',()=>{
+ const g=game();g.enemy();g.run("S.phase='mythos';S.difficulty='hard';INVESTIGATOR.will=6;S.chaos=[{label:'石板',symbol:'tablet'}];S.encounter=[{...ENCOUNTER.find(c=>c.id==='whisper1')}];mythosPhase();resolveTest()");
+ assert.equal(g.get('S.testResult'),true);assert.deepEqual(g.get('[S.hp,S.sanity,S.actions]'),[8,4,3]);
+ const box=g.document.getElementById('modalBox').innerHTML;assert.match(box,/本牌检定成功/);assert.match(box,/已扣 1 ＋ 待扣 0 = 1/);assert.match(box,/来源：混沌指示物「石板」/);
+ g.run('finishTest(true);finishTest(true)');assert.deepEqual(g.get('[S.hp,S.sanity]'),[8,4]);
+});
+
+test('遭遇检定进行中重复调用神话或遭遇入口，不再增加末日或偷抽第二张牌',()=>{
+ const g=game();g.run("S.phase='mythos';S.encounter=[{...ENCOUNTER[0]},{...ENCOUNTER.find(c=>c.id==='whisper1')}];mythosPhase()");
+ const before=g.get('S');g.run('mythosPhase();drawEncounter();mythosPhase()');assert.deepEqual(g.get('S'),before);assert.equal(g.get('S.encounter.length'),1);
+ g.finish();g.run('drawEncounter()');assert.equal(g.get('S.enemies.length'),1);
+});
+
+test('遭遇说明反复渲染只读，牌名与规则转义，普通调查不会继承遭遇说明',()=>{
+ const g=game();g.run("S.encounter=[{id:'whisper-test',name:'<img src=x>',type:'treachery',text:'<script>danger</script>'}];drawEncounter()");
+ const before=g.get('S');g.run('testConsequenceInfo(S.test);openTestModal();openTestModal()');assert.deepEqual(g.get('S'),before);
+ const box=g.document.getElementById('modalBox').innerHTML;assert.match(box,/&lt;img src=x&gt;/);assert.match(box,/&lt;script&gt;/);assert.doesNotMatch(box,/<script>|<img src=x>/);
+ g.finish();g.run("S.phase='investigation';investigate()");assert.doesNotMatch(g.document.getElementById('modalBox').innerHTML,/遭遇牌：/);
+});
+
+test('低语遭遇中符号恐惧致命时停止后续扣除，牌面失败致命时也只结算一次',()=>{
+ for(const symbolFatal of [false,true]){
+  const g=game();g.run(`let losses=[];showPlayerLoss=loss=>losses.push(loss);S.phase='mythos';S.sanity=1;INVESTIGATOR.will=2;S.chaos=[${symbolFatal?"{label:'异教徒',symbol:'cultist'}":"{label:'-2',mod:-2}"}];S.encounter=[{...ENCOUNTER.find(c=>c.id==='whisper1')}];mythosPhase();resolveTest();finishTest(false);finishTest(false);resolveTest()`);
+  assert.deepEqual(g.get('[S.sanity,S.gameOver]'),[0,true]);assert.equal(g.get('losses.length'),1);assert.equal(g.get('losses[0].sanity'),1);
+  assert.match(g.get('losses[0].source'),symbolFatal?/异教徒/:/恐惧低语/);assert.equal(g.get('losses[0].phase'),'mythos');assert.match(g.document.getElementById('modalBox').innerHTML,/调查失败/);
+ }
+});
+
 test('恐惧低语成功或失败均回收到遭遇弃牌堆',()=>{
   for(const autofail of [false,true]){
     const g=game();g.run(`S.encounter=[{...ENCOUNTER.find(c=>c.id==='whisper1')}];S.chaos=[{label:'0',mod:0,autofail:${autofail}}];drawEncounter()`);g.finish();
@@ -839,7 +895,7 @@ test('符号指示物展示实际结算修正，包含上古印记和困难连�
 });
 test('检定讲解只读，不改变随机和游戏状态，样式只作用于弹窗内说明',()=>{
  const g=game();g.run("requestAction('investigate');Math.random=()=>{throw Error('must not draw')}");const before=g.get('S');g.run("testLearningInfo(S.test);testLearningInfo(S.test,{mod:-1,autofail:false})");assert.deepEqual(g.get('S'),before);
- assert.match(html,/test-learning.css\?v=mini-commits-2/);const css=fs.readFileSync(path.join(__dirname,'..','test-learning.css'),'utf8');assert.match(css,/flex-wrap:wrap/);assert.match(css,/orientation:landscape/);assert.doesNotMatch(css,/#game|#wrap|body\s*\{|\.main\s*\{/);
+ assert.match(html,/test-learning.css\?v=encounter-context-3/);const css=fs.readFileSync(path.join(__dirname,'..','test-learning.css'),'utf8');assert.match(css,/flex-wrap:wrap/);assert.match(css,/orientation:landscape/);assert.doesNotMatch(css,/#game|#wrap|body\s*\{|\.main\s*\{/);
 });
 
 test('调查准备、投入后和结果统一使用遮蔽值与调查能力',()=>{

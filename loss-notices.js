@@ -18,6 +18,7 @@
     timer=null;earlyExit=null;queue=[];cancelFlight();landings.forEach(a=>{try{a.cancel();}catch(_){}});landings.clear();hide();
     byId('lossNoticeAmount').textContent='';byId('lossNoticeSource').textContent='';
     byId('lossNoticeTitle').textContent='';byId('lossNoticeRemaining').textContent='';
+    byId('lossNoticePhase').textContent='';
   };
   function exit(loss,ticket){
     const panel=byId('investigator');
@@ -66,6 +67,8 @@
     byId('lossNoticeTitle').textContent=loss.hp>0?(loss.sanity>0?'生命与理智受损':'遭受伤害'):'精神受创';
     byId('lossNoticeAmount').textContent=[loss.hp>0?`生命 −${loss.hp}`:'',loss.sanity>0?`理智 −${loss.sanity}`:''].filter(Boolean).join(' · ');
     byId('lossNoticeSource').textContent=loss.source||'受到伤害';
+    const phaseName={investigation:'调查阶段',enemy:'敌人阶段',upkeep:'维持阶段',mythos:'神话阶段'}[loss.phase];
+    byId('lossNoticePhase').textContent=phaseName?`发生于：第 ${loss.round} 回合 · ${phaseName}`:'';
     byId('lossNoticeRemaining').textContent=[loss.hp>0?`剩余生命 ${loss.remainingHp}`:'',loss.sanity>0?`剩余理智 ${loss.remainingSanity}`:''].filter(Boolean).join('　/　');
     notice.hidden=false;
     try{notice.showPopover?.();}catch(_){notice.removeAttribute?.('popover');}

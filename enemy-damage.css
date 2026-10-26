@@ -1,0 +1,19 @@
+/* Brief, modest blood flecks on the targeted monster; never a full-screen flash. */
+.enemy-hit-effect{position:fixed;z-index:2200;pointer-events:none;box-sizing:border-box;border:1px solid #b47765;background:#7f342a38;animation:enemy-hit-fade 900ms ease-out both}
+.enemy-hit-number{position:absolute;right:8px;top:4px;display:flex;flex-direction:column;align-items:center;padding:4px 8px;border:1px solid #965f50;background:#30201be8;color:#f2c8ae;animation:enemy-hit-rise 900ms ease-out both;line-height:1.5}
+.enemy-hit-number b{font-size:17px;font-weight:600;white-space:nowrap}
+.enemy-hit-number small{font-size:11px;color:#dfc0aa;white-space:nowrap}
+.enemy-hit-mark{position:absolute;left:36px;top:50%;width:1px;height:1px}
+.enemy-hit-mark i{position:absolute;width:5px;height:8px;border-radius:60% 40% 65% 35%;background:#aa5543;animation:enemy-hit-fleck 620ms ease-out both;--dx:-17px;--dy:-11px}
+.enemy-hit-mark i:nth-child(2){--dx:15px;--dy:-17px;transform:rotate(30deg)}
+.enemy-hit-mark i:nth-child(3){--dx:22px;--dy:9px;width:4px;height:5px}
+.enemy-hit-mark i:nth-child(4){--dx:-9px;--dy:17px;width:3px;height:5px}
+.enemy-hit-ghost{display:flex;align-items:center;gap:10px;height:100%;padding:6px 10px;box-sizing:border-box;background:#211914e8;color:#d3b895;font-size:12px;animation:enemy-hit-ghost 900ms ease-out both}
+.enemy-hit-ghost .e-ico{display:block;flex:0 0 36px;width:36px;height:40px}
+.enemy-hit-ghost small{display:block;font-size:10px;margin-top:3px}
+@keyframes enemy-hit-fade{0%,65%{opacity:1}100%{opacity:0}}
+@keyframes enemy-hit-rise{from{transform:translateY(0);opacity:1}to{transform:translateY(-22px);opacity:0}}
+@keyframes enemy-hit-fleck{from{transform:translate(0,0) scale(.3);opacity:.9}to{transform:translate(var(--dx),var(--dy)) scale(.8);opacity:0}}
+@keyframes enemy-hit-ghost{0%,45%{opacity:.85;transform:translateY(0)}100%{opacity:0;transform:translateY(5px)}}
+@media(prefers-reduced-motion:reduce){.enemy-hit-effect,.enemy-hit-number,.enemy-hit-mark i,.enemy-hit-ghost{animation:none}.enemy-hit-mark{display:none}}
+@media(max-width:450px){.enemy-hit-number b{font-size:14px}.enemy-hit-number{right:4px;padding:3px 6px}}

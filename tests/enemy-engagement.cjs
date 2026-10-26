@@ -12,6 +12,13 @@ function setup(){
 test('新怪物交缠后显示名称、小图与实际攻击数值，无自动关闭计时',()=>{
  const g=setup();g.spawn();const before=g.get('S');g.tick();const d=g.el('enemyEngagementDialog');assert.equal(d.open,true);assert.equal(g.el('enemyEngagementTitle').textContent,'食尸鬼·仆人');assert.match(g.el('enemyEngagementAttack').textContent,/1 伤害、1 恐惧/);assert.ok(g.el('enemyEngagementArt').classList.contains('art'));assert.equal(g.el('enemyEngagementArt').style['--art-x'],'100%');assert.match(g.el('enemyEngagementArt')['aria-label'],/食尸鬼/);assert.equal(g.timers.size,0);g.tick(60000);assert.equal(d.open,true);assert.deepEqual(g.get('S'),before);g.close();assert.equal(d.open,false);assert.equal(g.doc.activeElement.id,'menuButton');
 });
+test('怪物说明每次展示当前生命、战斗门槛、闪避门槛与攻击后果，猎手特性也讲解',()=>{
+ const g=setup();g.spawn();g.tick();assert.equal(g.el('enemyEngagementHp').textContent,'2/2');assert.equal(g.el('enemyEngagementFight').textContent,'2');assert.equal(g.el('enemyEngagementEvade').textContent,'2');assert.match(g.el('enemyEngagementAttackStats').textContent,/1 伤害、1 恐惧/);assert.match(g.el('enemyEngagementTrait').textContent,/非猎手/);g.close();
+ g.run('S.enemies[0].hp=1;S.enemies[0].engaged=false;render();S.enemies[0].engaged=true;render()');g.tick();assert.equal(g.el('enemyEngagementHp').textContent,'1/2');g.close();
+ g.run('S.encounter=[{...ENCOUNTER[2]}];drawEncounter();render()');g.tick();assert.equal(g.el('enemyEngagementHp').textContent,'3/3');assert.equal(g.el('enemyEngagementFight').textContent,'3');assert.equal(g.el('enemyEngagementEvade').textContent,'3');assert.match(g.el('enemyEngagementTrait').textContent,/就绪且未交缠/);
+ assert.match(html,/这是命中它的门槛，不是伤害/);assert.match(html,/伤害减少你的生命，恐惧减少你的理智/);assert.match(html,/并非刚出现就攻击/);
+});
+
 test('同次交缠反复重绘不再提示，解除后重新交缠会再次提示',()=>{
  const g=setup();g.spawn();g.tick();g.close();g.run('render();renderEnemies();render()');g.tick();assert.equal(g.el('enemyEngagementDialog').shows,1);
  g.run('S.enemies[0].engaged=false;S.enemies[0].exhausted=true;render();S.enemies[0].exhausted=false;engageLocalEnemies();render()');g.tick();assert.equal(g.el('enemyEngagementDialog').shows,2);
@@ -24,7 +31,7 @@ test('其它地点、游荡、未就绪的怪物不会弹出误导警告',()=>{
 test('检定、阶段提示与其它弹窗完成前不覆盖，完成后再手动阅读',()=>{
  for(const block of ['test','phase','modal','dialog','chapter']){
   const g=setup();if(block==='test')g.run("startTest('int',0,'测试',()=>{})");if(block==='phase')g.run('phaseTransitionActive=true');if(block==='modal')g.run("openModal('原弹窗')");if(block==='dialog')g.el('handCardDialog').open=true;if(block==='chapter')g.run('S.chapterIntro=true');
-  g.spawn();g.tick();assert.equal(g.el('enemyEngagementDialog').open,false,block);
+  if(block==='test')g.run("S.enemies.push({card:{...ENCOUNTER[0]},hp:2,engaged:true,exhausted:false,location:S.location});render()");else g.spawn();g.tick();assert.equal(g.el('enemyEngagementDialog').open,false,block);
   if(block==='test')g.run('resolveTest();finishTest(true)');if(block==='phase')g.run('phaseTransitionActive=false');if(block==='modal')g.run('closeModal()');if(block==='dialog')g.el('handCardDialog').open=false;if(block==='chapter')g.run('S.chapterIntro=false');g.tick(200);assert.equal(g.el('enemyEngagementDialog').open,true,block);
  }
 });
@@ -51,5 +58,5 @@ test('弹窗展示不会重复播放怪物音效，关闭和刷新也不重复�
  const g=setup();g.run('let cues=[];playGameSfx=name=>cues.push(name)');g.spawn();g.tick();const hp=g.get('[S.hp,S.sanity,S.actions]');g.close();g.run('render()');g.tick();assert.deepEqual(g.get('cues'),['ghoul']);assert.deepEqual(g.get('[S.hp,S.sanity,S.actions]'),hp);
 });
 test('弹窗与资源已接入，移动端可滚动且按钮可键盘访问',()=>{
- assert.match(html,/enemy-engagement.js\?v=1/);assert.match(html,/enemy-engagement.css\?v=1/);assert.match(html,/<dialog id="enemyEngagementDialog"[^>]*aria-labelledby="enemyEngagementTitle"/);assert.match(html,/<button id="enemyEngagementConfirm" type="button"/);const css=fs.readFileSync(path.join(root,'enemy-engagement.css'),'utf8');assert.match(css,/100dvh/);assert.match(css,/overflow:auto/);assert.match(css,/:focus-visible/);assert.ok(fs.existsSync(path.join(root,'assets/images/noir-atlas.webp')));
+ assert.match(html,/enemy-engagement.js\?v=stats-2/);assert.match(html,/enemy-engagement.css\?v=stats-2/);assert.match(html,/<dialog id="enemyEngagementDialog"[^>]*aria-labelledby="enemyEngagementTitle"/);assert.match(html,/<button id="enemyEngagementConfirm" type="button"/);const css=fs.readFileSync(path.join(root,'enemy-engagement.css'),'utf8');assert.match(css,/100dvh/);assert.match(css,/overflow:auto/);assert.match(css,/:focus-visible/);assert.ok(fs.existsSync(path.join(root,'assets/images/noir-atlas.webp')));
 });

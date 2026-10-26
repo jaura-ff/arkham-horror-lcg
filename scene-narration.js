@@ -10,6 +10,9 @@
   function clearTimer(){if(timer!==null)clearTimeout(timer);timer=null;}
   function stop(){
     revision++;clearTimer();const old=job;job=null;
+    // An interrupted location is consumed for this game, including a play()
+    // request still loading. Settings or returning to the room must not replay it.
+    if(old?.kind==='location'&&['playing','loading'].includes(old.state))seen.add(old.id);
     if(old?.media){try{old.media.pause();old.media.removeAttribute('src');old.media.load();}catch(_){}}
     controls();
   }
@@ -21,10 +24,21 @@
     const ticket=revision;
     timer=setTimeout(()=>{if(ticket!==revision)return;timer=null;audit();},200);
   }
+  function handleBlock(j){
+    if(j.kind==='location'&&['playing','loading'].includes(j.state)){
+      stop();status('地点旁白已中断，不再自动续播。');return;
+    }
+    // First visits may wait before playback has started. Chapter introductions
+    // keep their existing background-pause behavior; this rule is location-only.
+    if(j.media&&['playing','loading'].includes(j.state)){
+      revision++;clearTimer();j.media.pause();j.state='paused';
+    }
+    schedule();
+  }
   function play(j,fromGesture=false){
     if(!valid(j)){stop();return;}
     if(!enabled){stop();return;}
-    if(blocked(j)){schedule();return;}
+    if(blocked(j)){handleBlock(j);return;}
     if(j.state==='playing'||j.state==='loading'||(j.state==='blocked'&&!fromGesture))return;
     clearTimer();const ticket=revision;
     try{
@@ -38,7 +52,7 @@
       Promise.resolve(j.media.play()).then(()=>{
         if(!valid(j)){j.media.pause();return;}
         if(ticket!==revision)return;
-        if(blocked(j)){j.media.pause();j.state='paused';schedule();return;}
+        if(blocked(j)){handleBlock(j);return;}
         j.state='playing';if(j.kind==='location')seen.add(j.id);
         status(j.kind==='intro'?'正在播放：第二幕 · 地板之下':`正在播放：${LOCATIONS[j.id].name}`);
       }).catch(()=>{if(ticket===revision&&valid(j)){j.state='blocked';status('浏览器暂缓了旁白，点击游戏页面后重试；仍可继续阅读。');}});
@@ -48,8 +62,7 @@
     if(!job)return;
     if(!valid(job)){stop();return;}
     if(blocked(job)){
-      if(job.media&&['playing','loading'].includes(job.state)){revision++;clearTimer();job.media.pause();job.state='paused';}
-      schedule();return;
+      handleBlock(job);return;
     }
     play(job);
   }
@@ -76,7 +89,7 @@
   document.addEventListener('visibilitychange',audit);
   document.addEventListener('arkham:phase-ready',audit);
   document.addEventListener('arkham:menu',reset);
-  window.addEventListener('pagehide',reset);
+  window.addEventListener('pagehide',stop);
   if(typeof MutationObserver!=='undefined')new MutationObserver(audit).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['open','hidden','inert','class','style']});
   controls();
 })();

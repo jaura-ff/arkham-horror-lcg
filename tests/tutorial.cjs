@@ -202,7 +202,7 @@ test('最后新增鼓励实操页，可返回回合说明，开始实操仅退�
 test('教学入口与所有目标区域均存在，脚本随游戏本地加载',()=>{
   const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
   for(const id of ['tutorial','tutorialPanel','tutorialSpotlight','learnButton','guideButton','tutorialClose','tutorialSkip','tutorialPrev','tutorialNext','tutorialTitle','tutorialText','tutorialTips','tutorialProgress','guideStatus','investigator','scenePanel','actions','hand','phasebar'])assert.ok(html.includes(`id="${id}"`),id);
-  assert.ok(html.includes('src="tutorial.js?v=standalone-outro-1"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
+  assert.ok(html.includes('src="tutorial.js?v=players-1"'));assert.ok(html.includes('class="aa"'));assert.ok(html.includes('class="panel command-panel"'));
   assert.ok(html.includes('id="tutorialDrag"'));assert.ok(html.includes('拖动调整位置'));
 });
 

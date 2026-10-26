@@ -224,7 +224,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
       <nav class="home-options" aria-label="首页功能">
         <button id="menuDifficultyButton" type="button" class="home-tile" aria-haspopup="dialog" aria-controls="homeDifficultyDialog"><span>难度设置</span><small>挑战与混沌袋</small></button>
         <button id="menuSettingsButton" type="button" class="home-tile" aria-haspopup="dialog" aria-controls="homeSettingsDialog"><span>游戏设置</span><small>声音与音量</small></button>
-        <button id="menuCharacterButton" type="button" class="home-tile" aria-haspopup="dialog" aria-controls="homeCharacterDialog"><span>选择角色</span><small>当前：罗兰·班克斯</small></button>
+        <button id="menuCharacterButton" type="button" class="home-tile" aria-haspopup="dialog" aria-controls="homeCharacterDialog"><span>选择角色</span><small id="menuCharacterName">当前：罗兰·班克斯</small></button>
         <button id="menuAtlasButton" type="button" class="home-tile" aria-haspopup="dialog" aria-controls="cardAtlas"><span>图鉴</span><small>卡牌与使用说明</small></button>
       </nav>
       <p class="start-note">无需登录 · 点击开始后进入故事前序</p>
@@ -262,19 +262,13 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <dialog id="homeCharacterDialog" class="home-dialog" aria-labelledby="homeCharacterDialogTitle">
   <div class="home-dialog-shell">
     <header class="home-dialog-header"><h2 id="homeCharacterDialogTitle">选择角色</h2><button type="button" class="btn icon-button" data-home-close aria-label="关闭角色选择">×</button></header>
-    <p>当前可用：罗兰·班克斯 · 联邦探员</p>
-    <div class="character-current"><div class="portrait art" role="img" aria-label="罗兰·班克斯肖像" style="--art-x:0%;--art-y:0%"></div><div><h3>罗兰·班克斯</h3><p>守护者 · 调查与战斗</p><p>意志 3 / 智慧 3 / 战斗 4 / 敏捷 2<br>生命 9 / 理智 5</p><strong>已选中 · 当前版本可游玩</strong></div></div>
-    <h3>官方基础盒 · 其他调查员</h3>
-    <p class="home-dialog-note">下列为官方角色资料入口，尚未接入本网页版的专属能力、牌组和弱点，目前不可选用。标准版与平行版是不同版本，请勿混用。</p>
-    <dl class="character-reference">
-      <div><dt>黛西·沃克 <small>Daisy Walker</small></dt><dd>探求者 · 图书管理员</dd></div>
-      <div><dt>“斯基兹”·奥图尔 <small>“Skids” O’Toole</small></dt><dd>流浪者 · 前科犯</dd></div>
-      <div><dt>艾格尼丝·贝克 <small>Agnes Baker</small></dt><dd>潜修者 · 女服务员</dd></div>
-      <div><dt>温蒂·亚当斯 <small>Wendy Adams</small></dt><dd>生存者 · 街头孤儿</dd></div>
-    </dl>
+    <p>基础盒 · 标准版调查员。选择人物，查看能力与起始牌组，再确定用于下一局。</p>
+    <div id="playerCharacterList" class="player-character-list" aria-label="可选调查员"></div>
+    <section id="playerCharacterDetails" class="player-character-details" aria-live="polite"></section>
+    <p class="home-dialog-note">使用基础盒标准版人物与起始牌组；本网页地图、敌人遭遇及三幕故事仍为改编版本。中文牌名与效果说明为阅读辅助。</p>
     <p><a href="https://www.fantasyflightgames.com/en/products/arkham-horror-the-card-game/" target="_blank" rel="noopener noreferrer">官方角色卡下载：查看页面的 Print-and-Play / Play-and-Share Promo（Standard）</a></p>
     <p><a href="https://images-cdn.fantasyflightgames.com/filer_public/c0/87/c087e26e-c6d6-4533-ba2e-2b97b3f05917/ahc_decklists_v20_web.pdf" target="_blank" rel="noopener noreferrer">官方基础盒调查员起始牌组清单（PDF）</a></p>
-    <footer class="home-dialog-footer"><button type="button" class="btn primary" data-home-close>确定 · 使用罗兰</button></footer>
+    <footer class="home-dialog-footer"><button id="playerCharacterConfirm" type="button" class="btn primary" data-home-close>确定 · 使用罗兰·班克斯</button></footer>
   </div>
 </dialog>
 <dialog id="homeTutorialDialog" class="home-dialog" aria-labelledby="homeTutorialDialogTitle">
@@ -458,12 +452,12 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <dialog id="cardAtlas" class="card-atlas" aria-labelledby="atlasTitle" aria-describedby="atlasNotice">
   <div class="atlas-shell">
     <header class="atlas-heading"><div><span class="atlas-kicker">ARKHAM / CARD ARCHIVE</span><h2 id="atlasTitle">卡牌图鉴</h2></div><button type="button" class="btn icon-button" id="atlasClose" aria-label="关闭卡牌图鉴" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
-    <p id="atlasNotice" class="atlas-notice">本作简化版卡牌档案，不是官方完整卡库。牌名、数值和用法以本网页实现为准；下方场景牌含剧情与结局信息。</p>
+    <p id="atlasNotice" class="atlas-notice">基础盒玩家牌与本作场景档案，不是官方完整卡库。中文牌名及效果为阅读辅助；下方场景牌含剧情与结局信息。</p>
     <details class="atlas-primer" open><summary>怎么看一张卡牌？</summary>
       <div class="atlas-reading"><section><h3>牌面信息</h3><p>名称用于识别卡牌；类型决定用途；费用是打出所需资源。技能图标用于投入检定；特性可被能力引用；等级关联购牌经验，并非资源费用。</p><p>敌人看战斗、生命、闪避和攻击的伤害／恐惧；地点看遮蔽、线索与连接。</p></section>
       <section><h3>卡牌类型</h3><p>资产通常留场；事件结算一次性效果；技能用于投入检定，不直接打出。调查员提供人物基础数值；敌人、诡计和地点构成场景。</p><p>弱点表示不利卡牌，并非所有弱点都采用相同处理方式。</p></section></div>
       <p class="atlas-source">基础版概念参考：<a href="https://images-cdn.fantasyflightgames.com/filer_public/c4/b0/c4b0d66c-d79e-411b-bdb5-b5d8c457d4bc/ahc01_rules_reference_web.pdf#page=28" target="_blank" rel="noopener noreferrer">FFG 官方 Rules Reference（2016），附录 IV，第 28–31 页及类型条目</a>。以上为概括说明，非逐字翻译。</p>
-      <p class="atlas-notice">本网页版差异：只实现两只手槽，没有经验升级、完整职业组牌或武器弹药。只有四张技能牌和「侧身闪避」可投入对应检定；资产和事件打出均消耗 1 次行动，没有实现快速牌的免行动时机。具体效果请看下方“本作使用说明”，不要直接套用同名实体卡。</p>
+      <p class="atlas-notice">五位标准版调查员使用各自的起始牌组。弹药、充能、槽位、投入图标及快速／反应时机按牌面处理；条件反应牌会在可发动时提示。地图、遭遇和三幕故事为网页版改编，没有接入官方战役存档、升级购牌或自由组牌。</p>
     </details>
     <nav id="atlasCategories" class="atlas-categories" aria-label="卡牌分类">
       <button type="button" class="atlas-category" data-atlas-type="all" aria-pressed="true" aria-controls="atlasCards">全部</button>
@@ -695,7 +689,7 @@ function startGame(){
     round:1,
     hp:INVESTIGATOR.maxHp, sanity:INVESTIGATOR.maxSanity,
     resources:5,
-    deck:shuffle(INVESTIGATOR.deck.map(c=>({...c}))),
+    deck:shuffle(INVESTIGATOR.deck.map(c=>c.code?JSON.parse(JSON.stringify(c)):({...c}))),
     hand:[], discard:[], playedCards:[],
     drawingCards:false,weaknessReveal:null,
     assets:[],
@@ -720,7 +714,7 @@ function startGame(){
   document.getElementById('startOverlay').style.display='none';
   document.getElementById('game').style.display='block';
   log('<span class="narr">—— 聚会之夜：第一幕 · 书房 ——</span>','gold');
-  log('你握紧配枪，踏入熟悉却异常诡异的书房。','narr');
+  log(INVESTIGATOR.officialId?`${INVESTIGATOR.name}踏入异常诡异的书房。`:'你握紧配枪，踏入熟悉却异常诡异的书房。','narr');
   log('第一回合跳过神话阶段，直接进入调查阶段。','gold');
   log(`调查难度：${DIFFICULTIES[difficulty].name}；混沌袋 ${S.chaos.length} 枚。`,'gold');
   render();
@@ -914,7 +908,7 @@ function renderHand(){
       <span class="ccost">${c.cost>0?c.cost:'—'}</span>
       <div class="ctype">${typeLabel}</div>
       <div class="cname">${c.name}</div>
-      <div class="card-art art" aria-hidden="true" style="--art-x:${art[0]}%;--art-y:${art[1]}%"></div>
+      ${c.code&&!CARD_ART[c.id]?`<div class="card-art player-card-stamp" aria-hidden="true">${typeLabel}</div>`:`<div class="card-art art" aria-hidden="true" style="--art-x:${art[0]}%;--art-y:${art[1]}%"></div>`}
       <div class="cbody">${c.text}</div>
       ${iconStr?`<div class="cicons">${iconStr}</div>`:''}
     </button>`;
@@ -1999,6 +1993,14 @@ function resolve(code, text){
   if(win){gameSfx('victory');if(S.chapter===1&&typeof beginEndingNarration==='function')beginEndingNarration();}
 }
 </script>
+<link rel="stylesheet" href="players.css?v=1">
+<script src="official-core.js?v=players-1"></script>
+<script src="official-cards.js?v=players-1"></script>
+<script src="official-card-rules.js?v=players-1"></script>
+<script src="official-decks.js?v=players-1"></script>
+<script src="official-session.js?v=players-1"></script>
+<script src="official-tests.js?v=players-1"></script>
+<script src="player-catalogue.js?v=1"></script>
 <script src="ambience.js?v=ending-victory-6"></script>
 <script src="ending-narration.js?v=text-voice-2"></script>
 <script src="scene-narration.js?v=interrupt-stop-2"></script>
@@ -2008,24 +2010,25 @@ function resolve(code, text){
 <script src="enemy-damage.js?v=1"></script>
 <script>updateDifficultyPreview();</script>
 <script src="play-guide.js?v=chapter-3"></script>
-<script src="phase-transition.js?v=skip-countdown-2"></script>
+<script src="phase-transition.js?v=players-1"></script>
 <script src="loss-notices.js?v=phase-source-5"></script>
-<script src="weakness-reveal.js?v=1"></script>
-<script src="tutorial.js?v=standalone-outro-1"></script>
-<script src="atlas.js?v=category-buttons-4"></script>
+<script src="weakness-reveal.js?v=players-1"></script>
+<script src="tutorial.js?v=players-1"></script>
+<script src="atlas.js?v=players-1"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
-<script src="hand-dialog.js?v=action-confirm-1"></script>
-<script src="discard.js?v=character-deck-1"></script>
+<script src="hand-dialog.js?v=players-1"></script>
+<script src="discard.js?v=players-1"></script>
 <script src="next-step.js?v=chapter-3"></script>
 <script src="prologue-narration.js?v=three-scenes-2"></script>
-<script src="prologue.js?v=three-scenes-2"></script>
+<script src="prologue.js?v=players-1"></script>
 <script src="home-dialogs.js?v=character-1"></script>
 <script src="board.js?v=spacious-header-4"></script>
 <script src="game-header.js?v=spacious-1"></script>
 <script src="phase-help.js?v=hover-1"></script>
-<script src="hand-hover.js?v=hover-1"></script>
-<script src="board-inspect.js?v=enemy-stats-4"></script>
+<script src="hand-hover.js?v=players-1"></script>
+<script src="board-inspect.js?v=players-1"></script>
 <script src="start-tutorial.js?v=choice-1"></script>
+<script src="player-runtime.js?v=1"></script>
 </body>
 </html>
 

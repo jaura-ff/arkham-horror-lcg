@@ -1,5 +1,5 @@
-/* Standard Core Set only. This module is not enabled in the legacy game until
- * every card and timing window has an integrated, tested handler.
+/* Standard Core Set only. Loaded by the player-runtime.js single-player bridge.
+ * Scenario/encounter rules remain the separate three-chapter web adaptation.
  * Starter lists: FFG Starter Decklists v2.0, pages 2–4.
  * Card numbers are collector numbers, not array indices or legacy card IDs.
  */

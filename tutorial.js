@@ -107,7 +107,7 @@
   }
   function open(force = false) {
     if (!force || active || game.style.display === 'none') return;
-    if(typeof phaseTransitionActive!=='undefined' && phaseTransitionActive){queuedOpen=queuedOpen===true || force;return;}
+    if((typeof phaseTransitionActive!=='undefined' && phaseTransitionActive)||(typeof S!=='undefined'&&S?.playerBusy)){queuedOpen=queuedOpen===true || force;return;}
     if (byId('modal').classList.contains('open')) {
       byId('guideStatus').textContent = '请先完成或关闭当前游戏弹窗，再打开新人指导。'; return;
     }
@@ -130,6 +130,7 @@
   }
   let queuedOpen=null;
   document.addEventListener('arkham:phase-ready',()=>{if(queuedOpen!==null){const force=queuedOpen;queuedOpen=null;open(force);}});
+  document.addEventListener('arkham:player-ready',()=>{if(queuedOpen!==null){const force=queuedOpen;queuedOpen=null;open(force);}});
   // Only an explicit Learn entry requests onboarding; normal starts never do.
   document.addEventListener('arkham:game-started',event=>{queuedOpen=null;if(event.detail?.tutorial===true)open(true);});
   learn.addEventListener('click',()=>{window.closeHomeDialogs?.();if(typeof beginPrologue==='function'){beginPrologue(true);return;}start.click();open(true);});

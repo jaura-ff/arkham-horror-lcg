@@ -12,6 +12,20 @@
   const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const cards = [];
   const add = (type,name,text,fields,use,art=null) => cards.push({type,name,text,fields,use,art});
+  if(typeof ArkhamPlayers!=='undefined'){
+    for(const id of ArkhamPlayers.ids){const c=ArkhamPlayers.investigator(id);
+      add('investigator',c.name,c.role+' · '+c.title,[['意志',c.skills[0]],['智慧',c.skills[1]],['战斗',c.skills[2]],['敏捷',c.skills[3]],['生命',c.health],['理智',c.sanity]],
+        c.ability+' 上古印记：'+c.elder+' 基础盒标准版起始配牌 33 张：30 普通牌、1 专属牌、1 专属弱点、1 随机基础弱点。人物能力与配牌已接入；本网页场景为改编版。',id==='roland'?[0,0]:null);
+    }
+    for(const raw of Object.values(ArkhamOfficialCards)){
+      const c=ArkhamPlayers.card(ArkhamOfficialDecks.normalize(raw.code));
+      const owners=ArkhamPlayers.ids.filter(id=>Object.hasOwn(ArkhamOfficialCore.starterManifest(id).counts,c.code)).map(id=>ArkhamPlayers.investigator(id).name);
+      const fields=[['编号',c.code],['英文名称',c.englishName],['配牌归属',c.subtype_code==='basicweakness'?'随机基础弱点池':owners.join('、')],['打出费用',c.type==='skill'||c.type==='weak'&&c.code!=='01013'?'见牌面结算':c.cost+' 资源']];
+      if(c.printedSlot)fields.push(['槽位',c.printedSlot]);if(c.icons)fields.push(['投入加值',c.icons]);
+      if(c.health)fields.push(['生命',c.health]);if(c.sanity)fields.push(['理智',c.sanity]);
+      add(c.type,c.name,c.text,fields,'基础盒标准版规则；主动牌请在手牌确认，资产主动能力在「角色与资产能力」中发动，反应牌在对应时机提示。'+(c.type==='weak'?'弱点抽到时立即展示，按本牌效果处理；不会统一扣理智并弃置。':''),CARD_ART[c.id]);
+    }
+  }else{
   add('investigator',INVESTIGATOR.name,INVESTIGATOR.title,
     [['意志',INVESTIGATOR.will],['智慧',INVESTIGATOR.int],['战斗',INVESTIGATOR.combat],['敏捷',INVESTIGATOR.agility],['生命',INVESTIGATOR.maxHp],['理智',INVESTIGATOR.maxSanity]],
     '这些是开局基础值，不是当前剩余状态。上古印记按当前地点每个线索 +1，不保证成功或治疗。本作未实现实体罗兰的完整人物能力；受伤、恐惧与临时检定加值请以游戏面板为准。',[0,0]);
@@ -20,6 +34,7 @@
     if(c.slot) fields.push(['槽位',(c.slots||1)+' 只手槽']);
     if(c.icons) fields.push(['投入加值',c.icons]);
     add(c.type,c.name,c.text,fields,usage[c.id],CARD_ART[c.id]);
+  }
   }
   const seen = new Set();
   for (const c of [...ENCOUNTER,...(typeof CELLAR_GUARD==='undefined'?[]:[CELLAR_GUARD]),...(typeof FINAL_GUARD==='undefined'?[]:[FINAL_GUARD])]) {

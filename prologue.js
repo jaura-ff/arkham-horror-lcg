@@ -19,7 +19,9 @@
     button.setAttribute('aria-pressed',String(paused||reduced));
   }
   function render(){
-    const scene=scenes[page];
+    let scene=scenes[page];
+    const player=window.ArkhamPlayerRuntime?.spec();
+    if(page===0&&player&&player.id!=='roland')scene={...scene,audio:'',text:`1926 年，阿卡姆。雨水沿窗玻璃缓缓滑落，街上的脚步声逐渐消失，只剩远处钟楼的回响。\n\n你是${player.title}${player.name}。今晚，你留在这间书房整理近来的调查记录。看似毫不相关的线索，让你迟迟无法合上卷宗。`};
     dialog.classList.remove('prologue-animate');
     dialog.dataset.scene=String(page);
     byId('prologueProgress').textContent=`序章 ${page+1} / ${scenes.length}`;

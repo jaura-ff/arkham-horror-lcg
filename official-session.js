@@ -70,8 +70,8 @@
   function slotUsage(assets){
     const slots={Hand:0,TomeHand:0,Arcane:0,Body:0,Ally:0,Accessory:0};
     for(const card of assets){
-      if(!card.slot)continue;
-      const [slot,count]=card.slot.split(' x'),n=Number(count||1);
+      if(!card.printedSlot&&!card.slot)continue;
+      const [slot,count]=(card.printedSlot||card.slot).split(' x'),n=Number(count||1);
       if(!Number.isInteger(n)||n<1||!(slot in slots))throw Error('Unsupported slot');
       if(slot==='Hand'&&card.traits?.split('.').map(t=>t.trim()).includes('Tome'))slots.TomeHand+=n;
       else slots[slot]+=n;

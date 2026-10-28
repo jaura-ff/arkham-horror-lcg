@@ -21,6 +21,29 @@ test('五位调查员实际开局、33张独立牌组、5张无弱点起手、�
   assert.equal(g.run('new Set([...S.hand,...S.deck].map(c=>c.instanceId)).size'),33);
  }
 });
+test('实际发牌逐张符合FFG起始牌表v2第2至4页，含各自专属牌弱点和中立牌数量',()=>{
+ // Independent transcription of printed collector numbers and copy counts,
+ // rather than generating expectations from starterManifest's group ranges.
+ const printed={
+  roland:[6,7,16,17,18,19,20,21,22,23,24,25,30,31,32,33,34,35,36,37,38,39,86,86,87,87,88,88,89,89,92,92],
+  daisy:[8,9,30,31,32,33,34,35,36,37,38,39,58,59,60,61,62,63,64,65,66,67,86,86,87,87,88,88,90,90,92,92],
+  skids:[10,11,16,17,18,19,20,21,22,23,24,25,44,45,46,47,48,49,50,51,52,53,86,86,87,87,88,88,89,89,91,91],
+  agnes:[12,13,58,59,60,61,62,63,64,65,66,67,72,73,74,75,76,77,78,79,80,81,86,86,87,87,88,88,90,90,93,93],
+  wendy:[14,15,44,45,46,47,48,49,50,51,52,53,72,73,74,75,76,77,78,79,80,81,86,86,87,87,88,88,91,91,93,93]
+ };
+ const allowed={roland:['guardian','seeker'],daisy:['seeker','mystic'],skids:['rogue','guardian'],agnes:['mystic','survivor'],wendy:['survivor','rogue']};
+ for(const [id,numbers]of Object.entries(printed)){
+  const expected=numbers.map(n=>'01'+String(n).padStart(3,'0')).sort(),g=game(id,false);
+  for(const cards of [g.json('S.initialPlayerDeck'),g.json('[...S.hand,...S.deck]')]){
+   const basics=cards.filter(c=>c.subtype_code==='basicweakness');assert.equal(basics.length,1,id);
+   assert.deepEqual(cards.filter(c=>c.subtype_code!=='basicweakness').map(c=>c.code).sort(),expected,id);
+   assert.ok(cards.every(c=>allowed[id].includes(c.faction_code)||c.faction_code==='neutral'),id);
+   assert.deepEqual(Object.fromEntries(['asset','event','skill','weak'].map(type=>[type,cards.filter(c=>c.type===type).length])),{asset:id==='skids'?16:17,event:id==='skids'?9:8,skill:6,weak:2},id);
+  }
+  const manifest=g.json(`ArkhamOfficialCore.starterManifest('${id}').counts`),counts={};for(const code of expected)counts[code]=(counts[code]||0)+1;assert.deepEqual(manifest,counts,id);
+  g.pick('开始调查');assert.deepEqual(g.json('[...S.hand,...S.deck].filter(c=>c.subtype_code!=="basicweakness").map(c=>c.code).sort()'),expected,id);
+ }
+});
 test('调查员主职业对应五色，牌组里的副职业牌与中立牌保持自身颜色',()=>{
  for(const [id,faction,label]of [['roland','guardian','蓝家'],['daisy','seeker','黄家'],['skids','rogue','绿家'],['agnes','mystic','紫家'],['wendy','survivor','红家']]){
   const g=game(id,false);assert.equal(g.get('investigator').dataset.faction,faction);assert.match(g.get('investigator').innerHTML,new RegExp(label));
@@ -39,7 +62,13 @@ test('换牌只允许一次，选中起手牌会换回牌组，不消耗行动�
  assert.equal((opening.match(/class="player-opening-art art"/g)||[]).length,5);
  for(const card of g.json('S.hand')){assert.ok(opening.includes(card.name));assert.ok(opening.includes(card.text));}
  assert.match(opening,/费用 \d+ 资源|投入检定/);
- g.pick(0);assert.match(g.get('modalBox').innerHTML,/aria-pressed="true"/);assert.match(g.get('modalBox').innerHTML,/☑ 换掉/);
+ assert.doesNotMatch(opening,/[□☑]/);assert.match(opening,/其余牌会保留/);
+ const unchanged=g.json('[S.hand.map(c=>c.instanceId),S.deck.map(c=>c.instanceId),S.actions,S.resources]');
+ g.pick(0);assert.match(g.get('modalBox').innerHTML,/确认更换起手牌/);assert.match(g.get('modalBox').innerHTML,/player-opening-art art/);
+ g.pick('返回');assert.doesNotMatch(g.get('modalBox').innerHTML,/已选更换<|已选更换 /);assert.deepEqual(g.json('[S.hand.map(c=>c.instanceId),S.deck.map(c=>c.instanceId),S.actions,S.resources]'),unchanged);
+ g.pick(0);g.pick('确认更换');assert.match(g.get('modalBox').innerHTML,/aria-pressed="true"/);assert.match(g.get('modalBox').innerHTML,/已选更换 /);
+ assert.deepEqual(g.json('[S.hand.map(c=>c.instanceId),S.deck.map(c=>c.instanceId),S.actions,S.resources]'),unchanged);
+ g.pick(0);assert.doesNotMatch(g.get('modalBox').innerHTML,/aria-pressed="true"/);g.pick(0);g.pick('确认更换');
  g.pick('开始调查');assert.equal(g.run(`S.deck.some(c=>c.instanceId===${JSON.stringify(before)})`),true);assert.deepEqual(g.json('[S.actions,S.resources,S.player.mulliganUsed]'),[3,5,true]);
 });
 test('角色浏览与确定分离，游戏中不能换人，肖像文字不再冒用罗兰',()=>{
@@ -64,6 +93,42 @@ test('基本抽牌和资源、最后一个行动移动可用且只扣一次行�
 });
 test('检定取消不扣行动，确认调查采用当前人物智慧，成功发现线索',()=>{
  const g=game('daisy');g.run('S.hand=[];investigate();cancelTest()');assert.equal(g.run('S.actions'),3);g.run('S.chaos=[{label:"0",mod:0}];investigate();resolveTest();finishTest()');assert.deepEqual(g.json('[S.actions,S.clues,S.locClues.study,S.test,S.playerBusy]'),[2,1,1,null,false]);
+});
+test('普通调查窗口可选择手电筒，遮蔽最低0，取消不付费，抽取只扣1行动1补给',()=>{
+ const g=game();g.run('S.hand=[];S.chaos=[{label:"-9",mod:-9}]');g.add('01087','assets');g.add('01090');
+ const id=g.run('S.player.assets[0].instanceId');g.run('investigate();toggleCommit(0)');
+ assert.match(g.get('modalBox').innerHTML,/使用手电筒调查/);
+ g.run(`playerInvestigationTool(${JSON.stringify(id)})`);assert.deepEqual(g.json('[S.test.difficulty,S.player.test.difficulty,S.actions,S.player.assets[0].uses.supplies,S.committed.length]'),[0,0,3,3,1]);
+ assert.match(g.get('modalBox').innerHTML,/地点遮蔽值 2 − 2 ＝ 本次遮蔽值 0/);
+ g.run(`playerInvestigationTool(${JSON.stringify(id)});playerInvestigationTool(${JSON.stringify(id)});cancelTest()`);assert.deepEqual(g.json('[S.actions,S.player.assets[0].uses.supplies,S.discard.length]'),[3,3,0]);
+ g.run(`investigate();playerInvestigationTool(${JSON.stringify(id)});resolveTest();resolveTest();playerInvestigationTool(${JSON.stringify(id)})`);
+ assert.equal(g.run('S.test.playerResult.success'),true);assert.equal(g.run('S.test.difficulty'),0);g.run('finishTest()');
+ assert.deepEqual(g.json('[S.actions,S.player.assets[0].uses.supplies,S.clues,LOCATIONS.study.shroud]'),[2,2,1,2]);
+ g.run('investigate()');assert.equal(g.run('S.test.difficulty'),2);
+});
+test('手电筒不能零补给使用、不能叠加其它调查行动，自动失败照常失败',()=>{
+ const g=game();g.run('S.hand=[];S.chaos=[{label:"自动失败",autofail:true}]');g.add('01087','assets');const id=g.run('S.player.assets[0].instanceId');
+ g.run(`investigate();playerInvestigationTool(${JSON.stringify(id)});resolveTest();finishTest()`);assert.deepEqual(g.json('[S.actions,S.player.assets[0].uses.supplies,S.clues]'),[2,2,0]);
+ g.run(`S.player.assets[0].uses.supplies=0;investigate();playerInvestigationTool(${JSON.stringify(id)})`);assert.equal(g.run('S.test.difficulty'),2);assert.equal(g.run('S.test.playerOptions.source'),undefined);assert.match(g.get('modalBox').innerHTML,/剩余补给 0/);g.run('cancelTest()');
+ g.run('S.player.assets[0].uses.supplies=3');g.add('01045','assets');g.run('playerAbilities()');g.pick('入室行窃');assert.match(g.get('modalBox').innerHTML,/使用手电筒调查/);g.run(`playerInvestigationTool(${JSON.stringify(id)})`);assert.equal(g.run('S.test.playerOptions.source.code'),'01087');assert.equal(g.run('S.test.playerOptions.resourcesInstead'),false);assert.equal(g.run('S.test.difficulty'),0);assert.equal(g.run('S.player.assets[1].exhausted'),false);
+});
+test('调查方式切换为入室行窃后只获得资源，切回普通调查与手电筒不会叠加费用效果',()=>{
+ const g=game();g.run('S.hand=[];S.chaos=[{label:"0",mod:0}]');g.add('01087','assets');g.add('01045','assets');
+ g.run('investigate();playerInvestigationTool(S.player.assets[0].instanceId);playerInvestigationTool(S.player.assets[1].instanceId)');assert.deepEqual(g.json('[S.test.difficulty,S.test.playerOptions.resourcesInstead,S.resources,S.actions,S.player.assets[0].uses.supplies]'),[2,true,5,3,3]);assert.match(g.get('modalBox').innerHTML,/本次成功获得 3 资源/);
+ g.run('resolveTest();finishTest()');assert.deepEqual(g.json('[S.resources,S.actions,S.clues,S.player.assets[0].uses.supplies,S.player.assets[1].exhausted]'),[8,2,0,3,true]);
+ g.run('investigate();playerInvestigationTool(S.player.assets[1].instanceId)');assert.equal(g.run('S.test.playerOptions.source'),undefined);assert.match(g.get('modalBox').innerHTML,/此牌已力竭/);g.run('playerInvestigationTool(S.player.assets[0].instanceId);playerInvestigationTool(S.player.assets[0].instanceId);resolveTest();finishTest()');assert.deepEqual(g.json('[S.resources,S.actions,S.clues,S.player.assets[0].uses.supplies]'),[8,1,1,3]);
+});
+test('资产直接入口列出费用且返回不消费，耗尽力竭及条件不足选项不能通过重复确认发动',()=>{
+ const g=game();g.run('S.hand=[];S.hp=8');g.add('01019','assets');g.run('inspectAsset(0)');assert.match(g.get('modalBox').innerHTML,/使用能力 1/);assert.match(g.get('modalBox').innerHTML,/剩余补给 3/);g.pick('返回');assert.deepEqual(g.json('[S.actions,S.player.assets[0].uses.supplies,S.hp]'),[3,3,8]);
+ g.run('inspectAsset(0)');const nonce=g.run('S.playerChoice.nonce');g.pick('使用能力');g.pick('治疗 1 伤害');g.run(`playerPick(${nonce},0)`);assert.deepEqual(g.json('[S.actions,S.player.assets[0].uses.supplies,S.hp]'),[2,2,9]);
+ g.run('S.player.assets[0].uses.supplies=0;inspectAsset(0)');assert.match(g.get('modalBox').innerHTML,/补给不足/);assert.match(g.get('modalBox').innerHTML,/disabled/);const blocked=g.run('S.playerChoice.nonce');g.run(`playerPick(${blocked},0)`);assert.equal(g.run('S.playerChoice.nonce'),blocked);assert.equal(g.run('S.actions'),2);g.pick('返回');
+ g.add('01031','assets');g.run('S.player.assets[1].exhausted=true;inspectAsset(1)');assert.match(g.get('modalBox').innerHTML,/此牌已力竭/);g.pick('返回');
+ g.add('01017','assets');g.run('inspectAsset(2)');assert.match(g.get('modalBox').innerHTML,/请在对应属性的检定窗口中加值/);g.pick('返回');
+ g.add('01076','assets');g.run('S.enemies=[{card:{...ENCOUNTER[0],elite:true},hp:2,location:"study",engaged:true,exhausted:false}];inspectAsset(3)');assert.match(g.get('modalBox').innerHTML,/没有符合条件的敌人/);g.pick('使用能力');assert.equal(g.run('S.player.assets.some(c=>c.code==="01076")'),true);g.pick('返回');
+ g.run('resolve("R3","测试终局");reviewLastRun()');assert.equal(g.run('ArkhamPlayerRuntime.canUseAsset(S.player.assets[0].instanceId)'),false);g.run('playerAssetAbilities(S.player.assets[0].instanceId)');assert.equal(g.run('!!S.playerChoice'),false);
+});
+test('战斗选择保留耗尽武器并说明原因，禁用选项不扣行动或改用徒手',()=>{
+ const g=game();g.run('S.hand=[];S.enemies=[{card:ENCOUNTER[0],hp:2,location:"study",engaged:true,exhausted:false}]');g.add('01016','assets');g.run('S.player.assets[0].uses.ammo=0;fight()');assert.match(g.get('modalBox').innerHTML,/剩余弹药 0/);assert.match(g.get('modalBox').innerHTML,/弹药不足/);const nonce=g.run('S.playerChoice.nonce');g.pick('.45 自动手枪');assert.equal(g.run('S.playerChoice.nonce'),nonce);assert.equal(g.run('S.test'),null);assert.equal(g.run('S.actions'),3);g.pick('返回');
 });
 test('.45手枪真实支付4资源并获得4弹药，攻击消耗弹药，武器不堆叠',()=>{
  const g=game();g.run('S.hand=[];S.resources=9');g.add('01016');g.run('onHandCard(0)');assert.deepEqual(g.json('[S.actions,S.resources,S.player.assets[0].uses.ammo]'),[2,5,4]);g.add('01020','assets');
@@ -104,6 +169,25 @@ test('每种弱点分别揭示结算，永久威胁与黑暗记忆不会误弃',
 test('医院债务每轮最多支付2次，威胁移除要花2行动，不触发误扣理智',()=>{
  const g=game('skids');g.run('S.deck=[]');g.add('01011','deck');g.run('drawCards(1);playerAbilities()');g.pick('医院债务');g.run('playerAbilities()');g.pick('医院债务');g.run('playerAbilities()');assert.doesNotMatch(g.run('S.playerChoice.options.map(o=>o.label).join()'),/医院债务/);g.pick('返回');assert.deepEqual(g.json('[S.resources,S.player.threats[0].resources,S.actions]'),[3,2,3]);
  const h=game();h.run('S.deck=[]');h.add('01098','deck');h.run('drawCards(1);playerAbilities()');h.pick('闹鬼');assert.deepEqual(h.json('[S.actions,S.player.threats.length,S.sanity]'),[1,0,5]);
+});
+test('实际弃牌默认展示已结算弱点插画及效果，不冒充仍在威胁区的弱点',()=>{
+ const g=game();g.run('S.deck=[]');g.add('01097','deck');g.run('drawCards(1)');g.add('01098','deck');g.run('drawCards(1)');
+ g.run(fs.readFileSync(path.join(root,'discard.js'),'utf8'));g.get('discardPileButton').listeners.click();
+ const cards=g.get('discardCards').innerHTML;assert.match(cards,/妄想/);assert.match(cards,/失去全部资源/);assert.match(cards,/discard-art art/);assert.match(g.get('discardCount').textContent,/弱点 1 张/);assert.doesNotMatch(cards,/闹鬼/);
+ g.get('discardShowPlayed').listeners.click();assert.doesNotMatch(g.get('discardCards').innerHTML,/妄想/);assert.equal(g.run('S.player.threats[0].code'),'01098');assert.equal(g.run('S.discard[0].code'),'01097');
+});
+test('失败可返回当前棋盘回看，保留来源与结算状态，不能恢复行动或使用卡牌',()=>{
+ const g=game();g.run('S.hand=[];S.hp=1;S.enemies=[{card:ENCOUNTER[0],hp:2,location:"study",engaged:true,exhausted:false}]');g.add('01088');
+ g.run('applyPlayerLoss(1,1,"食尸鬼 · 借机攻击")');assert.equal(g.run('S.gameOver'),true);assert.match(g.get('modalBox').innerHTML,/返回查看本局/);
+ const snapshot=g.json('[S.chapter,S.location,S.hp,S.sanity,S.resources,S.actions,S.clues,S.doom,S.hand,S.deck,S.discard,S.enemies,S.runOutcome]');
+ g.run('reviewLastRun()');assert.equal(g.run('S.reviewingRun'),true);assert.equal(g.run('canAct()'),false);assert.equal(g.get('modal').classList.contains('open'),false);assert.match(g.get('actions').innerHTML,/本局回看 · 只读/);assert.doesNotMatch(g.get('hand').innerHTML,/ disabled/);
+ g.run('resource();draw();investigate();doMove("hallway");playerAbilities();onHandCard(0);next()');assert.deepEqual(g.json('[S.chapter,S.location,S.hp,S.sanity,S.resources,S.actions,S.clues,S.doom,S.hand,S.deck,S.discard,S.enemies,S.runOutcome]'),snapshot);
+ g.run('showRunReviewSummary()');assert.match(g.get('modalBox').innerHTML,/食尸鬼 · 借机攻击/);assert.match(g.get('modalBox').innerHTML,/生命 −1，理智 −1/);assert.match(g.get('modalBox').innerHTML,/失败原因/);g.run('reviewLastRun()');assert.equal(g.run('S.gameOver'),true);
+});
+test('议程失败的回看保留章节地点末日，胜利回看不会误报失败，未结束时不能进入',()=>{
+ const g=game();g.run('reviewLastRun();showRunReviewSummary()');assert.equal(g.run('!!S.reviewingRun'),false);
+ g.run('S.chapter=2;S.location="cellar";S.phase="mythos";S.doom=6;resolve("R2","末日达到上限，封印崩塌。");reviewLastRun();showRunReviewSummary()');assert.match(g.get('modalBox').innerHTML,/末日达到上限/);assert.match(g.get('modalBox').innerHTML,/地下窖室/);assert.match(g.get('modalBox').innerHTML,/神话阶段/);assert.match(g.get('modalBox').innerHTML,/末日 6/);assert.deepEqual(g.json('[S.chapter,S.location,S.doom,S.gameOver]'),[2,'cellar',6,true]);
+ const h=game();h.run('resolve("R1","调查完成。");reviewLastRun();showRunReviewSummary()');assert.match(h.get('modalBox').innerHTML,/本局结算/);assert.doesNotMatch(h.get('modalBox').innerHTML,/失败原因/);
 });
 test('伤害与恐惧同时分配，资产可吸收且被击败后正确弃置',()=>{
  const g=game();g.add('01021','assets');g.run('applyPlayerLoss(3,1,"测试")');g.pick('看门狗');g.pick('看门狗');g.pick('看门狗');g.pick('看门狗');assert.deepEqual(g.json('[S.hp,S.sanity,S.player.assets.length,S.discard.at(-1).code]'),[9,5,0,'01021']);
@@ -153,8 +237,16 @@ test('技能加值资源在确认时支付，取消可返回，确认后不能�
  g.run('S.chaos=[{label:"0",mod:0}];investigate();playerBoost(S.player.assets[0].instanceId);resolveTest();resolveTest();finishTest()');assert.equal(g.run('S.resources'),4);assert.equal(g.run('S.actions'),2);
 });
 test('真实槽位替换由玩家选择，双手球棍占两槽，手提袋只增加典籍容量',()=>{
- const g=game();g.run('S.hand=[];S.resources=10');g.add('01016','assets');g.add('01087','assets');g.add('01074');g.run('onHandCard(0)');g.pick('.45 自动手枪');g.pick('手电筒');assert.equal(g.run('S.player.assets.length'),1);assert.equal(g.run('S.player.assets[0].code'),'01074');assert.equal(g.run('S.discard.length'),2);
+ const g=game();g.run('S.hand=[];S.resources=10');g.add('01016','assets');g.add('01087','assets');g.add('01074');g.run('onHandCard(0)');g.pick('.45 自动手枪');assert.deepEqual(g.json('[S.resources,S.actions,S.discard.length,S.player.assets.length]'),[10,3,0,2]);g.pick('手电筒');assert.match(g.get('modalBox').innerHTML,/确认替换资产/);assert.match(g.get('modalBox').innerHTML,/将弃置 · .45 自动手枪/);assert.match(g.get('modalBox').innerHTML,/将弃置 · 手电筒/);g.pick('确认替换并装备');assert.equal(g.run('S.player.assets.length'),1);assert.equal(g.run('S.player.assets[0].code'),'01074');assert.equal(g.run('S.discard.length'),2);
  const h=game('daisy');h.run('S.hand=[];S.resources=10');h.add('01008','assets');h.add('01031','assets');h.add('01035','assets');h.add('01074');h.run('onHandCard(0)');assert.equal(h.run('S.player.assets.length'),4);assert.equal(h.run('!!S.playerChoice'),false);
+});
+test('盟友、身体、饰品与法术槽满时可取消替换，确认前不丢牌扣费且确认只生效一次',()=>{
+ for(const [oldCodes,newCode]of [[['01021'],'01018'],[['01072'],'01072'],[['01059'],'01075'],[['01060','01060'],'01061']]){
+  const g=game();g.run('S.hand=[];S.resources=10');for(const code of oldCodes)g.add(code,'assets');g.add(newCode);
+  const before=g.json('[S.hand,S.player.assets,S.discard,S.resources,S.actions]');g.run('onHandCard(0)');assert.match(g.get('modalBox').innerHTML,/卡槽已满/);g.pick('返回');assert.deepEqual(g.json('[S.hand,S.player.assets,S.discard,S.resources,S.actions]'),before);
+  g.run('onHandCard(0)');g.pick(0);assert.match(g.get('modalBox').innerHTML,/确认替换资产/);assert.ok((g.get('modalBox').innerHTML.match(/player-opening-art art/g)||[]).length>=2);g.pick('返回');assert.deepEqual(g.json('[S.hand,S.player.assets,S.discard,S.resources,S.actions]'),before);
+  g.run('onHandCard(0)');g.pick(0);const nonce=g.run('S.playerChoice.nonce'),cost=g.run('S.hand[0].cost');g.pick('确认替换并装备');g.run(`playerPick(${nonce},1)`);assert.deepEqual(g.json('[S.resources,S.actions,S.discard.length,S.hand.length]'),[10-cost,2,1,0]);assert.equal(g.run('S.player.assets.at(-1).code'),newCode);
+ }
 });
 test('死灵之书的上古印记覆盖自动失败，移完3恐惧才弃置',()=>{
  const g=game('daisy');g.run('S.deck=[];S.hand=[];S.chaos=[{label:"上古印记",elder:true}]');g.add('01009','deck');g.run('drawCards(1);investigate();resolveTest()');assert.equal(g.run('S.test.playerResult.autofail'),true);g.run('finishTest();S.actions=3');for(let i=0;i<3;i++){g.run('playerAbilities()');g.pick('死灵之书');if(g.run('!!S.playerChoice'))g.pick('典籍额外行动');}assert.equal(g.run('S.player.threats.length'),0);assert.equal(g.run('S.sanity'),6);

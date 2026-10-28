@@ -3,7 +3,7 @@
   'use strict';
   const byId=id=>document.getElementById(id),dialog=byId('discardDialog');
   if(!dialog)return;
-  let view='played',lastFocus=null,savedOverflow='';
+  let view='pile',lastFocus=null,savedOverflow='';
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function render(){
     const played=view==='played',deck=view==='deck';
@@ -13,7 +13,7 @@
     byId('discardDescription').textContent=deck?(S.player?`${INVESTIGATOR.name}的本局完整初始配牌：33 张，含专属牌、专属弱点与本局随机基础弱点。按编号展示，不透露当前抽牌顺序。`:`${INVESTIGATOR.name}的角色配牌总览：展示本网页版配置的完整初始牌组，包括尚未抽到、当前手持、已经使用及弱点卡。不是仅当前手牌，也不是官方完整预组牌；这里不透露抽牌顺序。`):played?'按最近打出优先，记录本局每次成功打出的资产与事件。装备中的资产也记在这里，但仍留在装备区，不算弃牌。技能投入和抽到的弱点不属于“出牌”。':'这里只显示当前玩家弃牌堆，包括结算后的事件、投入过的技能和已结算弱点等。洗回牌组后会从此处消失，出牌历史则保留。不包含遭遇弃牌。';
     const entries=deck?(S.initialPlayerDeck||INVESTIGATOR.deck).map(card=>({card})):(played?S.playedCards:S.discard.map(card=>({card}))).slice().reverse();
     const composition=deck?Object.entries({asset:'资产',event:'事件',skill:'技能',weak:'弱点'}).map(([type,label])=>`${label} ${entries.filter(e=>e.card.type===type).length}`).join(' · '):'';
-    byId('discardCount').textContent=deck?`${INVESTIGATOR.name} · 配牌共 ${entries.length} 张（含弱点） · ${composition}`:played?`本局已打出 ${entries.length} 次`:`当前弃牌 ${entries.length} 张`;
+    byId('discardCount').textContent=deck?`${INVESTIGATOR.name} · 配牌共 ${entries.length} 张（含弱点） · ${composition}`:played?`本局已打出 ${entries.length} 次`:`当前弃牌 ${entries.length} 张 · 弱点 ${entries.filter(e=>e.card.type==='weak'||['weakness','basicweakness'].includes(e.card.subtype_code)).length} 张`;
     byId('discardCards').innerHTML=entries.length?entries.map(({card,round})=>{
       const art=CARD_ART[card.id]||[0,0],type={asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[card.type]||card.type;
       const cost=['skill','weak'].includes(card.type)&&card.code!=='01013'?'不使用普通出牌费用':`${card.cost} 资源 + ${card.rules?.play?.timing==='fast'?0:1} 行动${card.slot==='hand'?` · ${card.slots||1} 只手槽`:''}`;
@@ -25,7 +25,7 @@
     if(byId('modal').classList.contains('open') || byId('handCardDialog').open || byId('cardAtlas').open || !byId('tutorial').hidden){
       byId('guideStatus').textContent='请先完成或关闭当前弹窗，再查看弃牌区。';return;
     }
-    view='played';render();lastFocus=document.activeElement;savedOverflow=document.body.style.overflow;
+    view='pile';render();lastFocus=document.activeElement;savedOverflow=document.body.style.overflow;
     dialog.showModal();document.body.style.overflow='hidden';dialog.scrollTop=0;byId('discardClose').focus();
   });
   byId('discardShowPlayed').addEventListener('click',()=>{if(dialog.open&&S){view='played';render();}});

@@ -192,7 +192,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <link rel="stylesheet" href="layout.css?v=asset-icons-1">
 <link rel="stylesheet" href="phase-transition.css?v=skip-countdown-2">
 <link rel="stylesheet" href="loss-notices.css?v=return-trail-3">
-<link rel="stylesheet" href="failure-transition.css?v=2">
+<link rel="stylesheet" href="failure-transition.css?v=run-review-1">
 <link rel="stylesheet" href="clue-flight.css?v=1">
 <link rel="stylesheet" href="enemy-engagement.css?v=stats-2">
 <link rel="stylesheet" href="enemy-damage.css?v=1">
@@ -425,7 +425,7 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid var(--gold);o
 <dialog id="discardDialog" class="card-atlas" aria-labelledby="discardTitle" aria-describedby="discardDescription">
   <div class="atlas-shell">
     <header class="atlas-heading"><div><span class="atlas-kicker">ARKHAM / PLAYED ARCHIVE</span><h2 id="discardTitle">弃牌区与出牌记录</h2></div><button id="discardClose" type="button" class="btn icon-button" aria-label="关闭弃牌区" autofocus><svg class="ui-icon" aria-hidden="true"><use href="assets/icons/ui.svg#close"></use></svg></button></header>
-    <div class="discard-switch" role="group" aria-label="记录分类"><button id="discardShowPlayed" type="button" class="btn" aria-pressed="true">所有已打出的牌</button><button id="discardShowPile" type="button" class="btn" aria-pressed="false">实际弃牌堆</button><button id="discardShowDeck" type="button" class="btn" aria-pressed="false">查阅角色配牌</button></div>
+    <div class="discard-switch" role="group" aria-label="记录分类"><button id="discardShowPile" type="button" class="btn" aria-pressed="true">实际弃牌堆（含弱点）</button><button id="discardShowPlayed" type="button" class="btn" aria-pressed="false">所有已打出的牌</button><button id="discardShowDeck" type="button" class="btn" aria-pressed="false">查阅角色配牌</button></div>
     <p id="discardDescription" class="atlas-notice"></p><p id="discardCount" class="atlas-count" role="status" aria-live="polite"></p>
     <div id="discardCards" class="discard-cards"></div>
     <p class="atlas-source">只供查阅，不会出牌、洗牌、回收卡牌或消耗行动。本局记录在开始新游戏时清空。</p>
@@ -745,6 +745,7 @@ function applyPlayerLoss(damage=0,horror=0,source=''){
   S.hp=Math.max(0,S.hp-Math.max(0,damage));
   S.sanity=Math.max(0,S.sanity-Math.max(0,horror));
   const loss={hp:hp-S.hp,sanity:sanity-S.sanity,source,phase:S.phase,round:S.round};
+  if(loss.hp>0||loss.sanity>0)S.lastPlayerLoss={...loss};
   if(loss.hp>0)gameSfx('hurt');
   if(loss.sanity>0)gameSfx('sanity');
   if((loss.hp>0 || loss.sanity>0) && typeof showPlayerLoss==='function')showPlayerLoss(loss);
@@ -897,7 +898,7 @@ function renderHand(){
   el.innerHTML = S.hand.map((c,i)=>{
     const typeLabel = {asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[c.type]||c.type;
     const iconStr = skillIcons(c);
-    const disabled = S.gameOver || !!S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive;
+    const disabled = (S.gameOver&&!S.reviewingRun) || !!S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive;
     const art = CARD_ART[c.id] || [0,0];
     return `<button id="hand-card-${i}" data-hand-index="${i}" type="button" data-faction="${c.faction_code||'neutral'}" class="card ${c.type} ${selectedHandCard===c?'is-selected':''}" aria-pressed="${selectedHandCard===c}" aria-haspopup="dialog" aria-describedby="handInteractionHint" aria-label="${c.name}，${typeLabel}，费用 ${c.cost}。${c.text} 单击放大查看，再确认出牌。" ${disabled?'disabled':''} onclick="inspectHandCard(${i},event)">
       <span class="ccost">${c.cost>0?c.cost:'—'}</span>
@@ -1106,7 +1107,7 @@ function renderActions(){
   const el = document.getElementById('actions');
   const controls = document.getElementById('controls');
   const cnt = document.getElementById('actioncount');
-  if(S.gameOver){ el.innerHTML=''; controls.innerHTML=S.failureTransitionActive?'':`${S.canContinue?'<button class="btn primary" onclick="continueChapter()">继续下一幕</button>':''}${hasCompletedStory()?`<button class="btn primary" onclick="returnToMenuAfterVictory()">${uiIcon('home')}返回主菜单</button>`:''}<button class="btn" onclick="location.reload()">${uiIcon('restart')}重新开始</button>`; cnt.textContent=''; return; }
+  if(S.gameOver){ el.innerHTML=S.reviewingRun?`<section class="run-review-note" role="status"><b>本局回看 · 只读</b><p>${S.resolutionCode==='R1'?'本局已结算。':'本局已失败。'}可点击人物、敌人、手牌及目标查看详情，或查看全部记录。</p><button type="button" class="btn" onclick="showRunReviewSummary()">${S.resolutionCode==='R1'?'查看结算说明':'查看失败原因'}</button></section>`:''; controls.innerHTML=S.failureTransitionActive?'':`${S.canContinue&&!S.reviewingRun?'<button class="btn primary" onclick="continueChapter()">继续下一幕</button>':''}<button type="button" class="btn" onclick="${S.reviewingRun?'showRunReviewSummary()':'reviewLastRun()'}">${S.reviewingRun?'返回结算界面':'查看本局'}</button>${hasCompletedStory()?`<button class="btn primary" onclick="returnToMenuAfterVictory()">${uiIcon('home')}返回主菜单</button>`:''}<button class="btn" onclick="location.reload()">${uiIcon('restart')}重新开始</button>`; cnt.textContent=S.reviewingRun?'已结束 · 仅查看':''; return; }
   if(S.drawingCards){el.innerHTML='';controls.innerHTML='<span role="status">弱点牌展示中，稍后自动结算并进入弃牌堆。</span>';cnt.textContent='自动结算中';return;}
   if(S.chapterIntro){el.innerHTML='';controls.innerHTML=`<button class="btn primary" onclick="beginChapter()">${S.chapter===3?'开始最终幕':'开始第二幕调查'}</button>`;cnt.textContent='准备开始';return;}
   const actions = [];
@@ -1936,7 +1937,7 @@ function continueChapter(){
   S.canContinue=false;
   if(typeof resetPhaseAnnouncement==='function')resetPhaseAnnouncement();
   phaseTransitionActive=false;pendingNavigation=false;pendingAction=null;selectedHandCard=null;
-  S.chapter++;S.gameOver=false;S.test=null;S.committed=[];S.pendingMove=false;S.evadeBonus=0;
+  S.chapter++;S.gameOver=false;S.reviewingRun=false;S.test=null;S.committed=[];S.pendingMove=false;S.evadeBonus=0;
   closeModal();
   S.previousEnemies=[...(S.previousEnemies||[]),...S.enemies];S.enemies=[];
   const finalChapter=S.chapter===3;
@@ -1967,6 +1968,19 @@ function beginChapter(){
   if(typeof announcePhase==='function')announcePhase('investigation',()=>{});
   if(typeof gameNarrator!=='undefined')gameNarrator.enter(S.location);
 }
+function reviewLastRun(){
+  if(!S||!S.gameOver||S.failureTransitionActive)return;
+  if(typeof resetLossNotices==='function')resetLossNotices();
+  closeModal();S.reviewingRun=true;phaseTransitionActive=false;render();
+  document.getElementById('guideStatus').textContent='本局回看：只能查看，不能继续行动。可点击卡牌，或查看全部记录。';
+  document.getElementById('investigator')?.focus?.();
+}
+function showRunReviewSummary(){
+  if(!S||!S.gameOver||S.failureTransitionActive)return;
+  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const info=S.runOutcome||{},loss=info.loss,phase={mythos:'神话阶段',investigation:'调查阶段',enemy:'敌人阶段',upkeep:'维持阶段'}[info.phase]||info.phase||'';
+  openModal(`<section class="run-review-summary"><h3>${S.resolutionCode==='R1'?'本局结算':'失败原因'}</h3><p>${esc(info.text||'本局已结束，请查看调查记录。')}</p><p>第 ${info.round??S.round} 回合 · ${esc(phase)} · ${esc(LOCATIONS[info.location||S.location]?.name)}<br>生命 ${info.hp??S.hp} / 理智 ${info.sanity??S.sanity} · 末日 ${info.doom??S.doom}</p>${loss?`<p>最近一次损失：${esc(loss.source||'未注明来源')}<br>生命 −${loss.hp}，理智 −${loss.sanity}（第 ${loss.round} 回合）。</p>`:''}${info.test?`<p>结束时的检定：${esc(info.test.label)} · 目标 ${info.test.difficulty}${info.test.token?' · 已抽取 '+esc(info.test.token):''}</p>`:''}<p>回到关卡后，可点击人物、敌人、卡牌和目标查看详情；右侧「查看全部记录」保留本局经过。</p><div class="menu-confirm-actions"><button type="button" class="btn primary" onclick="reviewLastRun()">返回查看本局</button>${S.canContinue?'<button type="button" class="btn" onclick="closeModal();continueChapter()">继续下一幕</button>':''}<button type="button" class="btn" onclick="location.reload()">重新开始</button></div></section>`);
+}
 function resolve(code, text){
   if(S.gameOver) return;
   if(typeof resetEnemyDamage==='function')resetEnemyDamage();
@@ -1976,6 +1990,8 @@ function resolve(code, text){
   if(typeof resetEnemyEngagement==='function')resetEnemyEngagement();
   S.gameOver = true;
   S.resolutionCode=code;
+  S.reviewingRun=false;
+  S.runOutcome={text,round:S.round,phase:S.phase,location:S.location,hp:S.hp,sanity:S.sanity,doom:S.doom,loss:S.lastPlayerLoss?{...S.lastPlayerLoss}:null,test:S.test?{label:S.test.label,difficulty:S.test.difficulty,token:S.player?.test?.tokens?.map(t=>t.label).join(' → ')||S.player?.test?.current?.token?.label||S.test.token?.label||''}:null};
   S.test = null;
   S.committed = [];
   S.pendingMove = false;
@@ -1998,7 +2014,7 @@ function resolve(code, text){
     ${win&&S.chapter===1?'<div class="ending-voice"><audio id="endingNarration" hidden preload="auto" src="assets/audio/ending-narration-natural-v2.mp3"></audio><p id="endingVoiceStatus" hidden role="status" aria-live="polite" style="margin:12px 0;font-size:11px;color:var(--dim)"></p></div>':''}
     ${S.canContinue?`<p style="font-size:12px;color:var(--dim);line-height:1.8">${S.chapter===1?'钥匙指向地板下的暗门。下一幕：地板之下。保留当前状态，继续前往地下室。':'裂隙已封闭，但你还必须离开宅邸。下一幕是本作故事的最终幕，人物状态与牌组会保留。'}</p><div class="center mb"><button class="btn primary" onclick="continueChapter()">继续下一幕 · ${S.chapter===1?'地下室':'黎明之前'}</button></div>`:''}
     ${win&&S.chapter===3?`<p style="font-size:12px;color:var(--dim);line-height:1.8">本作三幕故事已全部完成。这是网页版原创改编的结局，并非官方战役通关。</p><div class="menu-confirm-actions"><button type="button" class="btn primary" onclick="returnToMenuAfterVictory()">${uiIcon('home')}返回主菜单</button><button type="button" class="btn" onclick="location.reload()">重新开始</button></div>`:''}
-    <div class="center mb"><button class="btn" onclick="closeModal()">${uiIcon('close')}关闭</button></div>
+    <div class="center mb"><button type="button" class="btn" onclick="reviewLastRun()">返回查看本局</button><button class="btn" onclick="closeModal()">${uiIcon('close')}关闭</button></div>
   `);
   if(win){gameSfx('victory');if(S.chapter===1&&typeof beginEndingNarration==='function')beginEndingNarration();}
 }
@@ -2016,7 +2032,7 @@ function resolve(code, text){
 <script src="ambience.js?v=ending-victory-6"></script>
 <script src="ending-narration.js?v=text-voice-2"></script>
 <script src="scene-narration.js?v=interrupt-stop-2"></script>
-<script src="failure-transition.js?v=2"></script>
+<script src="failure-transition.js?v=run-review-1"></script>
 <script src="clue-flight.js?v=1"></script>
 <script src="enemy-engagement.js?v=card-art-1"></script>
 <script src="enemy-damage.js?v=1"></script>
@@ -2028,8 +2044,8 @@ function resolve(code, text){
 <script src="tutorial.js?v=players-1"></script>
 <script src="atlas.js?v=faction-1"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
-<script src="hand-dialog.js?v=faction-1"></script>
-<script src="discard.js?v=faction-1"></script>
+<script src="hand-dialog.js?v=run-review-1"></script>
+<script src="discard.js?v=weakness-pile-1"></script>
 <script src="next-step.js?v=chapter-3"></script>
 <script src="prologue-narration.js?v=three-scenes-2"></script>
 <script src="prologue.js?v=players-1"></script>
@@ -2038,9 +2054,9 @@ function resolve(code, text){
 <script src="game-header.js?v=spacious-1"></script>
 <script src="phase-help.js?v=hover-1"></script>
 <script src="hand-hover.js?v=faction-1"></script>
-<script src="board-inspect.js?v=faction-1"></script>
+<script src="board-inspect.js?v=asset-abilities-1"></script>
 <script src="start-tutorial.js?v=choice-1"></script>
-<script src="player-runtime.js?v=faction-1"></script>
+<script src="player-runtime.js?v=slot-confirm-1"></script>
 </body>
 </html>
 

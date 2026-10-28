@@ -24,6 +24,11 @@ test('地点查看不移动、不揭示暗面；确认按钮才调用原移动�
  const g=setup(),n=g.node('hall',['map-node']);n.dataset.room='hallway';g.click(n);assert.equal(g.calls.length,0);assert.match(g.nodes.get('boardInspectContent').innerHTML,/门后低语/);assert.equal(g.nodes.get('boardInspectAction').textContent,'前往此地');g.action();assert.deepEqual(g.calls,[['move','hallway']]);
  const h=setup(),unknown=h.node('attic',['map-node']);unknown.dataset.room='attic';h.click(unknown);assert.doesNotMatch(h.nodes.get('boardInspectContent').innerHTML,/SECRET|遮蔽值|剩余线索/);assert.equal(h.nodes.get('boardInspectAction').hidden,true);assert.equal(h.ctx.S.revealed.attic,false);
 });
+test('资产详情明确提供使用能力入口，确认才交给角色规则；终局回看不显示使用按钮',()=>{
+ const g=setup();g.ctx.S.player={};g.ctx.S.assets=[{card:{id:'p45',instanceId:'asset:1',name:'手枪',text:'战斗能力',uses:{ammo:4}},exhausted:false}];g.ctx.window.ArkhamPlayerRuntime={canUseAsset:id=>id==='asset:1'&&!g.ctx.S.gameOver,assetAbilities:id=>g.calls.push(['asset',id])};
+ const n=g.node('asset1',['asset-icon'],'button',g.nodes.get('assets'));g.click(n);assert.equal(g.nodes.get('boardInspectAction').textContent,'使用该资产能力');assert.equal(g.calls.length,0);g.action();assert.deepEqual(g.calls,[['asset','asset:1']]);
+ g.ctx.S.gameOver=true;g.click(n);assert.equal(g.nodes.get('boardInspectAction').hidden,true);
+});
 test('幕按钮只在可推进时出现，并重新验证原状态，普通行动按钮不被拦截',()=>{
  const g=setup(),n=g.node('act-side',['side','act']);g.click(n);assert.equal(g.calls.length,0);g.action();assert.deepEqual(g.calls,[['action','advanceAct']]);
  const h=setup();h.ctx.S.clues=0;h.click(h.node('act-side',['side','act']));assert.equal(h.nodes.get('boardInspectAction').hidden,true);h.action();assert.equal(h.calls.length,0);

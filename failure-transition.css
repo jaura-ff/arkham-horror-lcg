@@ -8,6 +8,10 @@
 .failure-aftermath:not([hidden]){animation:failure-rise .55s ease-out both}
 .failure-reason{border-top:1px solid #5b4034;margin:24px 0;padding:20px 0 0;font-size:14px;line-height:1.9;color:#cfbfa9}
 .failure-aftermath .btn{min-height:44px;min-width:160px}
+.failure-aftermath .btn+.btn{margin:10px 0 0 10px}
+.run-review-note{grid-column:1/-1;padding:12px;border:1px solid #705346;background:#241b16;color:var(--text);font-size:12px;line-height:1.8}
+.run-review-note>b{color:var(--gold)}.run-review-note p{margin:8px 0}.run-review-note .btn{width:100%;min-height:44px}
+.run-review-summary p{line-height:1.9;margin:16px 0}.run-review-summary .menu-confirm-actions{flex-wrap:wrap;gap:10px}
 .failure-cinema button:focus-visible{outline:2px solid #d3b69a;outline-offset:4px}
 .failure-cinema button:active{transform:scale(.98)}
 @keyframes failure-darken{from{opacity:.5}to{opacity:1}}

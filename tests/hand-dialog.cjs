@@ -71,5 +71,8 @@ test('检定、移动、菜单确认、教学、图鉴和终局都不叠加手�
 });
 test('手牌入口不再直接出牌，说明弹窗有语义标题与触摸交互提示',()=>{
   const g=setup();g.run('renderHand()');assert.match(g.node('hand').innerHTML,/onclick="inspectHandCard/);assert.doesNotMatch(g.node('hand').innerHTML,/onclick="onHandCard/);
-  assert.match(html,/<dialog id="handCardDialog"[^>]*aria-labelledby="handCardTitle"/);assert.match(html,/快速连点两次/);assert.match(html,/hand-dialog.js\?v=faction-1/);
+  assert.match(html,/<dialog id="handCardDialog"[^>]*aria-labelledby="handCardTitle"/);assert.match(html,/快速连点两次/);assert.match(html,/hand-dialog.js\?v=run-review-1/);
+});
+test('结束后回看可打开手牌详情，确认出牌始终禁用，不消耗行动资源或卡牌',()=>{
+ const g=setup();g.run('resolve("R3","理智崩溃。");reviewLastRun()');const before=g.get('[S.hand,S.resources,S.actions,S.gameOver]');g.tap(0,0);assert.equal(g.node('handCardDialog').open,true);assert.equal(g.node('handCardPlay').disabled,true);assert.match(g.node('handCardWarning').textContent,/本局已结束，仅可查看/);g.click('handCardPlay');assert.deepEqual(g.get('[S.hand,S.resources,S.actions,S.gameOver]'),before);g.click('handCardClose');assert.equal(g.node('handCardDialog').open,false);
 });

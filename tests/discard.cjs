@@ -10,24 +10,24 @@ function setup(){
   const play=id=>run(`S.hand=[{...INVESTIGATOR.deck.find(c=>c.id==='${id}')}];onHandCard(0)`);
   return{run,get,el,click,play,doc};
 }
-test('弃牌入口初始为空，默认展示所有出牌历史',()=>{
-  const g=setup();assert.equal(g.el('discardPileSummary').textContent,'弃牌 0 张 · 已打出 0 次');g.click('discardPileButton');assert.equal(g.el('discardDialog').open,true);assert.match(g.el('discardCards').innerHTML,/还没有打出/);assert.equal(g.el('discardShowPlayed')['aria-pressed'],'true');
+test('弃牌入口初始为空，默认展示实际弃牌堆及弱点数量',()=>{
+  const g=setup();assert.equal(g.el('discardPileSummary').textContent,'弃牌 0 张 · 已打出 0 次');g.click('discardPileButton');assert.equal(g.el('discardDialog').open,true);assert.match(g.el('discardCards').innerHTML,/弃牌堆为空/);assert.equal(g.el('discardShowPile')['aria-pressed'],'true');assert.match(g.el('discardCount').textContent,/弱点 0 张/);
 });
 test('资产事件均记入历史，装备中的资产不进入实际弃牌',()=>{
   const g=setup();g.play('p45');g.play('resource');assert.equal(g.get('S.playedCards.length'),2);assert.equal(g.get('S.assets.length'),1);assert.equal(g.get('S.discard.length'),1);
-  assert.equal(g.el('discardPileSummary').textContent,'弃牌 1 张 · 已打出 2 次');g.click('discardPileButton');let cards=g.el('discardCards').innerHTML;assert.match(cards,/自动手枪/);assert.ok(cards.indexOf('工作动力')<cards.indexOf('自动手枪'));
+  assert.equal(g.el('discardPileSummary').textContent,'弃牌 1 张 · 已打出 2 次');g.click('discardPileButton');g.click('discardShowPlayed');let cards=g.el('discardCards').innerHTML;assert.match(cards,/自动手枪/);assert.ok(cards.indexOf('工作动力')<cards.indexOf('自动手枪'));
   g.click('discardShowPile');cards=g.el('discardCards').innerHTML;assert.match(cards,/工作动力/);assert.doesNotMatch(cards,/自动手枪/);
 });
 test('技能投入和抽到弱点只入弃牌，不冒充打出历史',()=>{
   const g=setup();g.run(`S.hand=[{...INVESTIGATOR.deck.find(c=>c.id==='percep')}];S.chaos=[{label:'0',mod:0}];investigate();toggleCommit(0);resolveTest();finishTest(S.testResult);S.deck=[{...INVESTIGATOR.deck.find(c=>c.id==='nightmare')}];drawCards(1);render()`);
-  assert.equal(g.get('S.playedCards.length'),0);g.click('discardPileButton');g.click('discardShowPile');assert.match(g.el('discardCards').innerHTML,/感知/);assert.match(g.el('discardCards').innerHTML,/缠身梦魇/);
+  assert.equal(g.get('S.playedCards.length'),0);g.click('discardPileButton');assert.match(g.el('discardCards').innerHTML,/感知/);assert.match(g.el('discardCards').innerHTML,/缠身梦魇/);assert.match(g.el('discardCards').innerHTML,/弱点/);assert.match(g.el('discardCards').innerHTML,/discard-art art/);assert.match(g.el('discardCount').textContent,/弱点 1 张/);g.click('discardShowPlayed');assert.doesNotMatch(g.el('discardCards').innerHTML,/缠身梦魇/);
 });
 test('无效出牌和致命借机攻击不产生成功出牌记录',()=>{
   const g=setup();g.run('S.resources=0');g.play('p45');assert.equal(g.get('S.playedCards.length'),0);
   g.run(`S.resources=5;S.hp=1;S.enemies=[{card:ENCOUNTER[0],hp:2,engaged:true,exhausted:false,location:'study'}]`);g.play('resource');assert.equal(g.get('S.playedCards.length'),0);assert.equal(g.get('S.gameOver'),true);
 });
 test('同牌重复打出分别记录回合而不合并',()=>{
-  const g=setup();g.play('resource');g.run('S.hand=[S.discard.pop()];S.round=2;onHandCard(0)');g.click('discardPileButton');assert.equal(g.get('S.playedCards.length'),2);assert.equal((g.el('discardCards').innerHTML.match(/class="discard-entry"/g)||[]).length,2);assert.match(g.el('discardCards').innerHTML,/第 1 回合/);assert.match(g.el('discardCards').innerHTML,/第 2 回合/);
+  const g=setup();g.play('resource');g.run('S.hand=[S.discard.pop()];S.round=2;onHandCard(0)');g.click('discardPileButton');g.click('discardShowPlayed');assert.equal(g.get('S.playedCards.length'),2);assert.equal((g.el('discardCards').innerHTML.match(/class="discard-entry"/g)||[]).length,2);assert.match(g.el('discardCards').innerHTML,/第 1 回合/);assert.match(g.el('discardCards').innerHTML,/第 2 回合/);
 });
 test('弃牌洗回后历史保留，新开游戏清空两种记录',()=>{
   const g=setup();g.play('resource');g.run('S.deck=[];drawCards(1);render()');assert.equal(g.get('S.discard.length'),0);assert.equal(g.get('S.playedCards.length'),1);
@@ -41,10 +41,10 @@ test('其他弹窗及教学不覆盖，原生关闭事件可恢复',()=>{
   const g=setup();g.click('discardPileButton');g.el('discardDialog').close();assert.equal(g.doc.body.style.overflow,'auto');
 });
 test('内容转义且包含插画和只读用法，没有出牌操作',()=>{
-  const g=setup();g.play('resource');g.run(`S.playedCards[0].card.name='<img src=x onerror=alert(1)>'`);g.click('discardPileButton');const cards=g.el('discardCards').innerHTML;assert.match(cards,/&lt;img/);assert.doesNotMatch(cards,/<img|onclick=|onHandCard\(/);assert.match(cards,/discard-art art/);assert.match(cards,/查看用法/);
+  const g=setup();g.play('resource');g.run(`S.playedCards[0].card.name='<img src=x onerror=alert(1)>'`);g.click('discardPileButton');g.click('discardShowPlayed');const cards=g.el('discardCards').innerHTML;assert.match(cards,/&lt;img/);assert.doesNotMatch(cards,/<img|onclick=|onHandCard\(/);assert.match(cards,/discard-art art/);assert.match(cards,/查看用法/);
 });
 test('弃牌弹窗语义完整，入口放在手牌区域',()=>{
-  assert.match(html,/<dialog id="discardDialog"[^>]*aria-labelledby="discardTitle"/);assert.match(html,/discard.js\?v=faction-1/);assert.match(html.split('<div class="panel hand-panel">')[1].split('<!-- 右栏 -->')[0],/id="discardPileButton"/);
+  assert.match(html,/<dialog id="discardDialog"[^>]*aria-labelledby="discardTitle"/);assert.match(html,/discard.js\?v=weakness-pile-1/);assert.match(html.split('<div class="panel hand-panel">')[1].split('<!-- 右栏 -->')[0],/id="discardPileButton"/);
 });
 
 test('查阅角色配牌展示完整初始牌组和分类数量，包括弱点',()=>{
@@ -65,7 +65,7 @@ test('角色配牌含费用、插画、效果和用法，不提供出牌或取�
   assert.match(cards,/3 资源 \+ 1 行动 · 1 只手槽/);assert.match(cards,/不使用普通出牌费用/);assert.match(cards,/discard-art art/);assert.match(cards,/查看用法/);assert.doesNotMatch(cards,/onclick=|onHandCard\(/);
 });
 
-test('查阅和分类切换不改变游戏状态或配牌定义，关闭后重开仍默认历史',()=>{
+test('查阅和分类切换不改变游戏状态或配牌定义，关闭后重开默认实际弃牌堆',()=>{
   const g=setup();const state=g.get('S'),deck=g.get('INVESTIGATOR.deck');g.run('Math.random=()=>{throw Error("unexpected randomness")}');g.click('discardPileButton');g.click('discardShowDeck');g.click('discardShowPile');g.click('discardShowPlayed');g.click('discardClose');assert.deepEqual(g.get('S'),state);assert.deepEqual(g.get('INVESTIGATOR.deck'),deck);
-  g.click('discardPileButton');assert.equal(g.el('discardShowPlayed')['aria-pressed'],'true');assert.equal(g.el('discardShowDeck')['aria-pressed'],'false');
+  g.click('discardPileButton');assert.equal(g.el('discardShowPile')['aria-pressed'],'true');assert.equal(g.el('discardShowPlayed')['aria-pressed'],'false');assert.equal(g.el('discardShowDeck')['aria-pressed'],'false');
 });

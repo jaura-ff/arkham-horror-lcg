@@ -23,6 +23,7 @@
       <p class="failure-subtitle">调查失败 · 黑暗吞没了最后的希望</p>
       <div id="failureAftermath" class="failure-aftermath" aria-live="polite" hidden>
         <div class="failure-reason">${text}</div>
+        <button id="failureReview" type="button" class="btn" onclick="reviewLastRun()">返回查看本局</button>
         <button id="failureRestart" class="btn primary" onclick="location.reload()">${uiIcon('restart')}重新开始</button>
       </div>
     </section>`);

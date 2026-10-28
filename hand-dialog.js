@@ -5,6 +5,7 @@
   if(!dialog)return;
   let lastTap=0,pending=null,lastFocus=null,savedOverflow='';
   function blocked(card){
+    if(S?.gameOver)return '本局已结束，仅可查看卡牌。';
     if(!S || !S.hand.includes(card))return '手牌已变化，请关闭后重新选择。';
     if(S.player&&window.ArkhamPlayerRuntime)return window.ArkhamPlayerRuntime.playable(card);
     if(card.type==='skill')return '技能牌不能直接出牌，请在对应属性的检定弹窗中投入。';
@@ -33,7 +34,7 @@
     refresh();dialog.showModal();document.body.style.overflow='hidden';dialog.scrollTop=0;byId('handCardClose').focus();
   }
   window.inspectHandCard=(index,event)=>{
-    if(!S || S.gameOver || S.test || S.pendingMove || pendingNavigation || byId('game').inert || dialog.open || byId('modal').classList.contains('open') || byId('cardAtlas').open)return;
+    if(!S || (S.gameOver&&!S.reviewingRun) || S.test || S.pendingMove || pendingNavigation || byId('game').inert || dialog.open || byId('modal').classList.contains('open') || byId('cardAtlas').open)return;
     const card=S.hand[index];if(!card)return;
     const now=Date.now(),second=selectedHandCard===card && (now-lastTap<500 || event?.detail>=2);
     selectedHandCard=card;lastTap=now;

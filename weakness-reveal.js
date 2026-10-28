@@ -20,7 +20,7 @@
     window.resetWeaknessReveal();
     const current={owner:S,card,ticket:version,settle};job=current;
     const art=CARD_ART[card.id];
-    openModal(`<section id="weaknessReveal" class="weakness-reveal" role="status" aria-live="assertive" aria-atomic="true">
+    openModal(`<section id="weaknessReveal" class="weakness-reveal" data-faction="${esc(card.faction_code||'neutral')}" role="status" aria-live="assertive" aria-atomic="true">
       <p class="weakness-kicker">WEAKNESS / 抽到弱点牌</p><h3>${esc(card.name)}</h3>
       ${art?`<div class="art weakness-art" aria-hidden="true" style="${cardArtStyle(art)}"></div>`:'<div class="weakness-no-art" aria-hidden="true">弱点</div>'}
       <p class="weakness-rule">弱点牌必须立即展示并结算</p>

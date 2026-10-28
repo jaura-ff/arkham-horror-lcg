@@ -73,5 +73,5 @@ test('同一弱点的展示完成回调只消费一次，后续阶段不能重�
 
 test('弱点牌名和效果转义，不提供出牌或跳过按钮，减少动态效果可关闭动画',()=>{
  const g=game();g.run("S.deck=[{id:'unknown',name:'<img src=x>',text:'<script>bad</script>',type:'weak'}];draw()");assert.match(g.box(),/&lt;img src=x&gt;/);assert.match(g.box(),/&lt;script&gt;/);assert.doesNotMatch(g.box(),/<script>|<img src=x>|<button/);assert.match(g.box(),/weakness-no-art/);
- const css=fs.readFileSync(path.join(root,'weakness-reveal.css'),'utf8');assert.match(css,/prefers-reduced-motion:reduce/);assert.match(css,/max-height:440px/);assert.match(html,/weakness-reveal.js\?v=card-art-1/);assert.match(html,/weakness-reveal.css\?v=1/);
+ const css=fs.readFileSync(path.join(root,'weakness-reveal.css'),'utf8');assert.match(css,/prefers-reduced-motion:reduce/);assert.match(css,/max-height:440px/);assert.match(html,/weakness-reveal.js\?v=faction-1/);assert.match(html,/weakness-reveal.css\?v=1/);
 });

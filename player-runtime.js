@@ -27,11 +27,27 @@
     const state=S;state.playerBusy=true;let complete=false;
     fn(()=>{if(complete||S!==state)return;complete=true;state.playerBusy=false;sync();render();});
   }
+  const readingCards=Object.keys(catalog.names).map(n=>catalog.card(ArkhamOfficialDecks.normalize('01'+String(n).padStart(3,'0'))));
+  function cardThumb(card){return `<span class="player-opening-art art" data-faction="${card.faction_code||'neutral'}" aria-hidden="true" style="${cardArtStyle(CARD_ART[card.code||card.id]||(card.type==='enemy'?[100,100]:card.type==='treachery'?[66.6667,100]:[0,0]))}"></span>`;}
+  function cardCopy(card,label=card.name){
+    const enemy=card.type==='enemy'||card.type_code==='enemy';
+    const meta=enemy?`敌人 · 生命 ${card.hp??card.health} · 战斗 ${card.fight??card.enemy_fight} · 闪避 ${card.evade??card.enemy_evade} · 攻击 ${card.dmg??card.enemy_damage??0} 伤害、${card.horror??card.enemy_horror??0} 恐惧`:card.type==='treachery'?'遭遇诡计 · 揭示时结算':`${{asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[card.type]||'卡牌'} · ${card.type==='skill'?'投入检定':card.type==='weak'?'抽到立即展示结算':`费用 ${card.cost??0} 资源`}`;
+    return `${cardThumb(card)}<span class="player-opening-copy"><b>${esc(label)}</b><small>${esc(card.factionLabel||catalog.factions[card.faction_code]||'')} · ${esc(meta)}</small>${card.text&&!label.includes(card.text)?`<span>${esc(card.text)}</span>`:''}</span>`;
+  }
+  function optionCard(o){
+    if(o.card)return o.card;
+    const value=o.value;
+    if(value&&typeof value==='object')return value.card||value.source||(value.name?value:null);
+    if(typeof value==='string')return [...S.hand,...p().assets,...p().threats,...S.discard,...S.encounter,...S.encounterDiscard,...ENCOUNTER].find(c=>c.instanceId===value||c.id===value);
+    return null;
+  }
   function choose(title,copy,options,done){
     if(S.gameOver)return;
     const state=S,nonce=++ticket;
     state.playerChoice={nonce,options,done};
-    openModal(`<section class="player-choice"><h3>${esc(title)}</h3><p>${esc(copy)}</p><div class="player-options">${options.map((o,i)=>`<button class="btn ${o.primary?'primary':''}" type="button" onclick="playerPick(${nonce},${i})">${esc(o.label)}</button>`).join('')}</div></section>`);
+    const clean=s=>s.replace(/[！!？?]/g,'');
+    const source=readingCards.find(c=>clean(title)===clean(c.name)||clean(title).startsWith(clean(c.name)+' ·'));
+    openModal(`<section class="player-choice"><h3>${esc(title)}</h3>${source?`<div class="player-card-context" data-faction="${source.faction_code||'neutral'}">${cardCopy(source)}</div>`:''}<p>${esc(copy)}</p><div class="player-options">${options.map((o,i)=>{const card=optionCard(o);return `<button class="btn ${o.primary?'primary':''}${card?' player-opening-card':''}" type="button"${card?` data-faction="${card.faction_code||'neutral'}"`:''}${o.rejected!==undefined?` aria-pressed="${!!o.rejected}"`:''} onclick="playerPick(${nonce},${i})">${card?cardCopy(card,o.label):esc(o.label)}</button>`;}).join('')}</div></section>`);
     sync();renderActions();
     byId('modalBox').querySelector('.player-options button')?.focus();
   }
@@ -68,7 +84,7 @@
       const extra=[];
       if(info.sanity)for(const c of s.threats.filter(c=>c.code==='01099'))extra.push(n=>loss(1,0,c.name,n,true));
       if(info.hp)for(const c of s.threats.filter(c=>c.code==='01100'))extra.push(n=>loss(0,1,c.name,n,true));
-      if(attacker&&dogs.length&&S.enemies.includes(attacker))extra.push(n=>optional('看门狗反击','攻击伤害分配给了看门狗。对攻击它的敌人造成 1 伤害？',k=>damageEnemy(attacker,1,k),n));
+      if(attacker&&dogs.length&&S.enemies.includes(attacker))extra.push(n=>optional('看门狗 · 反击','攻击伤害分配给了看门狗。对攻击它的敌人造成 1 伤害？',k=>damageEnemy(attacker,1,k),n));
       if(info.sanity&&!blank()&&s.investigator==='agnes'&&s.ability.agnesPhase!==phaseKey()&&local().length)extra.push(n=>pickEnemy('艾格尼丝 · 恐惧反击',local(),enemy=>{
         if(!enemy){n();return;}s.ability.agnesPhase=phaseKey();damageEnemy(enemy,1,n);
       },true));
@@ -206,7 +222,7 @@
   function mulligan(done){
     const state=S,rejected=new Set();
     function show(){
-      choose('准备起手牌','起手 5 张牌；可选择任意张换牌一次。弱点不会进入起手牌。选好后点击开始调查。',S.hand.map(c=>({label:`${rejected.has(c.instanceId)?'☑ 换掉':'□ 保留'} ${c.name}`,value:c.instanceId})).concat([{label:'开始调查 · 确认起手',value:'confirm',primary:true}]),id=>{
+      choose('准备起手牌','起手 5 张牌；可选择任意张换牌一次。弱点不会进入起手牌。选好后点击开始调查。',S.hand.map(c=>({label:`${rejected.has(c.instanceId)?'☑ 换掉':'□ 保留'} ${c.name}`,value:c.instanceId,card:c,rejected:rejected.has(c.instanceId)})).concat([{label:'开始调查 · 确认起手',value:'confirm',primary:true}]),id=>{
         if(id==='confirm'){session.mulligan(state.player,[...rejected]);session.begin(state.player);S.playerTurn=state.player.turn;done();if(typeof announcePhase==='function')announcePhase('investigation',()=>{});if(typeof document.dispatchEvent==='function')document.dispatchEvent(new Event('arkham:player-ready'));return;}
         if(rejected.has(id))rejected.delete(id);else rejected.add(id);show();
       });
@@ -231,9 +247,9 @@
   };
   renderInvestigator=function(){
     original.renderInvestigator();if(!active())return;
-    const spec=catalog.investigator(p().investigator),el=byId('investigator');
+    const spec=catalog.investigator(p().investigator),el=byId('investigator');el.dataset.faction=spec.faction_code;
     if(p().investigator!=='roland'){const art=INVESTIGATOR_ART[p().investigator];el.innerHTML=el.innerHTML.replace(/<div class="portrait art"[^>]*><\/div>/,art?`<div class="portrait art" role="img" aria-label="${esc(spec.name)}肖像" style="${cardArtStyle(art)}"></div>`:`<div class="portrait player-medallion" role="img" aria-label="${esc(spec.name)}职业标记">${spec.symbol}</div>`);}
-    el.innerHTML=el.innerHTML.replace(`${S.actions}/3`,`${S.actions}/${S.turnActions}`).replace('共 3 次','共 '+S.turnActions+' 次');
+    el.innerHTML=el.innerHTML.replace(spec.title,`${spec.title} · ${spec.factionLabel}`).replace(`${S.actions}/3`,`${S.actions}/${S.turnActions}`).replace('共 3 次','共 '+S.turnActions+' 次');
   };
   renderLocations=function(){original.renderLocations();if(active()){
     const spec=catalog.investigator(p().investigator),el=byId('mapwrap');el.innerHTML=el.innerHTML.replace('罗兰·班克斯的当前位置',spec.name+'的当前位置');
@@ -307,10 +323,10 @@
     const t=S.test,boosts=p().assets.flatMap(c=>(c.rules.abilities||[]).filter(a=>a.effect==='boost-test'&&a.skill===mapSkill[t.skill]).map(a=>({c,a})));
     byId('modalBox').innerHTML=byId('modalBox').innerHTML.replace(`（基础 ${skillValue(t.skill)}）`,`（人物基础 ${INVESTIGATOR[t.skill]}，含装备加值见下方）`);
     let extra='';
-    if(boosts.length)extra+=`<div class="player-test-tools">${boosts.map(({c})=>`<button class="btn" ${S.resources<(t.playerOptions?.cost?.resources||0)+(t.pendingBoostCost||0)+1?'disabled':''} onclick="playerBoost('${c.instanceId}')">${esc(c.name)} · 1 资源换 +1</button>`).join('')}</div><p class="player-cost-note">已选加值费用 ${t.pendingBoostCost||0} 资源；确认抽取时一并支付，返回则取消。</p>`;
-    if(S.playerMindOverMatter&&['combat','agility'].includes(t.skill))extra+='<button class="btn" onclick="playerSubstitute()">心胜于物 · 改用智慧</button>';
+    if(boosts.length)extra+=`<div class="player-test-tools">${boosts.map(({c})=>`<button class="btn player-inline-card" data-faction="${c.faction_code}" ${S.resources<(t.playerOptions?.cost?.resources||0)+(t.pendingBoostCost||0)+1?'disabled':''} onclick="playerBoost('${c.instanceId}')">${cardThumb(c)}<span>${esc(c.name)} · 1 资源换 +1</span></button>`).join('')}</div><p class="player-cost-note">已选加值费用 ${t.pendingBoostCost||0} 资源；确认抽取时一并支付，返回则取消。</p>`;
+    if(S.playerMindOverMatter&&['combat','agility'].includes(t.skill))extra+=`<button class="btn player-inline-card" data-faction="seeker" onclick="playerSubstitute()">${cardThumb(readingCards.find(c=>c.code==='01036'))}<span>心胜于物 · 改用智慧</span></button>`;
     extra+='<button class="btn" type="button" onclick="playerTestAbilities()">检定玩家窗口 · 快速能力</button>';
-    if(t.playerOptions?.source)extra+=`<p class="player-cost-note">使用 ${esc(t.playerOptions.source.name)}：抽取前支付所列行动／使用次数。取消不消耗弹药或充能。</p>`;
+    if(t.playerOptions?.source)extra+=`<div class="player-card-context" data-faction="${t.playerOptions.source.faction_code||'neutral'}">${cardCopy(t.playerOptions.source)}<span class="player-cost-note">抽取前支付所列行动／使用次数。取消不消耗弹药或充能。</span></div>`;
     if(extra)byId('modalBox').innerHTML+=extra;
   };
   window.playerBoost=id=>{
@@ -326,9 +342,9 @@
   window.playerTestAbilities=()=>{
     if(!active()||S.gameOver||S.playerBusy||S.playerChoice||!S.test||S.test.resolved)return;
     const t=S.test,entries=[];
-    for(const card of [...p().assets,...p().threats])for(const a of card.rules.abilities||[])if(a.timing==='fast'&&a.window==='player-window'&&availableAbility(card,a))entries.push({label:`${card.name} · ${card.text}`,value:n=>ability(card,a,n)});
-    for(const card of S.hand)if(card.type==='asset'&&card.rules.play?.timing==='fast'&&S.resources>=card.cost&&session.fits([...p().assets.filter(c=>!c.slot),...p().threats.filter(c=>c.type_code==='asset'),card]))entries.push({label:`打出 ${card.name} · ${card.cost} 资源 · 快速`,value:n=>resolvePlay(card,n)});
-    for(const card of eventCards())if(card.rules.play?.timing==='fast'&&S.phase==='investigation'&&card.rules.play.window==='own-turn'&&S.resources>=card.cost)entries.push({label:`打出 ${card.name} · 快速`,value:n=>resolvePlay(card,n)});
+    for(const card of [...p().assets,...p().threats])for(const a of card.rules.abilities||[])if(a.timing==='fast'&&a.window==='player-window'&&availableAbility(card,a))entries.push({label:`${card.name} · ${card.text}`,card,value:n=>ability(card,a,n)});
+    for(const card of S.hand)if(card.type==='asset'&&card.rules.play?.timing==='fast'&&S.resources>=card.cost&&session.fits([...p().assets.filter(c=>!c.slot),...p().threats.filter(c=>c.type_code==='asset'),card]))entries.push({label:`打出 ${card.name} · ${card.cost} 资源 · 快速`,card,value:n=>resolvePlay(card,n)});
+    for(const card of eventCards())if(card.rules.play?.timing==='fast'&&S.phase==='investigation'&&card.rules.play.window==='own-turn'&&S.resources>=card.cost)entries.push({label:`打出 ${card.name} · 快速`,card,value:n=>resolvePlay(card,n)});
     job(done=>choose('检定中的玩家窗口','快速能力不消耗普通行动，但仍支付其资源、力竭或使用次数。完成后返回当前检定。',entries.concat([{label:'返回检定',value:null}]),run=>{
       const finish=()=>{done();if(S.test===t&&!S.gameOver)openTestModal();};if(run)run(finish);else finish();
     }));
@@ -575,15 +591,15 @@
     const entries=[],spec=catalog.investigator(p().investigator);
     if(S.phase==='investigation'&&p().investigator==='skids'&&!blank()&&p().ability.skidsTurn!==S.playerTurn&&S.resources>=2)entries.push({label:'斯基兹 · 2 资源换 1 行动',value:n=>{S.resources-=2;S.actions++;S.turnActions++;p().ability.skidsTurn=S.playerTurn;n();}});
     if(S.phase==='investigation'&&p().investigator==='daisy'&&!blank()&&p().ability.daisyTurn!==S.playerTurn)entries.push({label:'黛西 · 典籍额外行动尚可使用（在典籍能力中选择）',value:n=>n()});
-    for(const card of [...p().assets,...p().threats])for(const a of card.rules.abilities||[])if(availableAbility(card,a))entries.push({label:`${card.name} · ${a.timing==='action'?'行动':'快速'} · ${card.text}`,value:n=>ability(card,a,n)});
-    for(const card of eventCards())if(card.rules.play?.timing==='fast'&&(card.rules.play.window==='player-window'||S.phase==='investigation'&&['own-turn','after-own-turn-begins'].includes(card.rules.play.window))&&S.resources>=card.cost&&!(card.code==='01010'&&S.playerActionsTaken>0))entries.push({label:`打出 ${card.name} · ${card.cost} 资源 · 快速`,value:n=>resolvePlay(card,n)});
-    if(S.phase==='investigation'&&has('01014')){const card=[...S.discard].reverse().find(c=>c.type_code==='event');if(card&&card.type!=='weak'&&card.rules.play?.timing!=='fast'&&S.resources>=card.cost&&S.actions>0)entries.push({label:`护符重打 ${card.name} · ${card.cost} 资源`,value:n=>resolvePlay(card,n)});}
-    for(const e of local().filter(e=>e.card.code==='01101'))if(S.phase==='investigation'&&S.actions>0&&S.resources>=4)entries.push({label:'黑帮打手 · 1 行动、4 资源谈判',value:n=>prepare({actions:1,resources:4},null,true,ok=>{if(ok){S.enemies=S.enemies.filter(x=>x!==e);S.discard.push(catalog.card(e.card));}n();})});
+    for(const card of [...p().assets,...p().threats])for(const a of card.rules.abilities||[])if(availableAbility(card,a))entries.push({label:`${card.name} · ${a.timing==='action'?'行动':'快速'} · ${card.text}`,card,value:n=>ability(card,a,n)});
+    for(const card of eventCards())if(card.rules.play?.timing==='fast'&&(card.rules.play.window==='player-window'||S.phase==='investigation'&&['own-turn','after-own-turn-begins'].includes(card.rules.play.window))&&S.resources>=card.cost&&!(card.code==='01010'&&S.playerActionsTaken>0))entries.push({label:`打出 ${card.name} · ${card.cost} 资源 · 快速`,card,value:n=>resolvePlay(card,n)});
+    if(S.phase==='investigation'&&has('01014')){const card=[...S.discard].reverse().find(c=>c.type_code==='event');if(card&&card.type!=='weak'&&card.rules.play?.timing!=='fast'&&S.resources>=card.cost&&S.actions>0)entries.push({label:`护符重打 ${card.name} · ${card.cost} 资源`,card,value:n=>resolvePlay(card,n)});}
+    for(const e of local().filter(e=>e.card.code==='01101'))if(S.phase==='investigation'&&S.actions>0&&S.resources>=4)entries.push({label:'黑帮打手 · 1 行动、4 资源谈判',card:e.card,value:n=>prepare({actions:1,resources:4},null,true,ok=>{if(ok){S.enemies=S.enemies.filter(x=>x!==e);S.discard.push(catalog.card(e.card));}n();})});
     job(done=>choose(spec.name+' · 能力',spec.ability+' 上古印记：'+spec.elder,entries.concat([{label:'返回游戏',value:null}]),run=>run?run(done):done()));
   };
   function spellReaction(card,done){
     if(S.gameOver){done();return;}
-    if(card.traits?.includes('Spell')&&has('01012'))optional('传家宝','你刚打出法术，抽 1 张牌？',n=>drawPlayer(1,n),done);else done();
+    if(card.traits?.includes('Spell')&&has('01012'))optional('许珀耳玻瑞亚传家宝','你刚打出法术，抽 1 张牌？',n=>drawPlayer(1,n),done);else done();
   }
   function resolvePlay(card,done){
     const s=p(),a=card.rules.play;
@@ -686,7 +702,7 @@
     };
     const ward=eventCards().find(c=>c.code==='01065'&&S.resources>=c.cost);
     if(ward)choose('守护之咒 · 取消遭遇？',`${card.name}：${card.text} 花 1 资源打出守护之咒，取消揭示效果，然后承受 1 恐惧。`,[
-      {label:'不打出，结算遭遇',value:false},{label:'打出守护之咒',value:true}
+      {label:'不打出，结算遭遇',value:false},{label:'打出守护之咒',card:ward,value:true}
     ],yes=>{if(yes){S.encounterDiscard.push(card);playFast(ward,()=>loss(0,1,ward.name,()=>spellReaction(ward,done)));}else resolve();});else resolve();
   }
   enemyPhase=function(){if(!active())return original.enemyPhase();if(S.playerBusy)return;
@@ -738,8 +754,8 @@
   continueChapter=function(){const state=S,chapter=S?.chapter,from=S?.location;original.continueChapter();if(active()&&S===state&&S.chapter!==chapter){leaveLocation(from);S.playerTurn++;p().turn=S.playerTurn;S.playerActionsTaken=0;S.turnActions=3+(has('01048')?1:0);S.actions=S.turnActions;sync();render();}};
   function renderCharacters(){
     const list=byId('playerCharacterList');if(!list)return;
-    list.innerHTML=catalog.ids.map(id=>{const c=catalog.investigator(id),art=INVESTIGATOR_ART[id];return `<button type="button" class="player-character" aria-pressed="${pendingSelection===id}" onclick="playerSelect('${id}')">${art?`<span class="player-emblem art" aria-hidden="true" style="${cardArtStyle(art)}"></span>`:`<span class="player-emblem" aria-hidden="true">${c.symbol}</span>`}<span><b>${esc(c.name)}</b><small>${esc(c.role)} · ${esc(c.title)}</small><small>意志 ${c.skills[0]} / 智慧 ${c.skills[1]} / 战斗 ${c.skills[2]} / 敏捷 ${c.skills[3]} · 生命 ${c.health} / 理智 ${c.sanity}</small></span></button>`;}).join('');
-    const c=catalog.investigator(pendingSelection);byId('playerCharacterDetails').innerHTML=`<h3>${esc(c.name)} · 人物能力</h3><p>${esc(c.ability)}</p><p><b>上古印记：</b>${esc(c.elder)}</p><p>基础盒标准版起始牌组：30 张普通卡＋1 张专属牌＋1 张专属弱点＋1 张随机基础弱点。开局可换牌一次。</p><details><summary>查看起始牌组（不含随机基础弱点）</summary><ul>${Object.entries(core.starterManifest(pendingSelection).counts).map(([code,count])=>`<li>${esc(catalog.names[Number(code.slice(2))])} ×${count}</li>`).join('')}</ul></details>`;
+    list.innerHTML=catalog.ids.map(id=>{const c=catalog.investigator(id),art=INVESTIGATOR_ART[id];return `<button type="button" class="player-character" data-faction="${c.faction_code}" aria-pressed="${pendingSelection===id}" onclick="playerSelect('${id}')">${art?`<span class="player-emblem art" aria-hidden="true" style="${cardArtStyle(art)}"></span>`:`<span class="player-emblem" aria-hidden="true">${c.symbol}</span>`}<span><b>${esc(c.name)}</b><small>${esc(c.factionLabel)} · ${esc(c.title)}</small><small>意志 ${c.skills[0]} / 智慧 ${c.skills[1]} / 战斗 ${c.skills[2]} / 敏捷 ${c.skills[3]} · 生命 ${c.health} / 理智 ${c.sanity}</small></span></button>`;}).join('');
+    const c=catalog.investigator(pendingSelection);byId('playerCharacterDetails').dataset.faction=c.faction_code;byId('playerCharacterDetails').innerHTML=`<h3>${esc(c.name)} · ${esc(c.factionLabel)}</h3><p>${esc(c.ability)}</p><p><b>上古印记：</b>${esc(c.elder)}</p><p>基础盒标准版起始牌组：30 张普通卡＋1 张专属牌＋1 张专属弱点＋1 张随机基础弱点。开局可换牌一次。</p><details><summary>查看起始牌组（不含随机基础弱点）</summary><ul>${Object.entries(core.starterManifest(pendingSelection).counts).map(([code,count])=>`<li class="player-deck-entry" data-faction="${readingCards.find(card=>card.code===code).faction_code}">${cardThumb(readingCards.find(card=>card.code===code))}<span>${esc(catalog.names[Number(code.slice(2))])} <small>${esc(readingCards.find(card=>card.code===code).factionLabel)}</small> <b>×${count}</b></span></li>`).join('')}</ul></details>`;
     byId('playerCharacterConfirm').textContent='确定 · 使用'+c.name;
     const label=byId('menuCharacterName');if(label)label.textContent='当前：'+catalog.investigator(selected).name;
   }

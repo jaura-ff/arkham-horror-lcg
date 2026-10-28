@@ -46,12 +46,13 @@
     wendy:{role:'生存者',symbol:'⌁',ability:'每次检定一次：揭示混沌指示物后，可弃置 1 张未投入的非弱点手牌，取消该指示物，将其放回袋中再抽一枚。',elder:'+0；若控制温蒂的护符，本次检定自动成功。'}
   };
   const ids=Object.keys(details);
-  function investigator(id){return {...core.investigator(id),...details[id]};}
+  const factions={guardian:'蓝家 · 守护者',seeker:'黄家 · 探求者',rogue:'绿家 · 流浪者',mystic:'紫家 · 潜修者',survivor:'红家 · 生存者',neutral:'中立'};
+  function investigator(id){const spec=core.investigator(id),faction_code=spec.classes[0];return {...spec,...details[id],faction_code,factionLabel:factions[faction_code]};}
   function card(c){
     const n=Number(c.code.slice(2)),weak=['weakness','basicweakness'].includes(c.subtype_code);
-    return {...c,id:c.code,englishName:c.name,name:names[n]||c.name,type:weak?'weak':c.type_code,cost:c.cost||0,text:text[n]||'',printedSlot:c.slot,slot:c.slot?.split(' x')[0].toLowerCase(),slots:Number(c.slot?.split(' x')[1]||1),icons:Object.entries({willpower:'意志',intellect:'智慧',combat:'战斗',agility:'敏捷',wild:'通配'}).filter(([k])=>c['skill_'+k]).map(([k,label])=>label+' +'+c['skill_'+k]).join(' / ')};
+    return {...c,faction_code:factions[c.faction_code]?c.faction_code:'neutral',factionLabel:factions[c.faction_code]||factions.neutral,id:c.code,englishName:c.name,name:names[n]||c.name,type:weak?'weak':c.type_code,cost:c.cost||0,text:text[n]||'',printedSlot:c.slot,slot:c.slot?.split(' x')[0].toLowerCase(),slots:Number(c.slot?.split(' x')[1]||1),icons:Object.entries({willpower:'意志',intellect:'智慧',combat:'战斗',agility:'敏捷',wild:'通配'}).filter(([k])=>c['skill_'+k]).map(([k,label])=>label+' +'+c['skill_'+k]).join(' / ')};
   }
   function assemble(id,random=Math.random){return decks.assemble(id,random).map(card);}
-  const api={ids,investigator,card,assemble,text,names,source:core.source};
+  const api={ids,investigator,card,assemble,text,names,factions,source:core.source};
   if(node)module.exports=api;else root.ArkhamPlayers=api;
 })(globalThis);

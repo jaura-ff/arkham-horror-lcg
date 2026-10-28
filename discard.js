@@ -17,7 +17,7 @@
     byId('discardCards').innerHTML=entries.length?entries.map(({card,round})=>{
       const art=CARD_ART[card.id]||[0,0],type={asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[card.type]||card.type;
       const cost=['skill','weak'].includes(card.type)&&card.code!=='01013'?'不使用普通出牌费用':`${card.cost} 资源 + ${card.rules?.play?.timing==='fast'?0:1} 行动${card.slot==='hand'?` · ${card.slots||1} 只手槽`:''}`;
-      return `<article class="discard-entry">${card.code&&!CARD_ART[card.id]?`<div class="discard-art player-card-stamp" aria-hidden="true">${esc(type)}</div>`:`<div class="discard-art art" aria-hidden="true" style="${cardArtStyle(art)}"></div>`}<div><small>${esc(type)}${played?` · 第 ${esc(round)} 回合打出`:''}</small><h3>${esc(card.name)}</h3>${deck?`<p class="atlas-source">${esc(cost)}</p>`:''}<p>${esc(card.text)}</p><details><summary>查看用法</summary><p>${esc(CARD_USAGE[card.id]||card.text)}</p></details></div></article>`;
+      return `<article class="discard-entry" data-faction="${esc(card.faction_code||'neutral')}">${card.code&&!CARD_ART[card.id]?`<div class="discard-art player-card-stamp" aria-hidden="true">${esc(type)}</div>`:`<div class="discard-art art" aria-hidden="true" style="${cardArtStyle(art)}"></div>`}<div><small>${esc(type)}${card.factionLabel?' · '+esc(card.factionLabel):''}${played?` · 第 ${esc(round)} 回合打出`:''}</small><h3>${esc(card.name)}</h3>${deck?`<p class="atlas-source">${esc(cost)}</p>`:''}<p>${esc(card.text)}</p><details><summary>查看用法</summary><p>${esc(CARD_USAGE[card.id]||card.text)}</p></details></div></article>`;
     }).join(''):`<p class="atlas-empty">${deck?'该角色当前没有配置卡牌。':played?'本局还没有打出过卡牌。':'当前弃牌堆为空。'}</p>`;
   }
   byId('discardPileButton').addEventListener('click',()=>{

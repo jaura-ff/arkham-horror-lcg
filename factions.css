@@ -1,0 +1,24 @@
+/* Class colors follow printed card faction, never the current deck's owner.
+ * Neutral signatures/weaknesses stay neutral. Text labels supplement color. */
+[data-faction="guardian"]{--faction:#79b5ed;--faction-dark:#162e45;--faction-name:"蓝家 · 守护者"}
+[data-faction="seeker"]{--faction:#e5c46a;--faction-dark:#3d3218;--faction-name:"黄家 · 探求者"}
+[data-faction="rogue"]{--faction:#81c697;--faction-dark:#193526;--faction-name:"绿家 · 流浪者"}
+[data-faction="mystic"]{--faction:#c09ae7;--faction-dark:#302040;--faction-name:"紫家 · 潜修者"}
+[data-faction="survivor"]{--faction:#e28e89;--faction-dark:#422422;--faction-name:"红家 · 生存者"}
+[data-faction="neutral"]{--faction:#b9b8b0;--faction-dark:#2b2b28;--faction-name:"中立"}
+:is(.card,.commit-card,.asset-icon,.player-character,.player-character-details,.atlas-card,.atlas-investigator,.atlas-hero-info,.discard-entry,.player-opening-card,.player-card-context,.player-inline-card,.player-deck-entry,.weakness-reveal,#investigator,#handCardDialog,#handHover)[data-faction]{
+  border-color:var(--faction)!important;
+  background:linear-gradient(135deg,var(--faction-dark),#1a1712 78%);
+  box-shadow:inset 3px 0 var(--faction);
+}
+.card[data-faction]{box-shadow:inset 0 3px var(--faction),inset 0 0 0 3px #1a1712,inset 0 0 0 4px var(--faction-dark)}
+.card[data-faction] .ctype{color:var(--faction);letter-spacing:0;line-height:1.5}
+.card[data-faction] .ccost{border-color:var(--faction);background:var(--faction-dark)}
+:is(.player-character,.atlas-investigator)[data-faction] b,:is(.player-character,.atlas-investigator)[data-faction] small,.player-opening-card[data-faction] .player-opening-copy small,.player-deck-entry[data-faction] small,#investigator[data-faction] .tt{color:var(--faction)}
+:is(.player-character,.player-opening-card)[data-faction][aria-pressed="true"],.commit-card[data-faction].sel{background:var(--faction-dark);box-shadow:inset 0 0 0 2px var(--faction),0 0 12px #0006}
+:is(.player-character,.player-opening-card,.commit-card,.asset-icon)[data-faction]:focus-visible{outline:2px solid var(--faction);outline-offset:3px}
+.player-opening-art[data-faction]{border-color:var(--faction)}
+.player-deck-entry[data-faction]{padding-left:7px;background:var(--faction-dark)}
+.player-deck-entry small{display:inline;font-size:10px}
+#handCardDialog[data-faction] .atlas-shell{border-color:var(--faction);background:linear-gradient(135deg,var(--faction-dark),#1a1712 78%)}
+#handCardDialog[data-faction] .atlas-heading,#handHover[data-faction] #handHoverArt{border-color:var(--faction)}

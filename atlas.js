@@ -17,7 +17,7 @@
     if(card.printedSlot||card.slot)fields.push(['槽位',card.printedSlot||card.slot]);
     if(card.icons)fields.push(['投入加值',card.icons]);
     if(card.health)fields.push(['生命',card.health]);if(card.sanity)fields.push(['理智',card.sanity]);
-    return {id:card.code||card.id,type:card.type,name:card.name,text:card.text,fields,art:CARD_ART[card.id],use:card.code?'主动牌在手牌中确认；资产主动能力在「角色与资产能力」中发动，条件反应牌会在对应时机提示。'+(card.type==='weak'?'弱点抽到时立即展示，再按本牌效果处理；可能留在威胁区或手牌。':''):CARD_USAGE[card.id]||card.text};
+    return {faction_code:card.faction_code,factionLabel:card.factionLabel,id:card.code||card.id,type:card.type,name:card.name,text:card.text,fields,art:CARD_ART[card.id],use:card.code?'主动牌在手牌中确认；资产主动能力在「角色与资产能力」中发动，条件反应牌会在对应时机提示。'+(card.type==='weak'?'弱点抽到时立即展示，再按本牌效果处理；可能留在威胁区或手牌。':''):CARD_USAGE[card.id]||card.text};
   }
   function enemyCard(c,id=c.id){return {id,art:CARD_ART[id]||[100,100],type:'enemy',name:c.name,text:c.text||'在当前地点出现并与你交缠。',fields:[['战斗值',c.fight??c.enemy_fight],['生命',c.hp??c.health],['闪避值',c.evade??c.enemy_evade],['攻击伤害',c.dmg??c.enemy_damage??0],['攻击恐惧',c.horror??c.enemy_horror??0]],use:(c.hunter?'猎手：就绪且未交缠时，在敌人阶段向你移动一个相邻地点。':'非猎手：不会主动跨地点追赶。')+' 成功闪避使其力竭并脱离交缠；就绪且同地点时会重新交缠。就绪交缠敌人会在普通非战斗／闪避行动前借机攻击。'};}
   if(official){
@@ -30,7 +30,7 @@
     }
     for(const id of ArkhamPlayers.ids){
       const c=ArkhamPlayers.investigator(id),manifest=ArkhamOfficialCore.starterManifest(id);
-      investigators.push({id,name:c.name,type:'investigator',role:c.role,text:c.title,symbol:c.symbol,art:INVESTIGATOR_ART[id]||(id==='roland'?[0,0]:null),fields:[['意志',c.skills[0]],['智慧',c.skills[1]],['战斗',c.skills[2]],['敏捷',c.skills[3]],['生命',c.health],['理智',c.sanity]],use:c.ability+' 上古印记：'+c.elder,counts:{...manifest.counts},fixed:32,total:33,random:true});
+      investigators.push({id,faction_code:c.faction_code,factionLabel:c.factionLabel,name:c.name,type:'investigator',role:c.role,text:c.title,symbol:c.symbol,art:INVESTIGATOR_ART[id]||(id==='roland'?[0,0]:null),fields:[['意志',c.skills[0]],['智慧',c.skills[1]],['战斗',c.skills[2]],['敏捷',c.skills[3]],['生命',c.health],['理智',c.sanity]],use:c.ability+' 上古印记：'+c.elder,counts:{...manifest.counts},fixed:32,total:33,random:true});
     }
   }else{
     const counts={};for(const c of INVESTIGATOR.deck){players.set(c.id,playerCard(c));counts[c.id]=(counts[c.id]||0)+1;}
@@ -45,8 +45,8 @@
     enemies.push(e);
   }
   function thumb(card){return card.art?'<span class="atlas-thumb art" aria-hidden="true" style="'+cardArtStyle(card.art)+'"></span>':'<span class="atlas-stamp" aria-hidden="true">'+esc(card.symbol||labels[card.type]||card.role)+'</span>';}
-  function entry(card,copies=null){return '<details class="atlas-card"><summary>'+thumb(card)+'<span><small>'+esc(labels[card.type])+(copies!==null?' · 牌组中 ×'+copies:'')+'</small><b>'+esc(card.name)+'</b></span><span class="atlas-expand" aria-hidden="true">＋</span></summary><div class="atlas-card-body">'+fieldsHtml(card.fields)+'<h3>卡牌效果</h3><p>'+esc(card.text)+'</p><h3>使用说明</h3><p>'+esc(card.use)+'</p></div></details>';}
-  function heroEntry(hero){return '<button type="button" class="atlas-investigator" data-atlas-investigator="'+esc(hero.id)+'" aria-controls="atlasCards" aria-label="查看'+esc(hero.name)+'的牌组">'+thumb(hero)+'<span><small>'+esc(hero.role)+' · '+esc(hero.text)+'</small><b>'+esc(hero.name)+'</b><span>'+hero.total+' 张配牌 · 点击查看牌组 →</span></span></button>';}
+  function entry(card,copies=null){return '<details class="atlas-card" data-faction="'+esc(card.faction_code||'neutral')+'"><summary>'+thumb(card)+'<span><small>'+esc(labels[card.type])+(card.factionLabel?' · '+esc(card.factionLabel):'')+(copies!==null?' · 牌组中 ×'+copies:'')+'</small><b>'+esc(card.name)+'</b></span><span class="atlas-expand" aria-hidden="true">＋</span></summary><div class="atlas-card-body">'+fieldsHtml(card.fields)+'<h3>卡牌效果</h3><p>'+esc(card.text)+'</p><h3>使用说明</h3><p>'+esc(card.use)+'</p></div></details>';}
+  function heroEntry(hero){return '<button type="button" class="atlas-investigator" data-faction="'+esc(hero.faction_code||'guardian')+'" data-atlas-investigator="'+esc(hero.id)+'" aria-controls="atlasCards" aria-label="查看'+esc(hero.name)+'的牌组">'+thumb(hero)+'<span><small>'+esc(hero.factionLabel||hero.role)+' · '+esc(hero.text)+'</small><b>'+esc(hero.name)+'</b><span>'+hero.total+' 张配牌 · 点击查看牌组 →</span></span></button>';}
   function section(title,content){return '<section class="atlas-section"><h3 class="atlas-section-title">'+esc(title)+'</h3><div class="atlas-card-grid">'+content+'</div></section>';}
   const empty='<p class="atlas-empty">没有匹配的档案，试试其他名称或清空搜索。</p>';
   function render(){
@@ -57,7 +57,7 @@
     if(hero){
       const fixed=Object.entries(hero.counts).map(([code,copies])=>({card:players.get(code),copies}));
       const found=fixed.filter(({card})=>matches(card,query));
-      let content='<section class="atlas-hero-info"><h3>'+esc(hero.name)+' · '+esc(hero.role)+'</h3><p>'+esc(hero.use)+'</p>'+fieldsHtml(hero.fields)+'<p>'+(hero.random?'32 张固定卡牌 ＋ 1 张随机基础弱点 ＝ 33 张；下方同名卡合并并标注张数。随机弱点不会在图鉴中抽取。':'本网页版配牌共 '+hero.total+' 张。')+'</p></section>';
+      let content='<section class="atlas-hero-info" data-faction="'+esc(hero.faction_code||'guardian')+'"><h3>'+esc(hero.name)+' · '+esc(hero.factionLabel||hero.role)+'</h3><p>'+esc(hero.use)+'</p>'+fieldsHtml(hero.fields)+'<p>'+(hero.random?'32 张固定卡牌 ＋ 1 张随机基础弱点 ＝ 33 张；下方同名卡合并并标注张数。随机弱点不会在图鉴中抽取。':'本网页版配牌共 '+hero.total+' 张。')+'</p></section>';
       for(const type of ['asset','event','skill','weak']){
         const group=found.filter(c=>c.card.type===type);if(group.length)content+=section(labels[type],group.map(({card,copies})=>entry(card,copies)).join(''));
       }

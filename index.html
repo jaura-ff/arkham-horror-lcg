@@ -899,9 +899,9 @@ function renderHand(){
     const iconStr = skillIcons(c);
     const disabled = S.gameOver || !!S.test || S.pendingMove || pendingNavigation || pendingAction || phaseTransitionActive;
     const art = CARD_ART[c.id] || [0,0];
-    return `<button id="hand-card-${i}" data-hand-index="${i}" type="button" class="card ${c.type} ${selectedHandCard===c?'is-selected':''}" aria-pressed="${selectedHandCard===c}" aria-haspopup="dialog" aria-describedby="handInteractionHint" aria-label="${c.name}，${typeLabel}，费用 ${c.cost}。${c.text} 单击放大查看，再确认出牌。" ${disabled?'disabled':''} onclick="inspectHandCard(${i},event)">
+    return `<button id="hand-card-${i}" data-hand-index="${i}" type="button" data-faction="${c.faction_code||'neutral'}" class="card ${c.type} ${selectedHandCard===c?'is-selected':''}" aria-pressed="${selectedHandCard===c}" aria-haspopup="dialog" aria-describedby="handInteractionHint" aria-label="${c.name}，${typeLabel}，费用 ${c.cost}。${c.text} 单击放大查看，再确认出牌。" ${disabled?'disabled':''} onclick="inspectHandCard(${i},event)">
       <span class="ccost">${c.cost>0?c.cost:'—'}</span>
-      <div class="ctype">${typeLabel}</div>
+      <div class="ctype">${typeLabel}${c.factionLabel?' · '+c.factionLabel:''}</div>
       <div class="cname">${c.name}</div>
       ${c.code&&!CARD_ART[c.id]?`<div class="card-art player-card-stamp" aria-hidden="true">${typeLabel}</div>`:`<div class="card-art art" aria-hidden="true" style="${cardArtStyle(art)}"></div>`}
       <div class="cbody">${c.text}</div>
@@ -950,7 +950,7 @@ function renderAssets(){
     const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     el.innerHTML = S.assets.map((a,index)=>{
       const c=a.card,art=CARD_ART[c.id],slot={hand:'手部',body:'身体',accessory:'饰品',ally:'盟友',arcane:'法术'}[c.slot]||c.slot||'无槽位';
-      return `<button type="button" class="asset-icon ${a.exhausted?'is-exhausted':''}" onclick="inspectAsset(${index})" aria-haspopup="dialog" aria-label="${escape(c.name)}，${a.exhausted?'已力竭':'就绪'}，${escape(slot)}，点击查看效果">
+      return `<button type="button" class="asset-icon ${a.exhausted?'is-exhausted':''}" data-faction="${c.faction_code||'neutral'}" onclick="inspectAsset(${index})" aria-haspopup="dialog" aria-label="${escape(c.name)}，${a.exhausted?'已力竭':'就绪'}，${escape(slot)}，点击查看效果">
         ${art?`<span class="asset-icon-art art" aria-hidden="true" style="${cardArtStyle(art)}"></span>`:'<span class="asset-icon-art asset-icon-no-art" aria-hidden="true">资产</span>'}
         <span class="asset-icon-copy"><span class="asset-icon-name">${escape(c.name)}</span><small>${a.exhausted?'已力竭':'就绪'}</small></span>
       </button>`;
@@ -1485,7 +1485,7 @@ function testConsequenceInfo(t,result=null){
   const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   let content='';
   if(context){
-    content=`<h4>遭遇牌：${esc(context.card.name)}</h4><p>${esc(context.card.text)}</p>`;
+    content=`<div class="encounter-card-preview"><span class="art" aria-hidden="true" style="${cardArtStyle(CARD_ART[context.card.code||context.card.id]||[66.6667,100])}"></span><div><h4>遭遇牌：${esc(context.card.name)}</h4><p>${esc(context.card.text)}</p></div></div>`;
     if(result===null)content+='<p>抽到这张牌不会立刻扣理智；先进行意志检定。此检定不消耗行动，也不会触发借机攻击。</p><p>承受 1 点恐惧，就是失去 1 点理智。混沌指示物的额外后果另行计算。</p>';
     else if(result)content+='<p>本牌检定成功：不承受这张遭遇牌的恐惧。</p>';
     else content+=`<p class="test-consequence-pending">待结算：点击「继续」后，${esc(context.card.name)}造成 ${context.failureHorror} 点恐惧（理智 −${context.failureHorror}）。这部分尚未扣除。</p>`;
@@ -1523,7 +1523,7 @@ function openTestModal(){
           const sel = S.committed.includes(c);
           const art=CARD_ART[c.id];
           const name=String(c.name).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-          return `<button type="button" id="commitCard${origIdx}" class="commit-card ${sel?'sel':''}" aria-pressed="${sel}" aria-label="${name}，${sk}加 ${commitBonus(c)}，${sel?'已投入，点击取消':'点击投入'}" onclick="toggleCommit(${origIdx})">
+          return `<button type="button" id="commitCard${origIdx}" class="commit-card ${sel?'sel':''}" data-faction="${c.faction_code||'neutral'}" aria-pressed="${sel}" aria-label="${name}，${sk}加 ${commitBonus(c)}，${sel?'已投入，点击取消':'点击投入'}" onclick="toggleCommit(${origIdx})">
             ${art?`<span class="commit-art art" aria-hidden="true" style="${cardArtStyle(art)}"></span>`:`<span class="commit-art commit-fallback" aria-hidden="true">${SKILL_ICON[t.skill]}</span>`}
             <span class="commit-copy"><b>${name}</b><span class="commit-bonus">${sk} +${commitBonus(c)}</span><small>${sel?'已投入 · 点击取消':'点击投入'}</small></span>
           </button>`;
@@ -1568,6 +1568,12 @@ function toggleCommit(idx){
 
 function isGhoul(c){return c.type==='enemy' && (c.traits?.includes('Ghoul') || c.name?.startsWith('食尸鬼'));}
 function availableGhouls(){return [...S.encounter,...S.encounterDiscard].filter(isGhoul);}
+function ghoulChoicePreview(card){
+  if(!card)return '';
+  const name=String(card.name).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return `<span class="art" aria-hidden="true" style="${cardArtStyle(CARD_ART[card.code||card.id]||[100,100])}"></span><div><b>${name}</b><p>生命 ${card.hp} · 战斗 ${card.fight} · 闪避 ${card.evade}<br>攻击：${card.dmg||0} 伤害、${card.horror||0} 恐惧</p></div>`;
+}
+function previewGhoulChoice(id){const el=document.getElementById('ghoulChoicePreview');if(el)el.innerHTML=ghoulChoicePreview(availableGhouls().find(c=>c.id===id));}
 function drawSearchedGhoul(id){
   const card=availableGhouls().find(c=>c.id===id)||availableGhouls()[0];
   if(card){
@@ -1687,7 +1693,7 @@ function resolveTest(){
       <div class="test-feedback ${result?'test-success':'test-failure'}" role="status" aria-live="polite" aria-atomic="true">${result?'检定成功':'检定失败'}</div>
       ${cluePreview?'<div class="test-clue-preview"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6M7 10h6m-3-3v6"/></svg><span>发现 1 条线索<small>点击继续后获得</small></span></div>':''}
     </div>
-    ${t.searchGhoul?`<div class="ghoul-choice"><label for="ghoulSearchChoice">检定结束后寻找并抽取一名食尸鬼</label>${choices.length?`<select id="ghoulSearchChoice">${choices.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>`:'<p>遭遇牌组及弃牌堆中没有可选择的食尸鬼。</p>'}</div>`:''}
+    ${t.searchGhoul?`<div class="ghoul-choice"><label for="ghoulSearchChoice">检定结束后寻找并抽取一名食尸鬼</label>${choices.length?`<select id="ghoulSearchChoice" onchange="previewGhoulChoice(this.value)">${choices.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select><div id="ghoulChoicePreview" class="encounter-card-preview">${ghoulChoicePreview(choices[0])}</div>`:'<p>遭遇牌组及弃牌堆中没有可选择的食尸鬼。</p>'}</div>`:''}
     <p class="action-confirm-note">指示物已抽取，不能返回重抽。</p>
     <div class="action-confirm-buttons"><button class="btn" disabled title="已抽取指示物，不能撤销">${uiIcon('back')}返回</button><button id="testResolveButton" class="btn primary" onclick="finishTest(${result})">${uiIcon('next')}继续 · 结算结果</button></div>
     </div>
@@ -1997,14 +2003,15 @@ function resolve(code, text){
   if(win){gameSfx('victory');if(S.chapter===1&&typeof beginEndingNarration==='function')beginEndingNarration();}
 }
 </script>
-<link rel="stylesheet" href="players.css?v=1">
+<link rel="stylesheet" href="players.css?v=faction-1">
+<link rel="stylesheet" href="factions.css?v=1">
 <script src="official-core.js?v=players-1"></script>
 <script src="official-cards.js?v=players-1"></script>
 <script src="official-card-rules.js?v=players-1"></script>
 <script src="official-decks.js?v=players-1"></script>
 <script src="official-session.js?v=players-1"></script>
 <script src="official-tests.js?v=players-1"></script>
-<script src="player-catalogue.js?v=1"></script>
+<script src="player-catalogue.js?v=faction-1"></script>
 <script src="card-art.js?v=1"></script>
 <script src="ambience.js?v=ending-victory-6"></script>
 <script src="ending-narration.js?v=text-voice-2"></script>
@@ -2017,12 +2024,12 @@ function resolve(code, text){
 <script src="play-guide.js?v=chapter-3"></script>
 <script src="phase-transition.js?v=players-1"></script>
 <script src="loss-notices.js?v=phase-source-5"></script>
-<script src="weakness-reveal.js?v=card-art-1"></script>
+<script src="weakness-reveal.js?v=faction-1"></script>
 <script src="tutorial.js?v=players-1"></script>
-<script src="atlas.js?v=card-art-1"></script>
+<script src="atlas.js?v=faction-1"></script>
 <script src="difficulty-dialog.js?v=token-art-1"></script>
-<script src="hand-dialog.js?v=card-art-1"></script>
-<script src="discard.js?v=card-art-1"></script>
+<script src="hand-dialog.js?v=faction-1"></script>
+<script src="discard.js?v=faction-1"></script>
 <script src="next-step.js?v=chapter-3"></script>
 <script src="prologue-narration.js?v=three-scenes-2"></script>
 <script src="prologue.js?v=players-1"></script>
@@ -2030,10 +2037,10 @@ function resolve(code, text){
 <script src="board.js?v=spacious-header-4"></script>
 <script src="game-header.js?v=spacious-1"></script>
 <script src="phase-help.js?v=hover-1"></script>
-<script src="hand-hover.js?v=card-art-1"></script>
-<script src="board-inspect.js?v=card-art-1"></script>
+<script src="hand-hover.js?v=faction-1"></script>
+<script src="board-inspect.js?v=faction-1"></script>
 <script src="start-tutorial.js?v=choice-1"></script>
-<script src="player-runtime.js?v=card-art-1"></script>
+<script src="player-runtime.js?v=faction-1"></script>
 </body>
 </html>
 

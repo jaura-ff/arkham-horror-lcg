@@ -30,8 +30,8 @@
     if(anchor!==node){hide();anchor=node;originalDescription=node.getAttribute('aria-describedby');}
     card=next;
     const type={asset:'资产',event:'事件',skill:'技能',weak:'弱点'}[card.type]||'卡牌';
-    byId('handHoverTitle').textContent=card.name;
-    byId('handHoverType').textContent=type+(['skill','weak'].includes(card.type)&&card.code!=='01013'?' · 非普通出牌':` · 费用 ${card.cost} 资源 + ${card.rules?.play?.timing==='fast'?0:1} 行动`);
+    tip.dataset.faction=card.faction_code||'neutral';byId('handHoverTitle').textContent=card.name;
+    byId('handHoverType').textContent=(card.factionLabel?card.factionLabel+' · ':'')+type+(['skill','weak'].includes(card.type)&&card.code!=='01013'?' · 非普通出牌':` · 费用 ${card.cost} 资源 + ${card.rules?.play?.timing==='fast'?0:1} 行动`);
     byId('handHoverEffect').textContent=card.text;
     byId('handHoverUsage').textContent=CARD_USAGE[card.id]||card.text;
     const art=CARD_ART[card.id]||[0,0];

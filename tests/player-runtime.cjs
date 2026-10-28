@@ -21,11 +21,43 @@ test('五位调查员实际开局、33张独立牌组、5张无弱点起手、�
   assert.equal(g.run('new Set([...S.hand,...S.deck].map(c=>c.instanceId)).size'),33);
  }
 });
+test('调查员主职业对应五色，牌组里的副职业牌与中立牌保持自身颜色',()=>{
+ for(const [id,faction,label]of [['roland','guardian','蓝家'],['daisy','seeker','黄家'],['skids','rogue','绿家'],['agnes','mystic','紫家'],['wendy','survivor','红家']]){
+  const g=game(id,false);assert.equal(g.get('investigator').dataset.faction,faction);assert.match(g.get('investigator').innerHTML,new RegExp(label));
+  const original=g.json('[S.actions,S.resources,S.hand.map(c=>c.instanceId),S.deck.map(c=>c.instanceId)]');
+  for(const card of g.json('S.hand'))assert.ok(g.get('modalBox').innerHTML.includes('data-faction="'+card.faction_code+'"'));
+  g.run('render()');assert.deepEqual(g.json('[S.actions,S.resources,S.hand.map(c=>c.instanceId),S.deck.map(c=>c.instanceId)]'),original);
+ }
+ const g=game('wendy');g.run('S.hand=[]');for(const code of ['01016','01030','01044','01060','01074','01088','01014','01015'])g.add(code);
+ g.run('render()');const cards=g.json('S.hand');assert.deepEqual(cards.map(c=>c.faction_code),['guardian','seeker','rogue','mystic','survivor','neutral','neutral','neutral']);
+ for(const card of cards)assert.ok(g.get('hand').innerHTML.includes('data-faction="'+card.faction_code+'"'));
+ assert.match(g.get('hand').innerHTML,/蓝家 · 守护者/);assert.match(g.get('hand').innerHTML,/中立/);
+});
 test('换牌只允许一次，选中起手牌会换回牌组，不消耗行动资源',()=>{
- const g=game('daisy',false),before=g.run('S.hand[0].instanceId');g.pick(0);g.pick('开始调查');assert.equal(g.run(`S.deck.some(c=>c.instanceId===${JSON.stringify(before)})`),true);assert.deepEqual(g.json('[S.actions,S.resources,S.player.mulliganUsed]'),[3,5,true]);
+ const g=game('daisy',false),before=g.run('S.hand[0].instanceId');
+ const opening=g.get('modalBox').innerHTML;
+ assert.equal((opening.match(/class="player-opening-art art"/g)||[]).length,5);
+ for(const card of g.json('S.hand')){assert.ok(opening.includes(card.name));assert.ok(opening.includes(card.text));}
+ assert.match(opening,/费用 \d+ 资源|投入检定/);
+ g.pick(0);assert.match(g.get('modalBox').innerHTML,/aria-pressed="true"/);assert.match(g.get('modalBox').innerHTML,/☑ 换掉/);
+ g.pick('开始调查');assert.equal(g.run(`S.deck.some(c=>c.instanceId===${JSON.stringify(before)})`),true);assert.deepEqual(g.json('[S.actions,S.resources,S.player.mulliganUsed]'),[3,5,true]);
 });
 test('角色浏览与确定分离，游戏中不能换人，肖像文字不再冒用罗兰',()=>{
  const g=game('daisy');g.run("playerSelect('wendy')");assert.equal(g.run('S.player.investigator'),'daisy');assert.match(g.get('investigator').innerHTML,/黛西/);assert.doesNotMatch(g.get('investigator').innerHTML,/罗兰.*肖像/);assert.match(g.get('mapwrap').innerHTML,/黛西·沃克的当前位置/);
+});
+test('武器、能力、伤害分配与弃牌选项保留真实卡图及文字，普通返回不伪装成卡牌',()=>{
+ const g=game();g.run('S.hand=[]');g.add('01016','assets');g.add('01019','assets');
+ const state=g.json('[S.actions,S.resources,S.player.assets.map(c=>c.instanceId)]');
+ g.run('playerAbilities()');let box=g.get('modalBox').innerHTML;assert.match(box,/player-opening-art art/);assert.match(box,/急救/);assert.doesNotMatch(box,/<button[^>]*player-opening-card[^>]*>返回游戏/);g.pick('返回');
+ assert.deepEqual(g.json('[S.actions,S.resources,S.player.assets.map(c=>c.instanceId)]'),state);
+ g.run('S.enemies=[{card:ENCOUNTER[0],hp:2,location:"study",engaged:true,exhausted:false}];fight()');box=g.get('modalBox').innerHTML;assert.match(box,/player-opening-art art/);assert.match(box,/\.45 自动手枪/);g.pick('返回');
+ g.add('01021','assets');g.run('applyPlayerLoss(1,0,"测试")');box=g.get('modalBox').innerHTML;assert.match(box,/player-opening-art art/);assert.match(box,/看门狗/);g.pick('本人');
+ const h=game();h.run('S.hand=[];S.deck=[]');h.add('01016');h.add('01090');h.add('01096','deck');h.run('drawCards(1)');box=h.get('modalBox').innerHTML;assert.equal((box.match(/class="player-opening-art art"/g)||[]).length,3);assert.match(box,/失忆/);h.pick('感知');assert.equal(h.run('S.hand[0].code'),'01090');
+});
+test('角色配牌清单每种卡含缩略图，检定加值卡与所用武器带图，食尸鬼预览跟随选择',()=>{
+ const g=game();const deck=g.get('playerCharacterDetails').innerHTML;assert.equal((deck.match(/class="player-opening-art art"/g)||[]).length,(deck.match(/class="player-deck-entry"/g)||[]).length);assert.match(deck,/player-deck-entry/);
+ g.add('01017','assets');g.run('investigate();cancelTest();startTest("combat",2,"测试",()=>{});openTestModal()');assert.match(g.get('modalBox').innerHTML,/player-inline-card/);assert.match(g.get('modalBox').innerHTML,/体能训练/);g.run('cancelTest()');
+ g.run('S.encounter=[ENCOUNTER[0],ENCOUNTER[2]];previewGhoulChoice("ghoul3")');const preview=g.get('ghoulChoicePreview').innerHTML;assert.match(preview,/class="art"/);assert.match(preview,/食尸鬼·猎手/);assert.match(preview,/生命 3/);
 });
 test('基本抽牌和资源、最后一个行动移动可用且只扣一次行动',()=>{
  const g=game();g.run('S.enemies=[];S.deck=S.deck.filter(c=>c.type!=="weak");draw();resource();doMove("hallway")');assert.equal(g.run('S.location'),'hallway');assert.equal(g.run('S.actions'),0);assert.equal(g.run('S.resources'),6);assert.equal(g.run('S.hand.length'),6);

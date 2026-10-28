@@ -23,8 +23,8 @@
   }
   function open(card){
     pending=card;lastFocus=document.activeElement;savedOverflow=document.body.style.overflow;
-    byId('handCardTitle').textContent=card.name;
-    byId('handCardType').textContent={asset:'资产 / ASSET',event:'事件 / EVENT',skill:'技能 / SKILL',weak:'弱点 / WEAKNESS'}[card.type];
+    dialog.dataset.faction=card.faction_code||'neutral';byId('handCardTitle').textContent=card.name;
+    byId('handCardType').textContent=(card.factionLabel?card.factionLabel+' · ':'')+{asset:'资产 / ASSET',event:'事件 / EVENT',skill:'技能 / SKILL',weak:'弱点 / WEAKNESS'}[card.type];
     byId('handCardEffect').textContent=card.text;
     byId('handCardUsage').textContent=CARD_USAGE[card.id]||card.text;
     byId('handCardCost').textContent=['skill','weak'].includes(card.type)&&card.code!=='01013'?'此牌不使用普通出牌行动。':`出牌费用：${card.cost} 资源 + ${card.rules?.play?.timing==='fast'?0:1} 行动。当前：${S.resources} 资源，${S.actions} 行动。${card.slot==='hand'?`占用 ${card.slots||1} 只手槽。`:''}`;

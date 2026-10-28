@@ -29,7 +29,7 @@ test('第一级仅有全部、调查员、敌人，全部先列人物入口与�
  for(const name of names)assert.ok(g.list.innerHTML.includes(name),name);
  assert.match(g.node('atlasCount').textContent,/5 位调查员 · 7 名敌人/);assert.equal(g.node('atlasDeckNav').hidden,true);
  assert.doesNotMatch(g.list.innerHTML,/\.45 自动手枪|<small>资产|<small>地点/);
- assert.match(html,/atlas.js\?v=card-art-1/);assert.match(html,/atlas.css\?v=investigator-decks-1/);
+ assert.match(html,/atlas.js\?v=faction-1/);assert.match(html,/atlas.css\?v=investigator-decks-1/);
 });
 test('调查员与敌人分类独立切换，含基础弱点敌人的属性说明',()=>{
  const g=setup();g.click('atlasButton');g.select('investigator');assert.equal((g.list.innerHTML.match(/class="atlas-investigator"/g)||[]).length,5);assert.doesNotMatch(g.list.innerHTML,/class="atlas-card"/);

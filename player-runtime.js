@@ -7,7 +7,7 @@
   const byId=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const mapSkill={will:'willpower',int:'intellect',combat:'combat',agility:'agility'};
   Object.assign(CARD_ART,{'01016':CARD_ART.p45,'01020':CARD_ART.machete,'01088':CARD_ART.resource,'01023':CARD_ART.dodge,'01089':CARD_ART.guts,'01090':CARD_ART.percep,'01091':CARD_ART.courage,'01092':CARD_ART.manual});
-  const original={startGame,drawOpeningHand,canAct,renderActions,renderInvestigator,renderLocations,renderAssets,renderActAgenda,skillValue,commitBonus,toggleCommit,openTestModal,startTest,resolveTest,finishTest,cancelTest,drawCards,onHandCard,applyPlayerLoss,closeModal,doMove,finish,advanceAct,endTurn,enterPhase,enemyPhase,upkeepPhase,mythosPhase,drawEncounter,beginAction,inspectAsset,resolve,continueChapter,investigate,fight,evade,requestAction,draw,resource,difficultySymbolText,requestReturnMenu,testLearningInfo};
+  const original={advanceAgenda,startGame,drawOpeningHand,canAct,renderActions,renderInvestigator,renderLocations,renderAssets,renderActAgenda,skillValue,commitBonus,toggleCommit,openTestModal,startTest,resolveTest,finishTest,cancelTest,drawCards,onHandCard,applyPlayerLoss,closeModal,doMove,finish,advanceAct,endTurn,enterPhase,enemyPhase,upkeepPhase,mythosPhase,drawEncounter,beginAction,inspectAsset,resolve,continueChapter,investigate,fight,evade,requestAction,draw,resource,difficultySymbolText,requestReturnMenu,testLearningInfo};
   let selected='roland',pendingSelection='roland',ticket=0,executing=false,prepaid=false;
   const active=()=>!!S?.player;
   const p=()=>S.player;
@@ -292,7 +292,7 @@
     });
   };
   renderActAgenda=function(){original.renderActAgenda();if(active()){
-    const attached=p().assets.reduce((n,c)=>n+(c.doom||0),0),threshold=AGENDA_DECK[S.agendaIdx].threshold;
+    const attached=p().assets.reduce((n,c)=>n+(c.doom||0),0),threshold=(typeof agendaDeck==='function'?agendaDeck():AGENDA_DECK)[S.agendaIdx].threshold;
     if(attached&&threshold>0)byId('doomcount').textContent=` ${S.doom+attached}/${threshold}（资产 ${attached}）`;
   }};
   renderActions=function(){
@@ -702,7 +702,7 @@
       if(!ok){done();return;}consume();
       switch(a.effect){
         case 'gain-resources':S.resources+=a.amount;finish();break;
-        case 'add-agenda-doom':S.doom++;checkDoom();finish();break;
+        case 'add-agenda-doom':S.doom++;checkDoom(finish);break;
         case 'prevent-nonelite-attacks':S.playerPreventAttacks=true;finish();break;
         case 'allow-skill-substitution':S.playerMindOverMatter=true;finish();break;
         case 'discover-local-clues':discover(a.amount,finish);break;
@@ -752,9 +752,33 @@
     if(!active())return original.endTurn();if(!ownWindow())return;
     job(done=>series(S.hand.filter(c=>c.code==='01013'),(c,n)=>loss(0,2,c.name+' · 回合结束',n),()=>{S.actions=0;done();if(!S.gameOver)advancePhase();}));
   };
-  function checkDoom(){
-    const attached=p().assets.reduce((n,c)=>n+(c.doom||0),0),agenda=AGENDA_DECK[S.agendaIdx];
-    if(agenda.threshold>0&&S.doom+attached>=agenda.threshold){p().assets.forEach(c=>c.doom=0);advanceAgenda();}
+  advanceAgenda=function(done=()=>{}){
+    if(!active()||S.chapter!==1){original.advanceAgenda();done();return;}
+    if(S.gameOver||S.agendaResolving)return;
+    S.agendaResolving=true;let finished=false;
+    const complete=()=>{if(finished)return;finished=true;S.agendaResolving=false;done();};
+    const index=S.agendaIdx;
+    S.doom=0;p().assets.forEach(c=>c.doom=0);S.enemies.forEach(e=>{if(e.card.doom)e.card.doom=0;});
+    if(index===0){
+      S.agendaIdx=1;log('议程翻面：1a → 1b；进入 2a（末日门槛 7）。','bad');
+      choose('议程 1b · 时间流逝','选择随机弃置 1 张手牌，或承受 2 点恐惧。这不是直接失败。',[
+        {label:'随机弃置 1 张手牌',value:'discard',disabled:!S.hand.length},{label:'承受 2 点恐惧',value:'horror'}
+      ],choice=>{if(choice==='discard'){const card=S.hand[Math.floor(Math.random()*S.hand.length)];S.hand=S.hand.filter(c=>c!==card);S.discard.push(card);log(`议程随机弃置：${esc(card.name)}。`);complete();}else loss(0,2,'议程 1b · 时间流逝',complete);});
+    }else if(index===1){
+      S.agendaIdx=2;log('议程翻面：2a → 2b；进入 3a（末日门槛 10），本局继续。','bad');
+      S.encounter=shuffle([...S.encounter,...S.encounterDiscard]);S.encounterDiscard=[];
+      while(S.encounter.length){const card=S.encounter.pop();if(isGhoul(card)){S.encounter.push(card);encounter(complete);return;}S.encounterDiscard.push(card);}
+      log('议程 2b：遭遇牌中没有可抽取的食尸鬼。');complete();
+    }else{
+      const act=S.gatheringAct||Math.min(S.actIdx+1,3);
+      if(act<3){p().killed=true;resolve('R3','议程 3b：食尸鬼冲出地底。你仍在幕 1 或幕 2，受困宅邸，进入 R3 结算；调查员被杀死。生命与理智无需降至 0。');}
+      else{p().physicalTrauma++;p().agendaDefeated=true;resolve('R0','议程 3b：你已到幕 3，勉强逃离宅邸。调查员被击败并受到 1 点肉体创伤；这不是 R3 的受困结局。');}
+      complete();
+    }
+  };
+  function checkDoom(done=()=>{}){
+    const attached=p().assets.reduce((n,c)=>n+(c.doom||0),0),agenda=(typeof agendaDeck==='function'?agendaDeck():AGENDA_DECK)[S.agendaIdx];
+    if(agenda.threshold>0&&S.doom+attached>=agenda.threshold){if(S.chapter!==1)p().assets.forEach(c=>c.doom=0);advanceAgenda(done);}else done();
   }
   function encounter(done){
     if(!S.encounter.length){S.encounter=shuffle(S.encounterDiscard);S.encounterDiscard=[];}
@@ -766,7 +790,7 @@
     }
     const resolve=()=>{
       S.encounterDiscard.push(card);
-      if(card.id.startsWith('ancient')){S.doom++;checkDoom();done();}
+      if(card.id.startsWith('ancient')){S.doom++;checkDoom(done);}
       else {
         // Leave the effect job while the required test owns the modal. Resume
         // this continuation exactly once after the player settles that test.
@@ -786,7 +810,10 @@
       for(const e of S.enemies)if(e.card.hunter&&!e.engaged&&!e.exhausted&&e.location!==S.location){
         const id=hunterStep(e.location,S.location),blocked=p().attachments?.some(c=>c.location===id&&c.code==='01038')&&!e.card.elite;if(!blocked)e.location=id;
       }
-      engageLocalEnemies();series(S.enemies.filter(e=>e.engaged&&!e.exhausted),(e,n)=>hit(e,'敌人阶段攻击',()=>{e.exhausted=true;n();}),done);
+      engageLocalEnemies();series(S.enemies.filter(e=>e.engaged&&!e.exhausted),(e,n)=>hit(e,'敌人阶段攻击',()=>{e.exhausted=true;n();}),()=>{
+        if(!S.gameOver&&S.chapter===1&&S.agendaIdx===2){for(const e of S.enemies.filter(e=>!e.engaged&&isGhoul(e.card))){e.location=e.location==='hallway'?'parlor':e.location==='parlor'?'parlor':hunterStep(e.location,'hallway');}log('议程 3a：未交缠食尸鬼向客厅移动一步（包括已力竭者）。');}
+        done();
+      });
     });
   };
   upkeepPhase=function(){if(!active())return original.upkeepPhase();if(S.playerBusy)return;
@@ -802,14 +829,19 @@
     });
   };
   mythosPhase=function(){if(!active())return original.mythosPhase();if(S.playerBusy)return;
-    S.playerMindOverMatter=false;S.playerPreventAttacks=false;S.doom++;checkDoom();if(!S.gameOver)job(done=>encounter(done));
+    if(S.test||S.playerChoice||S.gameOver)return;
+    S.playerMindOverMatter=false;S.playerPreventAttacks=false;
+    job(done=>{S.doom++;checkDoom(()=>S.gameOver?done():encounter(done));});
   };
   drawEncounter=function(){if(!active())return original.drawEncounter();if(!S.playerBusy&&!S.test)job(done=>encounter(done));};
   enterPhase=function(){
     if(!active())return original.enterPhase();if(S.playerBusy||S.playerChoice||S.test||S.gameOver||phaseTransitionActive||pendingAction||pendingNavigation)return;
     if(S.phase==='investigation'){S.phase='enemy';enemyPhase();}
     else if(S.phase==='enemy'){S.phase='upkeep';upkeepPhase();}
-    else if(S.phase==='upkeep'){S.phase='mythos';S.round++;mythosPhase();}
+    else if(S.phase==='upkeep'){
+      if(S.chapter===1&&S.agendaIdx===2){const n=S.enemies.filter(e=>isGhoul(e.card)&&['hallway','parlor'].includes(e.location)).length;S.doom+=n;if(n)log(`议程 3a · 回合结束：走廊／客厅食尸鬼增加 ${n} 末日。`,'bad');}
+      S.phase='mythos';S.round++;mythosPhase();
+    }
     else if(S.phase==='mythos'){
       S.phase='investigation';S.playerTurn++;p().turn=S.playerTurn;S.playerActionsTaken=0;S.turnActions=3+(has('01048')?1:0);S.actions=S.turnActions;
     }

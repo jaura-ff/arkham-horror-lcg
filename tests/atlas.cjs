@@ -61,7 +61,7 @@ test('角色牌组内按资产、事件、技能、弱点分组；顶级不恢�
 test('地点、幕、议程不进入任何图鉴结果，游戏定义与目标推进数据仍保留',()=>{
  const g=setup();g.click('menuAtlasButton');assert.match(g.search('破碎门厅'),/没有匹配/);assert.match(g.search('幕 3a'),/没有匹配/);
  g.search('');g.select('enemy');assert.match(g.list.innerHTML,/首次进入宅邸铁门时出现/);assert.match(g.list.innerHTML,/不重复生成/);
- assert.equal(g.run('Object.keys(LOCATIONS).length'),9);assert.equal(g.run('ACT_DECK.length'),6);assert.equal(g.run('AGENDA_DECK.length'),3);
+ assert.equal(g.run('Object.keys(LOCATIONS).length'),10);assert.equal(g.run('ACT_DECK.length'),6);assert.equal(g.run('AGENDA_DECK.length'),3);
  assert.doesNotMatch(source,/Object\.entries\(LOCATIONS\)/);
 });
 test('顶级搜索牌名会定位拥有该牌的角色，牌组内搜索只筛选该角色的牌',()=>{

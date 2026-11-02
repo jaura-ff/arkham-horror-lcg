@@ -535,6 +535,7 @@ const LOCATIONS = {
   study:{name:'书房', shroud:2, clues:2, desc:'你熟悉的书房，书页被风吹得哗哗作响。', conn:['hallway']},
   hallway:{name:'走廊', shroud:2, clues:1, desc:'昏暗的走廊，尽头似乎有脚步声。', conn:['study','attic']},
   attic:{name:'阁楼', shroud:3, clues:2, desc:'吱呀作响的木梯通向一片黑暗。', conn:['hallway']},
+  parlor:{name:'客厅',shroud:0,clues:0,desc:'议程中的食尸鬼逃离目的地；现有改编地图未开放玩家进入。',conn:['hallway']},
   stairs:{name:'石阶入口',shroud:2,clues:1,desc:'旧箱里的钥匙打开了地板暗门。潮湿石阶向下延伸，墙内的抓挠声越来越近。',conn:['cellar']},
   cellar:{name:'地下窖室',shroud:3,clues:2,desc:'腐烂木桶之间留着新鲜拖痕。一个蜷缩的人影挡住了通往祭坛的窄门。',conn:['stairs','altar']},
   altar:{name:'仪式祭坛',shroud:4,clues:0,desc:'烛火围住一道仍在渗血的裂缝。先用两条线索辨认封印，再以意志抵抗门后的低语。',conn:['cellar']},
@@ -566,10 +567,16 @@ const ACT_DECK = [
 const AGENDA_DECK = [
   {id:'1a', threshold:3, text:'黑暗在蔓延。末日达到 3 时推进。'},
   {id:'2a', threshold:3, text:'低语愈发清晰。末日达到 3 时推进。'},
-  {id:'3a', threshold:0, text:'理智崩塌。你被黑暗吞没……（触发失败 R3）'},
+  {id:'3a', threshold:0, text:'调查时限已到：议程推进到终点，黑暗吞没了宅邸。本网页版触发失败 R3；即使生命和理智仍有剩余，也会结束本局。'},
 ];
 
 // 遭遇牌组
+const GATHERING_AGENDAS=[
+  {id:'1a',threshold:3,text:'发生什么了？末日达到 3 后翻面：选择随机弃置一张手牌，或承受 2 点恐惧。'},
+  {id:'2a',threshold:7,text:'食尸鬼崛起。末日达到 7 后翻面：洗回遭遇弃牌，弃牌直到找到食尸鬼并抽取它。'},
+  {id:'3a',threshold:10,text:'它们要逃出去了！进入本议程不会立即失败。敌人阶段结束时，未交缠食尸鬼向客厅移动；回合结束时，走廊和客厅每名食尸鬼增加 1 末日。达到 10 后翻面结算。'}
+];
+function agendaDeck(){return S?.player&&S.chapter===1?GATHERING_AGENDAS:AGENDA_DECK;}
 const ENCOUNTER = [
   {id:'ghoul1', name:'食尸鬼·仆人', emoji:'G', type:'enemy', fight:2, hp:2, dmg:1, horror:1, evade:2, hunter:false, victory:0},
   {id:'ghoul2', name:'食尸鬼·仆人', emoji:'G', type:'enemy', fight:2, hp:2, dmg:1, horror:1, evade:2, hunter:false, victory:0},
@@ -1082,7 +1089,7 @@ function renderEnemies(){
 
 function renderActAgenda(){
   const act = ACT_DECK[S.actIdx];
-  const agenda = AGENDA_DECK[S.agendaIdx];
+  const agenda = (typeof agendaDeck==='function'?agendaDeck():AGENDA_DECK)[S.agendaIdx];
   const goal=[
     {text:'收集线索，花费 3 条线索推进幕。',count:Math.min(3,Math.max(0,S.clues)),total:3,label:S.clues>=3?'线索已齐 · 可执行推进幕':`已持有 ${S.clues} / 3 条线索`},
     {text:'前往阁楼，执行「完成调查」。',count:S.location==='attic'?1:0,total:1,label:S.location==='attic'?'已抵达阁楼 · 可完成调查':'下一站：阁楼'},
@@ -1824,7 +1831,7 @@ function mythosPhase(){
   if(!S || S.gameOver || S.drawingCards || S.test) return;
   S.doom++;
   log(`神话阶段：末日 +1（当前 ${S.doom}）。`,'bad');
-  const agenda = AGENDA_DECK[S.agendaIdx];
+  const agenda = (typeof agendaDeck==='function'?agendaDeck():AGENDA_DECK)[S.agendaIdx];
   if(agenda.threshold>0 && S.doom>=agenda.threshold){
     advanceAgenda();
     if(S.gameOver){ render(); return; }
@@ -1851,7 +1858,7 @@ function drawEncounter(){
     if(c.id.startsWith('ancient')){
       S.doom++;
       log(`遭遇：<b>${c.name}</b> —— 末日 +1（当前 ${S.doom}）。`,'bad');
-      const ag = AGENDA_DECK[S.agendaIdx];
+      const ag = (typeof agendaDeck==='function'?agendaDeck():AGENDA_DECK)[S.agendaIdx];
       if(ag.threshold>0 && S.doom>=ag.threshold){ advanceAgenda(); }
     } else if(c.id.startsWith('whisper')){
       log(`遭遇：<b>${c.name}</b> —— 进行意志(2)检定。`,'bad');
@@ -1874,13 +1881,13 @@ function drawEncounter(){
 function advanceAgenda(){
   if(S.gameOver) return;
   if(S.agendaIdx+1>=AGENDA_DECK.length){ resolve('R3','你被黑暗吞没。'); return; }
-  const old = AGENDA_DECK[S.agendaIdx];
+  const old = (typeof agendaDeck==='function'?agendaDeck():AGENDA_DECK)[S.agendaIdx];
   S.agendaIdx++;
   S.doom = 0;
-  log(`议程推进：${old.id} → ${AGENDA_DECK[S.agendaIdx].id}`,'bad');
-  const ag = AGENDA_DECK[S.agendaIdx];
+  log(`议程推进：${old.id} → ${(typeof agendaDeck==='function'?agendaDeck():AGENDA_DECK)[S.agendaIdx].id}`,'bad');
+  const ag = (typeof agendaDeck==='function'?agendaDeck():AGENDA_DECK)[S.agendaIdx];
   if(ag.threshold===0 && ag.id==='3a'){
-    resolve('R3', ag.text.replace(/<[^>]+>/g,''));
+    resolve('R3', `议程推进：${old.id} → ${ag.id}。${ag.text.replace(/<[^>]+>/g,'')}`);
   }
 }
 
@@ -2054,9 +2061,9 @@ function resolve(code, text){
 <script src="game-header.js?v=spacious-1"></script>
 <script src="phase-help.js?v=hover-1"></script>
 <script src="hand-hover.js?v=faction-1"></script>
-<script src="board-inspect.js?v=asset-abilities-1"></script>
+<script src="board-inspect.js?v=gathering-agenda-1"></script>
 <script src="start-tutorial.js?v=choice-1"></script>
-<script src="player-runtime.js?v=slot-confirm-1"></script>
+<script src="player-runtime.js?v=gathering-agenda-1"></script>
 </body>
 </html>
 

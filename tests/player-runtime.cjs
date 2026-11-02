@@ -189,6 +189,25 @@ test('议程失败的回看保留章节地点末日，胜利回看不会误报�
  g.run('S.chapter=2;S.location="cellar";S.phase="mythos";S.doom=6;resolve("R2","末日达到上限，封印崩塌。");reviewLastRun();showRunReviewSummary()');assert.match(g.get('modalBox').innerHTML,/末日达到上限/);assert.match(g.get('modalBox').innerHTML,/地下窖室/);assert.match(g.get('modalBox').innerHTML,/神话阶段/);assert.match(g.get('modalBox').innerHTML,/末日 6/);assert.deepEqual(g.json('[S.chapter,S.location,S.doom,S.gameOver]'),[2,'cellar',6,true]);
  const h=game();h.run('resolve("R1","调查完成。");reviewLastRun();showRunReviewSummary()');assert.match(h.get('modalBox').innerHTML,/本局结算/);assert.doesNotMatch(h.get('modalBox').innerHTML,/失败原因/);
 });
+test('聚会议程采用3／7／10，进入3a不会立即失败；最终翻面才触发结局',()=>{
+ for(const assetDoom of [false,true]){
+  const g=game();g.run('S.agendaIdx=1;S.phase="mythos";S.doom=6;S.encounter=[];S.encounterDiscard=[]');assert.deepEqual(g.json('agendaDeck().map(c=>c.threshold)'),[3,7,10]);
+  if(assetDoom){g.add('01063','assets');g.run('S.player.assets[0].doom=1;S.doom=5');}
+  g.run('mythosPhase()');assert.deepEqual(g.json('[S.hp,S.sanity,S.gameOver,S.agendaIdx,S.doom,S.playerBusy]'),[9,5,false,2,0,false]);
+  g.run('S.doom=9;mythosPhase()');assert.equal(g.run('S.gameOver'),true);assert.equal(g.run('S.player.killed'),true);assert.match(g.run('S.runOutcome.text'),/议程 3b/);assert.doesNotMatch(g.run('S.runOutcome.text'),/理智崩塌/);
+ }
+});
+test('议程1b必须选择随机弃牌或2恐惧，期间不能偷抽遭遇，空手不可选择弃牌',()=>{
+ const g=game();g.run('S.doom=2;S.encounter=[ENCOUNTER[0]];mythosPhase()');const n=g.run('S.hand.length');assert.match(g.get('modalBox').innerHTML,/随机弃置/);assert.equal(g.run('S.enemies.length'),0);const nonce=g.run('S.playerChoice.nonce');g.run('mythosPhase();enterPhase()');assert.equal(g.run('S.playerChoice.nonce'),nonce);g.pick('随机弃置');assert.deepEqual(g.json('[S.hand.length,S.discard.length,S.agendaIdx,S.enemies.length,S.sanity]'),[n-1,1,1,1,5]);
+ const h=game();h.run('S.hand=[];S.doom=2;S.encounter=[];S.encounterDiscard=[];mythosPhase()');assert.match(h.get('modalBox').innerHTML,/disabled/);h.pick('随机弃置');assert.equal(h.run('!!S.playerChoice'),true);h.pick('承受 2');assert.equal(h.run('S.sanity'),3);assert.equal(h.run('S.playerBusy'),false);
+});
+test('议程2b从合并后的遭遇牌搜索食尸鬼，仍结算正常遭遇；末议程幕3给肉体创伤',()=>{
+ const g=game();g.run('S.agendaIdx=1;S.doom=6;S.encounter=[];S.encounterDiscard=[ENCOUNTER[0],ENCOUNTER[2]];mythosPhase()');assert.equal(g.run('S.enemies.length'),2);assert.equal(g.run('S.gameOver'),false);assert.equal(g.run('S.agendaIdx'),2);
+ const h=game();h.run('S.gatheringAct=3;S.agendaIdx=2;S.doom=9;mythosPhase()');assert.deepEqual(h.json('[S.resolutionCode,S.player.physicalTrauma,S.hp,S.sanity]'),['R0',1,9,5]);assert.match(h.run('S.runOutcome.text'),/勉强逃离/);assert.equal(h.run('!!S.player.killed'),false);
+});
+test('议程3a让未交缠的力竭食尸鬼向客厅移动，并在回合末按走廊客厅数量加末日',()=>{
+ const g=game();g.run('S.agendaIdx=2;S.phase="enemy";S.enemies=[{card:ENCOUNTER[0],hp:2,location:"attic",engaged:false,exhausted:true},{card:ENCOUNTER[1],hp:2,location:"hallway",engaged:false,exhausted:true}];enemyPhase()');assert.deepEqual(g.json('S.enemies.map(e=>e.location)'),['hallway','parlor']);g.run('S.phase="upkeep";S.doom=0;S.encounter=[];S.encounterDiscard=[];enterPhase()');assert.equal(g.run('S.doom'),3);assert.equal(g.run('S.gameOver'),false);
+});
 test('伤害与恐惧同时分配，资产可吸收且被击败后正确弃置',()=>{
  const g=game();g.add('01021','assets');g.run('applyPlayerLoss(3,1,"测试")');g.pick('看门狗');g.pick('看门狗');g.pick('看门狗');g.pick('看门狗');assert.deepEqual(g.json('[S.hp,S.sanity,S.player.assets.length,S.discard.at(-1).code]'),[9,5,0,'01021']);
 });

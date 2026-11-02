@@ -2021,7 +2021,7 @@ function resolve(code, text){
     ${win&&S.chapter===1?'<div class="ending-voice"><audio id="endingNarration" hidden preload="auto" src="assets/audio/ending-narration-natural-v2.mp3"></audio><p id="endingVoiceStatus" hidden role="status" aria-live="polite" style="margin:12px 0;font-size:11px;color:var(--dim)"></p></div>':''}
     ${S.canContinue?`<p style="font-size:12px;color:var(--dim);line-height:1.8">${S.chapter===1?'钥匙指向地板下的暗门。下一幕：地板之下。保留当前状态，继续前往地下室。':'裂隙已封闭，但你还必须离开宅邸。下一幕是本作故事的最终幕，人物状态与牌组会保留。'}</p><div class="center mb"><button class="btn primary" onclick="continueChapter()">继续下一幕 · ${S.chapter===1?'地下室':'黎明之前'}</button></div>`:''}
     ${win&&S.chapter===3?`<p style="font-size:12px;color:var(--dim);line-height:1.8">本作三幕故事已全部完成。这是网页版原创改编的结局，并非官方战役通关。</p><div class="menu-confirm-actions"><button type="button" class="btn primary" onclick="returnToMenuAfterVictory()">${uiIcon('home')}返回主菜单</button><button type="button" class="btn" onclick="location.reload()">重新开始</button></div>`:''}
-    <div class="center mb"><button type="button" class="btn" onclick="reviewLastRun()">返回查看本局</button><button class="btn" onclick="closeModal()">${uiIcon('close')}关闭</button></div>
+    ${S.canContinue?'':`<div class="center mb"><button type="button" class="btn" onclick="reviewLastRun()">返回查看本局</button><button class="btn" onclick="closeModal()">${uiIcon('close')}关闭</button></div>`}
   `);
   if(win){gameSfx('victory');if(S.chapter===1&&typeof beginEndingNarration==='function')beginEndingNarration();}
 }
